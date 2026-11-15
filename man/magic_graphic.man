@@ -1,0 +1,46 @@
+●魔法効果グラフィックの設定
+
+DM内部では 以下のオブジェクトIDを魔法効果表示用に使用しています。
+
+        ID             用途
+        !MLine0        Line・Pierce 光線用(先頭)
+        !MLine1         〃(中間)
+        !MLine2         〃(最後尾)
+        !MHit          Explode 弾・魔法hit 用
+        !MExplode0     Explode・sphere 爆発用
+          :                    〃
+        !MExplode8             〃(3x3=9升分)
+        !MHeal          回復系
+        !MCoat          攻撃力UP
+        !MProtect       防御力UP
+        !MIllusion      回避率UP
+        !MDown          能力値ダウン
+
+これらの表示内容は DM自身では特に変更はしていませんので
+マスターが phi.odに記述することにより自由に変更することが可能です。
+指定されていない場合 そのグラフィックは表示されません。
+
+Line用のグラフィックは3升分の長さがあり、先頭から!MLine0～!MLine2となっています。
+
+爆発のグラフィックは 3x3の9マス分を表示します。
+
+  !MExplode?
+         0 | 1 | 2
+        ---+---+---
+         3 | 4 | 5
+        ---+---+---
+         6 | 7 | 8
+
+爆発位置の必ず北西側が !MExplode0になります(手抜きです ^^;)
+どの方角から見られても形になるよう注意してください。
+
+
+その他のグラフィックと実際の魔法効果の関係は以下のようになっています。
+
+        回復    …Heal,Regenerate,Antidote,Remove,Awaken
+        攻撃UP  …Coat,Spell up
+        防御UP  …Protect,Shell,Force field,Reflex field,Mirror
+        回避UP  …Haste,Illusion,Vanish
+        ダウン  …Degrade,Spell down,Anti-protect,Anti-shell,Slow,
+                  Poison,Palsy,Panic,Confuse,Berserk,Silence,Blind,Divide
+

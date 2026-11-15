@@ -1,0 +1,45 @@
+●dmのオプション
+
+phi_dm には以下のオプションをつけることができます。
+
+        -logall         NPCの死亡も phi.log に書き出されるようになる
+
+
+●ファイルの説明
+
+        phi.bb          access時一行目にでてくる
+        phi.bd          ゲート移動した PC のデータ
+        phi.cd          exit した PC のデータ
+        phi.sav         PC の保存フラグ&変数のデータ
+        phi.crt         create の制御データ
+        phi.dd          地形データ
+        phi.ddx         phi.dd をサーバ動作時に更新する場合に使用
+        phi.ed          NPC データ
+        phi.ex          アイテムのゲート通過制限データ
+        phi.fd          フロア/エリアデータ
+        phi.id          世界に落ちているアイテムと座標のデータ
+        phi.inf         access/comein時にながれるインフォメーション
+        phi.log         サーバ動作時に書き込まれるログ
+        phi.sd          看板とロックの座標データ
+        phi.td          ゲート/諸設定のデータ
+        phi.swt         スイッチのデータ
+        phi.ad          マスターキャラの権限のデータ
+        phi.od          オブジェクトのデータ
+        backup/         異常終了時のデータファイル退避場所
+        phi_docs/       看板の内容ファイルが置かれるディレクトリ
+        phi_logs/       サーバ動作時に書き込まれるログ保存ディレクトリ
+        phi_cdi/        分割cd形式使用時に分割cdの置かれるディレクトリ
+        phi_shows/      showコマンド用ファイルを置くディレクトリ
+        phi_sdi/        分割sd形式使用時に分割sdの置かれるディレクトリ
+        phi_circle/     長期非開封サークルアイテムの保存ディレクトリ
+        phi_store/      倉庫アイテム保存ディレクトリ
+        phi_circle_b/   長期非開封サークルアイテムのバックアップ(Tofup Server Edition)
+        phi_mail/       伝言メール保存ディレクトリ(Tofup Server Edition)
+
+●注意事項など
+
+実行ファイル phi_dm は rename 可能です。
+
+エラーチェックは、かなり甘いのでサーバのデータを書き換える等するまえに
+バックアップをとるのが基本です。
+

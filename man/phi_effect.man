@@ -1,0 +1,280 @@
+●アクセサリタイプ一覧
+
+        00        None                  効果なし
+        01        Poison proof          毒を予防
+        02        Palsy proof           麻痺を予防
+        03        Drain proof           レベルドレインを予防
+        04        Theft guard           盗みを予防
+        05        Mental proof          精神効果(混乱、恐慌、狂戦士)を予防
+        06        See invisible         見えないクリーチャーも見えるようになる
+        07        Immortal              毒、麻痺、精神効果、沈黙を予防
+        08        Iron stomach          腐った FOOD を食べても Mp が回復する
+        09        Absorb                同様の属性攻撃を吸収し Hp を回復する
+        10        Stealth               Identify の呪文を回避する
+        11        Fly                   Quake の呪文を回避する
+        12        Helmet                Roof Shake の呪文を回避する
+        13        Umbrella              Rain の呪文を回避する
+        90        Counter attack        Counter attackが出し易くなる(NPCは付けてないと迎撃はしない)
+
+
+●リソースタイプ一覧
+
+        00        Resolver              破壊可能な地形を溶かす
+        01        Seeds                 草を生やす
+        02        Tree                  木を植える
+        03        Water                 水を作る
+        04        Wall                  壁を作る
+        05        Window                窓を作る
+        06        Door                  ドアを作る
+        07        Secret door           シークレットドアを作る
+        08        Protection            プロテクションサークルを作る
+        09        Glass                 ガラスの壁を作る
+        10        Roof                  天井を作成/破壊する
+        99        Dummy                 ダミー(効果無) オブジェリソース用
+
+
+●追加効果一覧
+
+        00        NONE                  なし
+        01        Poison                Hp が徐々に減少
+        02        Paralysis             移動不能
+        03        Panic                 Mp が徐々に減少し魔法使用不能
+        04        Confusion             入力が反転
+        05        Berserker             攻撃し続ける
+        06        Silence               魔法使用不能
+        07        Energy drain          ランダムでlevelにダメージ
+        08        Robbery               Gp を奪う
+        09        Mental damage         Mp にダメージ
+        10        Energy damege         MRP 防御
+        11        Holy attack           カルマの高い人に使うとダメージ
+        12        Chaos attack          カルマの高い者が使うと大ダメージ
+        13        Blind                 盲目にする
+        14        Knock                 攻撃した相手をふっとばす
+        15        Random                毒/麻痺/恐慌/混乱/狂戦士/沈黙/盲目
+                                        からランダムに効果を発揮する
+        16        Bad States            毒/麻痺/恐慌/混乱/狂戦士/沈黙/盲目
+                                        すべてを含む攻撃
+        17        Rick                  ライカンスロープへ攻撃可能
+        18        GURD3                 その他 3族とライカンスロープに
+                                        通常通り攻撃可能
+        19        GURD4                 その他 4族と以下同文
+        20        SAGA1                 伝説の生物 1と以下同文
+        21        SAGA2                 伝説の生物 2と以下同文
+        22        SAGA3                 伝説の生物 3と以下同文
+        23        SAGA4                 伝説の生物 4と以下同文
+        24        DragonSlayer          龍族に通常通りに攻撃可能
+        25        GodSlayer             神族に以下同文
+        26        ElementSlayer         霊族に以下同文
+        27        DemonSlayer           魔族に以下同文
+        28        GURD1                 その他 1族に以下同文
+        29        GURD2                 その他 2族に以下同文
+
+
+●SE一覧
+
+        00        None                  なし
+        01        ATP Up                攻撃力アップ
+        02        ATP Down              自分の攻撃力ダウン
+        03        DEF Up                物理防御率アップ
+        04        DEF Down              自分の物理防御率ダウン
+        05        MRP Up                魔法防御率アップ
+        06        MRP Dpwn              自分の魔法防御率ダウン
+        07        Speed Up              速度アップ
+        08        Speed Down            自分の速度ダウン
+        09        Illusion              魔法回避率アップ
+        10        Regenerate            Hp が徐々に回復
+        11        Will                  Mp が徐々に回復
+        12        Poison                自分が毒(Hpが徐々に減少)に
+        13        Palsy                 自分が麻痺(移動不能)に
+        14        Panic                 自分が恐慌(Mpが徐々に減少)に
+        15        Confuse               自分が混乱(入力が反転)
+        16        Berserk               自分が狂戦士化(攻撃し続ける)
+        17        Silence               自分が魔法使用不能になる
+        18        Karma Up              カルマが徐々に上昇
+        19        Karma Down            カルマが徐々に減少
+        20        Clairvoyance          霧を透視する
+        21        Blind                 周囲が見えなくなる
+        22        Raise Dead            死亡した時、即座に蘇生(他殺限定)
+        23        Pass Wall             障害物通過 (*)
+        24        Gigant groth          巨大化する
+        25        Vanish                透明になる
+        26        Mirror                呪文を反射する (*)
+        27        Spell up              呪文の威力が上昇する
+        28        Spell down            呪文の威力が減少する
+        29        Stealth               Identify の呪文を回避する
+        30        Hit is Use            Charge Item を hit で使用する
+        31        Hit with Use          Charge Item を hit が成功したら
+                                        use する
+        32        Shrink                Hp が 5000以上の時通常サイズに
+                                        縮小する
+        33        Root                  NPC が装備すると、動かなくなる
+        34        Contrast              魔法回避率ダウン
+        99        Appear                召喚クリーチャーを呼び出す/消滅させる
+
+  (*) の S.E. をもつアイテムは一般の PC には適用されません
+
+  特殊効果の威力は, アイテムの名前の長さで決定されます. 同じ長さの名前を持つ
+  魔法やCharged Itemと比べると1/2の威力になります. また装備した瞬間に威力が決定
+  され, 以後そのアイテムを外すまで同じ威力を保ちます.
+
+  特殊効果Raise deadのアイテムは, 装備者が殺された時点で壊れてしまいます.
+  ただしNo-Breakの品物だった場合は壊れないので, 何度でもよみがえります.
+  Raise deadの装備を複数持っている場合, アクセサリ→鎧→武器の順で壊れます.
+  また, 毒, 恐慌, 魔法のバーストによる死亡は他殺とはみなされません.
+
+  NPCは自分に不利になるような品物は装備しませんが, 耐性を持っているものなら
+  装備します. 例えば, 魔法生物や, Max Hpがゼロの者, Poison proofのアクセサリ
+  を装備しているものなどは, 特殊効果Poisonのものも平気で装備します.
+
+
+●魔法一覧
+
+     魔法の 魔石の
+      番号   番号
+        01        Hp Damage(Line)       Hp にダメージ
+        02        Hp Damage(Pierce)     Hp にダメージ(貫通系)
+        03        Hp Damage(Explode)    Hp にダメージ(爆発系)
+        04        Hp Damage(Sphere)     Hp にダメージ(周囲系)
+        05        Mp Damage(Line)       Mp にダメージ
+        06        Mp Damage(Pierce)     Mp にダメージ(貫通系)
+        07        Mp Damage(Explode)    Mp にダメージ(爆発系)
+        08        Mp Damage(Sphere)     Mp にダメージ(周囲系)
+        09        Heal(Self)            自分の Hp を回復
+        10        Heal(Sphere)          自分と周囲の者の Hp を回復
+        11        Regenerate            Hp が徐々に回復
+        12        ATP Up                攻撃力アップ
+        13        ATP Down              相手の攻撃力ダウン
+        14   16   DFP Up                物理防御率アップ
+        15   17   DFP Down              相手の物理防御率ダウン
+        16   18   MRP Up                魔法防御率アップ
+        17   19   MRP Down              相手の魔法防御率ダウン
+        18   20   Speed Up              速度アップ
+        19   21   Speed Down            相手の速度ダウン
+        20   22   Illusion              魔法回避率アップ
+        21   23   Poison                相手に毒(Hpが徐々に減少)を盛る
+        22   24   Paralysis             相手を麻痺(移動不能)させる
+        23   25   Panic                 相手をパニック(Mpが徐々に減少)させる
+        24   26   Confusion             相手を混乱(入力が反転)させる
+        25   27   Berserker             相手を狂戦士(攻撃し続ける)にする
+        26   28   Silence               相手を魔法使用不能にする
+        27   29   Cure Poison           解毒
+        28   30   Cure Paralysis        麻痺解除
+        29   31   Cure Mental Effect    精神的効果を解除
+        30   32   Force Field           絶対物理防御
+        31   33   Reflex Field          絶対魔法防御
+        32   34   Erase                 自分にかけられた魔法の効果減衰
+        33   61   Mirror                相手からの呪文を跳ね返す(*)
+        34   62   Vanish                姿を消す(*)
+        35   63   Blind                 相手を盲目にする(*)
+        36   64   Hp divide             相手の Hp を 1/? にする(*)
+        37   65   Mp divide             相手の Mp を 1/? にする(*)
+        38   14   Spell Power Up        魔法の威力上昇
+        39   15   Spell Power Down      相手の魔法の威力下降
+        40        Roof Shake (Hp)       同階層の相手に天井から攻撃
+        41        Rain (Hp)             同階層の相手に空から攻撃
+        42        Quake (Hp)            同階層の相手に地面から攻撃
+        43        Roof Shake (Mp)       Mpにダメージ
+        44        Rain (Mp)             Mpにダメージ
+        45        Quake (Mp)            Mpにダメージ
+        61   35   Heal (Mental)         相手に Mp を譲る(v5x Rel.11)
+        62   36   Contrast              魔法回避率ダウン(v5x Rel.13)
+        66        Remote get            Callした場所からアイテムを取る(*)(v5x Rel.9)
+        67        Remote put            Callした場所にアイテムを送る(*)  (v5x Rel.9)
+        68        Save life             相手を一定時間死から護る(*)      (v5x Rel.9)
+
+  魔法の威力、消費 Mp はその魔法のスペルの長さで決まります。
+  (*)の魔法は聞いても覚えられません。
+  魔法と魔石では一部 番号が違います。
+
+
+●システム魔法一覧
+
+誰にでも使用できるシステム魔法です。これらは phi.ed などには記述できません。
+
+        Eagle eye       付近一体の様子を知る
+        Wizard eye      他の PC との相対位置を知る
+        Party eye       パーティメンバーとの相対位置を知る.
+        Wizard light    他の PC との相対位置とメールアドレスを知る(マスター動作)
+                        一般PCはListと同等
+        Search          看板の始め 2行分から文字列を検索する
+        Create           2つのアイテムを合成してアイテムを創る
+        Detect          アイテムを鑑定する
+        Wizard lock     扉やプロテクションサークルに鍵をかける
+        Unlock          自分がかけた鍵を外す
+                        マスターならば、すべての鍵を外すことが可能
+        Call            現在位置をマーキングする
+                        立っている位置とは限らない場合もある(phi.fdを参照)
+        Return          最後に通った世界間ゲートか、マークした位置に転移する
+                        PC が使った場合、所持アイテムを失うことがある
+        Destroy         アイテムを破壊する
+        Analyze         習得している魔法の効果を知る
+        Identify        目の前の相手のスタータスを知る
+        List            プライベートメッセージを送るためのリストを得る
+        Forget          自分の所持している呪文の消去
+        Win talk        敵を倒したとき、自動的に入力したセリフを言う
+        Lose talk       倒されたとき、自動的に入力したセリフを言う
+        Charge spell    jewel に使用することによって魔法を封印する
+                        (:U オプションでCOを指定すること)
+        Appear xxxx     NPC xxxx を召喚(xxxx は NPC の名前)
+        Disappear xxxx  NPC xxxx を消滅
+
+
+●マスター専用魔法一覧
+
+以下は、マスター専用魔法です これらはphiedなどには記述できません。
+
+        Eye of the Yog=Sothoth  その世界のすべてのクリーチャーの位置を知る
+        Book of the Yog=Sothoth マップ上に存在するキャラクタの詳しい情報が
+                                phied.log に書き出される
+        Dumapic                 自分の絶対座標を知る
+        Resource xx zz          地形を変更する。(xx には実際の地形を記述。zzは見た目の地形をオプションで指定可能)
+        Wish "item data"        アイテムを作成する
+        Dup                     アイテムを複製する
+        Malor                   絶対/相対位置指定でテレポートする
+        Pass wall               一定時間壁を通り抜け可能に
+        Basi Rurla [num] x y    [num]のPCをx,yへ移動させる
+        Cache                   所持金を TAX に移動する
+                                所持金が 0 の場合は TAX から現金を取り出す
+        Evil wind from Hyades   全 PC をサーバから排除する
+        Evil wind from Malaika  全 PC をサーバから排除して shutdown する
+        Evil wind to [num]      list番号から得られる数字を[num]に当てはめる
+                                ことにより特定の PC を kick する
+        Brizzard from Cokyutos  指定した番号[num]のＰＣを排除し、再接続を
+                to [num] [min]  [min]分間禁止.省略時は60分.
+                                時間の代わりに - を指定すると キャラID BAN
+        Close box of Pandora    指定したアドレスからの接続を指定分間禁止.
+                                時間を指定しない場合は無期限
+        Open box of Pandora     指定したアドレスの接続禁止を解除
+        Load ban                phi.tdから接続禁止情報を読み直す(初期化)
+        Load td                 Load gate + swt + ban
+        Load gate               phi.td のゲートデータのみ再読み込み
+        Close gate              世界間ゲートを閉じる(tdは更新されない)。load gateで再open出来る。
+        Load swt                phi.swt を再読み込み
+        Load fd                 phi.fd を再読み込み
+        Load crt                phi.crtを再読み込み
+        Load ed                 phi.ed を再読み込み
+        Load dd                 phi.dd を再読み込み
+        Load ddx                phi.fd の X オプションのついた領域の
+                                phi.ddx を再読み込み
+        Load ex                 phi.ex を再読み込み
+        Load obj                phi.od を再読み込み
+        Load sd                 phi.sd を再読み込み
+        Save id                 phi.id をすぐに更新
+        Save obj                phi.od をすぐに更新
+
+        Flag                    ONになっている汎用フラグの番号を表示する
+        Variable                汎用変数の内容を表示する
+
+        Metamorphosis           FLV, WLV, MLV, CLV, MHp, MMp, karma の
+                                値を変更する
+        Restoration             Hp と Mp を最大値に回復し、一時的な
+                                負のステータスを回復する
+
+        Createobj [obj data]    オブジェクト作成。パラメータはphi.odの:O(座標抜き)と同様
+        Eraseobj                オブジェクト消去。(ID付きオブジェはphi.odに残ります)
+
+        Jump [num]              指定した番号[num]のＰＣの位置に移動（Tofup Server Edition)
+        Draw [num]              指定した番号[num]のＰＣを自分の位置に移動（Tofup Server Edition)
+
+        deny PK                 PK禁止に設定する（Tofup Server Edition)
+        permit PK               PK許可に設定する（Tofup Server Edition)

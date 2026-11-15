@@ -1,0 +1,107 @@
+v5y rel 5g (2009/03/15)
+・分割cd形式(cdi)及び分割sd形式(sdi)用コンパイル時にコンパイルが通らなくなっていたデグレード修正
+
+v5y rel 5f (2006/08/10)
+・エリア分割を使用し fdに:Eの記述が一つも無い時 接続するとSEGV落ちするbug fix
+
+v5y rel 5e (2005/08/27)
+・:Aメッセージのフラグonからスイッチでメニューを起動した時
+　メニュー番号と同じ:Aメッセージが表示され メニューの入力待機状態がキャンセルされるbug fix
+
+v5y rel 5d (2005/08/02)
+・初期キャラグラ設定がなされていない状態で新規登録時にyで始まるメールアドレスを入力すると
+　確認なしで登録される bug fix (2005/06/15)
+・PCが一人も接続していない時 処理ウェイトが 0になっていた bug fix
+
+v5y rel 5c (2005/05/20)
+・:Aメッセージで存在しない番号を指定するとキャラが動けなくなる bug fix
+
+v5y rel 5b (2005/05/16)
+・隠しゲートを通ってPCが他世界へ移動した後 load td/gateするとSEGV落ちするbug fix
+
+v5y rel 5a (2005/05/10)
+・変数未初期化による誤作動に対処
+
+v5y rel 5 AnblickMasse (2005/04/24)
+・正式公開
+
+v5y rel 5 test 32 (2005/04/22)
+・#ex-register start 時に スタートした接続とは関係ないキャラのwaitが1分になる bug fix
+
+v5y rel 5 test 31 (2005/04/20)
+・コンパイル環境によってtrigraphの警告が出る問題に対処
+
+v5y rel 5 test 26 (2005/03/30)
+・Remote Put/Getでスイッチ上に反応するアイテムを置いてキャラが転送された時
+　元の位置にキャラの残像が残る bug fix
+・変数操作の式で式全体を括弧で括った時括弧が対応しているのに
+　対応していないというエラーが表示される bug fix
+
+v5y rel 5 test 24 (2004/12/12)
+・NoSkill時に15x15のEagle EyeがSkillを参照してしまっていた bug fix
+
+v5y rel 5 test 22 (2004/11/17)
+・:Aメッセージで番号を飛び飛びに使用している時 SCROLLアイテムでメッセージを
+　流そうとすると違った番号のメッセージが表示されたりキャラが動けなくなる bug fix
+
+v5y rel 5 test 21 (2004/10/31)
+・SpellUPした状態で SpellDownを掛け合うと SpellPointが累計的に減少し
+　魔法効果が反転・過大な効果が得られるバグを修正
+
+v5y rel 5 test 20 (2004/9/9)
+・skillありのdetect時の確率計算で不正な値を参照していたのを修正
+
+v5y rel 5 test 19 (2004/6/6)
+・変数操作スイッチでキャラ位置を変更した時 元の位置にキャラ参照が残るbug fix
+
+v5y rel 5 test 17 (2003/12/13)
+・サークル内アイテムがファイルに吐き出された後 ddを直接編集してサークルを消し
+  load ddすると アイテムを置いた途端 以前置かれていたアイテムが復活する bug fix
+
+v5y rel 5 test 16 (2003/10/11)
+・隠しゲートを通ってPCが他世界へ移動した後 load td/gateするとSEGV落ちするbug fix
+・payで 不正な数値で金銭を受け渡せる bug fix
+
+v5y rel 5 test 15
+・titleコマンドでない番号を指定すると看板が壊れる bug fix
+・#privの範囲外指定での SEGVに対処
+
+v5y rel 5 test 14
+・PSPdmからグラ設定されているキャラが入ろうとすると入れないbug fix
+
+v5y rel 5 test 12
+・接続するとセグ落ちしてしまう(汗) bug fix
+
+v5y rel 5 test 11
+・新規時にキャラ別フラグが初期化されず 前の接続キャラの値が残っていたbug fix
+
+v5y rel 5 test 9
+・show用skill説明ファイルを追加
+
+v5y rel 5 test 8
+・sphere効果のチャージアイテムを使った時 自分に効果が出ない事がある bug fix
+
+v5y rel 5 test 7
+・アイテムを置いた/拾った時スイッチで 動けない:Aを流そうとすると 動ける bug fix
+
+v5y rel 5 test 5
+・wildcard使用可能な部分で 2byte目が メタキャラクタの文字を使用できない
+  問題に対処
+・倉庫に有るアイテム数より大きい番号に-付でgetしようとした時 無限ループに陥る bug fix
+・wishで Drop only 指定を付けると 非チャージアイテムでも チャージ中表示が出る bug(?)fix
+・スイッチが機能しなくなっていたbug fix
+
+v5y rel 5 test 4
+・最新cygwinの環境で起動できても接続できない問題に対処
+
+v5y rel 5 test 3
+・腐った Foodを食べた時にメッセージがダブって出る bug(?)fix
+・同梱の cnv_sd.pl の諸々 bug fix
+
+v5y rel 5 test 2
+・joinせずにpartyメッセージを使うと 大声になる bug(?)fix
+
+v5y rel 5 test 1
+・joinしてなくても byeで パーティ離脱メッセージが出るbug(?)fix
+・HITTOUSEのチャージアイテムで攻撃した時 残数が0になって壊れると
+  SEGV落ちする bug fix

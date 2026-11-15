@@ -1,0 +1,11 @@
+同梱scripts 説明
+
+ cnv_sd.pl      … sd <-> SDI 変換
+ pspod2v5x.pl   … psp <-> v5x  phi.od 変換
+ v5x2y.pl       … v5x -> v5y データ変換(dd od swt)
+
+ deleteid.sh    … 指定キャラの看板・ロックデータ一括消去
+ td2swt.sh      … td(v5x rel.9以前) -> td/swt 分割
+
+
+データファイルのあるディレクトリで実行して下さい

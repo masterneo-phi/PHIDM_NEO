@@ -1,0 +1,73 @@
+phiプロトコル (version 04420001 上位互換)                 1997/2/14 Lindwurm
+                                                   update 2001/6/14 Qajin
+----------------------------------------------------------------------------
+
+サーバー → サーバー
+#chr-D *        キャラクターデータの転送
+#g-close *      リンク先のサーバーにゲート削除要求
+#gate *         リンクしたいサーバーにゲート相互接続要求
+#shutdown *     世界中のサーバーを落とす
+#rcv-ok         サーバーがキャラクターの受け取りに成功
+#rcv-no         サーバーがキャラクターの受け取りに失敗
+
+サーバー → クライアント
+#name *         名前通知
+#lag            ラグタイム計測
+#map *          マップデータ (v5.0 Expansion)
+#status *       キャラクターステータスデータ
+#cond *         キャラクターのコンデション
+#ch-srv *       *に接続可能かどうかの確認
+#rsv-ok         キャラクター転送準備了承
+#trs-no         キャラクターの転送に失敗
+#trs-ok         同成功
+#x              回線切断通知（ソケットフル、キャラクターなし、２重ログイン）
+#close          回線切断通知
+#s-edit         １行文字入力
+#m-edit         複数行文字入力開始
+#.              同終了
+#more           多数行文字送信開始
+#end-more       同終了
+#attack         攻撃後の次攻撃準備中
+#end-at         同完了
+#magic          呪文詠唱中
+#end-mg         同終了
+#list           リスト表示開始
+#imagelist      ?
+#end-list       #list,#imagelist終了
+#getimage *     ?
+#code-euc-ok    eucでの送信了承
+#code-utf-ok    utfでの送信了承 (v5.0 New)
+#code-sjis-ok   sjisでの送信了承 (v5.0 New?)
+#version-srv *  サーバーのプロトコルバーション
+#leave-win *    *のphiクライアントのフォーカスが他へ移った
+#enter-win *    同フォーカスが戻った
+#user ? *	ユーザ ? とその名前 *
+#priv ? *       ユーザ ? からクライアント宛メッセージ * が来た
+#set-user-id *  ユーザＩＤを * として新規登録完了
+#remap          #map応答要求 (v5.0 New?)
+
+クライアント → サーバー
+#open *         *のキャラクターでの接続要求
+#end-lag        #lagに対する返事
+#reserve *      転送先にキャラクター転送準備要求
+#no-srv         指定サーバーへの接続不能
+#trans *        指定IPのサーバーへのキャラクター転送要求
+#ch-srv-no      サーバーチェンジに失敗
+#ch-srv-ok      同成功
+#code-euc       EUCでの送信要求
+#code-utf       utfでの送信要求 (v5.0 New)
+#code-sjis      sjisでの送信要求 (v5.0 New?)
+#version-cli *  クライアントバーション送信
+#leave-win      phiクライアントから他へフォーカスが移った
+#enter-win      同フォーカスが戻った
+#map            マップ情報要求 (v5.0 New?)
+#map-iv *       *時間ごとにマップデータの自動送信要求 (v5.0 New)
+#status         ステータス情報要求 (v5.0 New?)
+#status-iv *    *時間ごとにステータスデータ自動送信要求 (v5.0 New)
+#ulist          ユーザ情報 #user 送信リクエスト
+#priv ? *       ユーザ ? のクライアントへメッセージ * を送信
+#x              強制切断
+
+
+マッククライアントがんばれ・・・
+

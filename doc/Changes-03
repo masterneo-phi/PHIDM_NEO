@@ -1,0 +1,128 @@
+
+Changes to phi_dm from previous versions
+========================================
+
+phi_dm version 5.09 stream psp version
+--------------------------------------
+* fix1-4のまとめ&公開用変更(psp14n2.2 fix5)
+* strlcpy/snprintf導入によるBOF問題の根本解決(psp14n2.2 fix2)
+* リソース同時使用の永久ループ問題解決(psp14n2.2 fix2)
+* 積年のBoF問題を２件解決
+ - see fix_info (psp14n2.2 er5)
+* HTTP GET 実装 (psp14n2.2 keyverdure)
+ - DMWEB内包可能に
+ - ephi_strn_replacestrを利用したテンプレートによる自由な画面作成
+ - %taxと%landが利用可能
+* マルチ言語化 (psp14n2.2 keyverdure)
+ - 日本語 (default)
+ - 英語
+ - 英語はphiwinの引っかけを対応せず回避
+ - 日本語 + slang (多種追加可能)
+ - slang "DeepMix" (笑)
+ - configureで選択
+* タイムアタック (psp14n2.2 keyverdure)
+ - 作動21番スイッチ
+ - 残り時間表示終了23番スイッチ
+ - 無言終了24番スイッチ
+* ライズ付き即死スイッチ(22番)
+* 周辺メッセージスイッチと:Aメッセージの変更 (psp14n2.2 keyverdure)
+ - ephi_strn_replacestrを利用したテンプレートによるメッセージ作成
+ - %nameを利用可能
+* wizard lightの廃止 (psp14n2.2 keyverdure)
+ - wizlistで置き換え
+* 「飼い慣らされた」ＮＰＣモード。野性化ルーチン。 (psp14n2.2 keyverdure)
++ adrのformatAをソースから除去 (psp14n2.2 keyverdure)
+* ephi cdiによるphi.cdのハッシュ分散化、超高速化 (psp14j2.1 keyleaf)
+ - configure で分割数指定可能 (14n2.2)
+ - DM自身にphi.cdの分割機能を搭載。cdiへの追加用にも使用可能 (14j2.1)
+* ドキュメントの整備 (psp14j2.1 keyleaf)
+* ephi additional features (psp14j2.0 keyseed)
+ - wizcmp
+ - wiziplist
+ - access/in logにip付加
+ - ephi item enchantment
+ - detectのenchantment対応
+ - SILIMIT(LV/EXP)
+ - xlv メッセージ
+ - wizgrasp
+ - welcome message の一覧をwizgraspに
+ - show command
+ - switch action 20 (show)
+ - chrdata初期化処理フック
+ - formatA コード準備 (未activate)
+* Changes等を統合 (psp14j1.5)
+* Augus氏のパッチを適用 (configure) (psp14j1.5)
+* Augus氏のパッチを適用 (remove/unlink) (psp14j1.5)
+* レベルアップ表示の導入、タイミングはexpカウント時のみ (psp14j1.5)
+* xxx_SI_LIMITの導入、xlv/exp制限 13j5.92より移植 (psp14j1.5)
+* 初期化ルーチンを追加分のみ統合 (psp14j1.5)
+* "capital punishment" "meekwind to" 13j5.92より移植 (psp14j1.5)
+* "board send"(board_title切替) 13j5.92より移植 (psp14j1.5)
+* バッファ先読みによるTPHIラグ救済 (psp14j1.4)
+* 全ファイルをSJIS-DOSコードに統一 (psp14j1.3)
+* レベル「総合」の導入 (psp14j1.3 psp14j2より移植)
+* 戦闘メッセージ、レイピア速度計算、spat等変更 (担当:GREN)(psp14j1.2)
+* spat拡張 (psp14j1)
++ formatA対応 (psp14j1 ... 14j0より移植)
+* 5.81stableよりソースコードを移行 (psp14j-current)
+* #ch-srv-okからのキャラ乗っ取り防止 (psp13j5.81 Starwind ... 5.9xより移植)
+* phiwin３重エラー対策 (psp13j5.81 Starwind ... 5.9xより移植)
+* ItemData構造体省メモリ (psp13j5.81 Starwind ... 5.9xより移植)
+* いろいろメッセージ部を修正。(psp13j5.7 Silvis R2)
+* フード使用メッセージ部を修正。(psp13j5.6 Silvis +)
+* スイッチ01,06条件に新しく起動条件を追加(psp13j5.5 Silvis)
+    現在Hp=10    最大Hp=11    現在Mp=12    最大Mp=13 (全て4桁表記）
+   Wizard eye, Wizard lightの発動させる予約語をそれぞれwizeye, wizlightに変更にともない
+    Mpをそれぞれ2ずつ消費するようにした。
+   予約語wizviewでMpを2消費しEagle eye発動。
+   Hpを200消費することでMpを10回復させるwizchangeを追加。
+   予約語counterspellで0～3秒間のランダムでミラー効果。
+   続日本語見直し修正。
+* :Bのstr_gc()内での漏れを修正(psp13j5 Silky Dog)
+* phi_*.cの日本語を見直し修正（担当:GREN）(psp13j5 Silky Dog)
+    Wizard eyeとWizard lightを魔法としてではなく予約語として打ち込むと
+    Mp消費無し&魔法詠唱メッセージ無しで使用可能に。
+* phi_attack.cの変更 (WhiteWolf-Rayさんによる日本語化）(psp12j5)
+* ewl22の組込み（tcp.cを除く）(psp12j5)
+    アイテムタイプc,dが使用可能に
+* magicalenhancer導入（テスト）(psp12j4)
+    攻撃方向がfのfoodがmp最大値に作用。
+　　　VALUE1=99 ... mpmax += VALUE2
+      VALUE1<>99 ... mpmax -= VALUE2
+    パラメータを増やさずに機能を増やすテストケース。
+* phi_use.c, phi_magic.cの変更（Saoさんによる日本語化）(psp12j4)
+* 省メモリ(psp12j3)
+    utfモードを削除(テーブルが不要になり、省メモリ)
+    オブジェクト配置機能をfindstrで省メモリ化
+    利用されていない機能(imageなど)を削除
+* 日本語化(psp12j)
+    phi_dm.c、phi_data.c、phi_magic.cの変更
+    eucモードを削除
+* psp11のバグfix(psp12)
+    phi.odが無い場合のプロセス永久スリープなど
+* psp4のバグfix(psp12)
+* オブジェクト配置（実用レベル）(psp11beta)
+    phi.odの記述など
+* オブジェクト配置（基本部分の構築） (psp11alpha)
+　　※psp11α版を使った例：
+　　  http://www.phantasmal.net/~aleph/open/zer_19991226.gif
+* キャラグラ変更スイッチ。
+  自分からも他人からも指定の巨大キャラグラに見える(15 cgname) (psp10)
+    phi.tdの設定例：
+        :S 051 110 06 00 0000 051 110 15 "hune01"
+* 12番#name再送スイッチを、15番スイッチの解除に拡張。(psp10)
+    ※ 解除は最後の動作の１モーション手前に置くと良いです。
+* ^^（通れない水）追加(psp9)
+* TPHI操作補助(psp8)
+* 暦表示オプション(:t)追加。phi.tdに記述。(psp7)
+* #shutdown拒否時のメッセージを修正、IPを表示 (psp6)
+* #mapset(:S), #bgm(:M)追加。phi.fdに記述。
+  version-cli > 05100006以上で有効、set_view、及び
+　version-cli時に発行。version-cliの場合は#remap発行 (psp6)
+* #shutdown拒否時のSEGV修正 (psp5)
+* 隠しゲート(:g)追加 (psp5)
+* 13番ゲート起動スイッチ追加 (psp5)
+* ipによる接続制限機能(:B)追加 (psp4)
+* メッセージデータ(:A)に連携した強制転送機能追加 (psp3)
+* 12番#name再送スイッチ (psp2)　→キャラグラの動的変更が可能
+* food create fix (psp1)

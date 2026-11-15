@@ -1,0 +1,42 @@
+v5y rel 2h
+・m57 Eagle eye上のアイテムタイプ表示をするようにした
+・初期化時にhostnameが取得できないとセグ落ちする問題に対処
+
+v5y rel 2g
+・キャラ入国処理中にそのキャラ番号以降のキャラが固まるbug fix
+
+v5y rel 2f
+・NPCに:Aメッセージを流した時NPCが止まったままになる bug fix
+・NPCに:Aメッセージの1つめしか流れない bug(?)fix
+
+v5y rel 2e
+・アイテムが拾えなくなる事があるbug fix
+
+v5y rel 2d
+・分割cd形式(cdi)用コンパイル時にコンパイルが通らなくなっていた不具合修正
+
+v5y rel 2c
+・spell downでanti-protectも掛かっていたバグ修正
+・リソース用拡張をリソース以外に指定した場合の読込時削除処理のバグ修正
+
+v5y rel 2b
+・HPが上がらないバグ修正
+
+v5y rel 2a
+・09のメッセージスイッチで途中から動けるバグ修正
+
+v5y rel 2 Illsearth
+・反応ないので(ぇ) 正式版にする
+
+v5y rel 2 beta 2
+・Linuxでコンパイルが通らない問題に対処
+
+v5y rel 2 beta 1
+・S.E.のCONTRASTの効果が出ていなかったバグ修正
+
+v5y rel 2 test 10
+・NPCのidentify抑制でk(arma)を指定すると
+　speedも非表示になっていたバグ修正
+
+v5y rel 2 test 7
+・Holyでダメージが振り切って0になるバグ修正

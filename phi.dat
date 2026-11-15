@@ -1,0 +1,333 @@
+
+	- Material -
+					   wp   atp   no use
+					   v    v     v
+					      fn   no use
+					      v    v
+:I 99 Leather                         0060 10 n 01 00 00 00
+:I 99 Wood                            0160 10 n 01 00 00 00
+:I 99 Stone                           0260 10 n 03 00 00 00
+:I 99 Steel                           0360 10 n 05 00 00 00
+:I 99 Silver                          0460 10 n 05 00 00 00
+:I 99 Mythril                         0560 10 n 06 00 00 00
+:I 99 Auric-halcyon                   0660 10 n 07 00 00 00
+:I 99 Adamantite                      0760 10 n 10 00 00 00
+
+	- Armor -
+					   wp   atp   magic resist rate
+					   v    v     v
+					      fn   defence rate
+					      v    v
+:I 99 Robe                            0001 05 n 01 00 05 00
+:I 99 Cloth                           0001 05 n 01 05 00 00
+:I 99 Leather doublet                 0001 10 n 01 10 00 00
+:I 99 Leather armor                   0061 20 n 05 15 00 00
+:I 99 Ring mail                       0361 30 n 15 20 20 00
+:I 99 Breastplate                     0361 30 n 15 25 00 00
+:I 99 Chain mail                      0361 30 n 15 30 00 00
+:I 99 Scale mail                      0361 40 n 15 35 10 00
+:I 99 Lameller mail                   0361 40 n 15 40 00 00
+:I 99 Full plate                      0361 80 n 10 50 00 00
+
+:I 20 Crystal mail                    0361 30 n 15 25 10 00 ... mrp+10
+:I 10 Silver mail                     0461 30 n 15 25 10 00 ... mrp=10
+:I 05 Mythril mail                    0561 30 n 18 31 25 00 ... dfp*1.25 mrp=25
+:I 02 Auric mail                      0661 30 n 22 37 50 00 ... dfp*1.50 mrp=50
+:I 01 Adamant mail                    0761 30 n 30 43 00 00 ... dfp*1.75
+:I 01 Magical mail                    0861 30 n 15 25 75 00 ... mrp=75
+
+	- Weapon -
+					   wp   atp   special effect
+					   v    v     v
+					      fn   enhance rate
+					      v    v
+:I 99 Brass knuckle                   0302 01 n 02 00 00 00
+:I 99 Iron claw                       0302 02 n 04 00 00 00
+
+:I 99 Knife                           0312 02 n 02 00 00 00
+:I 99 Dagger                          0312 04 n 04 00 00 00
+:I 99 Short sword                     0312 08 n 08 00 00 00
+:I 99 Long sword                      0312 12 n 12 00 00 00
+:I 99 Broad sword                     0312 16 n 16 00 00 00
+:I 99 Bastard sword                   0312 18 n 18 00 00 00
+:I 99 Claymore                        0312 20 n 20 00 00 00
+:I 99 Flamberge                       0312 24 n 24 10 00 00
+:I 99 Great sword                     0312 28 n 28 00 00 00
+:I 99 Grand sword                     0312 32 n 32 00 00 00
+
+:I 99 Scimitar                        0322 08 n 06 00 00 00
+:I 99 Talwar                          0322 12 n 09 10 00 00
+:I 99 Saber                           0322 16 n 12 00 00 00
+:I 99 Falchion                        0322 20 n 15 00 00 00
+:I 99 Grand shamshir                  0322 24 n 18 00 00 00
+:I 99 Katana                          0322 32 n 24 10 00 00
+
+:I 99 Rapier                          0332 04 n 06 00 00 00
+:I 99 Epee                            0332 08 n 12 00 00 00
+:I 99 Verduum                         0332 12 n 18 00 00 00
+:I 99 Estoc                           0332 16 n 24 00 00 00
+
+:I 99 Spear                           0342 08 n 12 00 00 00
+:I 99 Fork                            0342 10 n 15 00 00 00
+:I 99 Trident                         0342 12 n 18 00 00 00
+:I 99 Partizan                        0342 16 n 24 00 00 00
+:I 99 Ranseur                         0342 20 n 26 00 00 00
+:I 99 Glaive                          0342 24 n 28 00 00 00
+:I 99 Halberd                         0342 28 n 30 00 00 00
+:I 99 Lance                           0342 32 n 32 00 00 00
+
+:I 99 Sickle                          0352 12 n 06 00 00 00
+:I 99 Tomahawk                        0352 16 n 08 00 00 00
+:I 99 Battle axe                      0352 24 n 20 00 00 00
+:I 99 Scythe                          0352 32 n 32 10 00 00
+
+:I 99 Wand                            0162 04 n 01 20 00 00
+:I 99 Rod                             0162 08 n 02 20 00 00
+:I 99 Staff                           0162 08 n 04 20 00 00
+:I 99 Club                            0162 08 n 04 00 00 00
+:I 99 Hammer                          0362 12 n 06 00 00 00
+:I 99 Mace                            0362 16 n 08 00 00 00
+:I 99 Flail                           0362 24 n 12 00 00 00
+:I 99 War hammer                      0362 32 n 16 00 00 00
+
+:I 99 Whip                            0072 08 n 04 00 00 00
+:I 99 Chain whip                      0372 12 n 12 00 00 00
+:I 99 Chain sickle                    0372 16 n 16 00 00 00
+
+:I 20 Crystal rod                     0262 08 n 04 50 00 00
+:I 10 Silver sword                    0412 12 n 12 10 00 00 ... er=10
+:I 05 Mythril sword                   0512 12 n 15 25 00 00 ... atp*1.25 er=25
+:I 02 Auric sword                     0612 12 n 18 50 00 00 ... atp*1.50 er=50
+:I 01 Adamant sword                   0712 12 n 24 00 00 00 ... atp*2.00
+:I 01 Poison sword                    0812 12 n 12 00 01 00
+:I 01 Palsy sword                     0812 12 n 12 00 02 00
+:I 01 Panic sword                     0812 12 n 12 00 03 00
+:I 01 Confuse sword                   0812 12 n 12 00 04 00
+:I 01 Berserk sword                   0812 12 n 12 00 05 00
+:I 01 Silence sword                   0812 12 n 12 00 06 00
+:I 01 Drain sword                     0812 12 n 12 00 07 00
+:I 01 Robbery sword                   0812 12 n 12 00 08 00
+:I 01 Mind sword                      0812 12 n 12 00 09 00
+:I 01 Energy sword                    0812 12 n 12 00 10 00
+:I 01 Holy sword                      0812 12 n 12 00 11 00
+:I 01 Chaos sword                     0812 12 n 12 00 12 00
+
+	- Food -
+					   wp   atp   value (d6*10 mp)
+					   v    v     v
+					      fn   enhance rate
+					      v    v
+:I 99 Nuts                            0103 01 e 01 00 01 00
+:I 99 Food                            0063 01 n 01 00 10 00
+
+	- Resource -
+					   wp   atp   effect
+					   v    v     v
+					      fn   enhance rate
+					      v    v
+:I 01 Resolver                        0464 10 n 01 10 00 00
+:I 01 Seeds                           0164 01 e 01 00 01 00
+:I 01 Tree                            0164 10 n 01 00 02 00
+:I 01 Water                           0164 10 n 01 00 03 00
+:I 01 Wall                            0264 10 n 01 00 04 00
+:I 01 Window                          0164 10 n 01 00 05 00
+:I 01 Door                            0164 10 n 01 00 06 00
+:I 01 Secret door                     0264 10 n 01 00 07 00
+:I 01 Protection                      0364 10 n 01 00 08 00
+:I 01 Glass                           0264 10 n 01 00 09 00
+
+	- Jewel -
+					   wp   atp   value (100gp)
+					   v    v     v
+					      fn   enhance rate
+					      v    v
+:I 01 Jewel seed                      0205 01 n 01 00 01 00
+:I 01 Crystal                         0205 01 e 01 00 10 00
+:I 01 Onyx                            0205 01 w 01 00 10 00
+:I 01 Jade                            0205 01 a 01 00 10 00
+:I 01 Topaz                           0205 01 s 01 00 20 00
+:I 01 Emerald                         0205 01 n 01 00 20 00
+:I 01 Saphire                         0205 01 l 01 00 50 00
+:I 01 Ruby                            0205 01 f 01 00 50 00
+:I 01 Diamond                         0205 01 n 01 00 99 00
+
+	- Charged item -
+					   wp   atp   effect
+					   v    v     v
+					      fn   charge
+					      v    v
+:I 20 Flame rod                       0266 08 f 04 10 01 00
+:I 20 Heal ring                       0406 01 w 01 10 09 00
+:I 10 Laser cannon                    0366 30 l 15 20 02 00
+
+	- Magic -
+				      effect
+				      v
+				         fn
+				         v
+:M 99 Blaze                           01 f
+:M 99 Fireball                        03 f
+:M 99 Heat ray                        02 f
+:M 99 Fire wall                       04 f
+:M 99 Flame bolt                      01 f
+:M 99 Fire storm                      04 f
+:M 99 Flame burst                     03 f
+:M 99 Burning blast                   01 f
+:M 99 Flame inferno                   04 f
+:M 99 Salamander javelin              02 f
+:M 99 Lava field of gehenna           04 f
+:M 99 Saint fire                      05 f
+:M 99 Rest                            09 f
+:M 99 Flaming                         12 f
+:M 99 Burning blade                   12 f
+:M 99 Armor melt                      15 f
+:M 99 Accelerate                      18 f
+:M 99 Hyperactive motion              18 f
+:M 99 Decelerate                      19 f
+:M 99 Lockjaw                         21 f
+:M 99 Heat body                       25 f
+
+:M 99 Deluge                          01 w
+:M 99 Water gun                       01 w
+:M 99 Jet stream                      03 w
+:M 99 Tidal wave                      04 w
+:M 99 Acid arrow                      01 w
+:M 99 Acid spray                      03 w
+:M 99 Ruinous wave                    04 w
+:M 99 Summon maelstrom                04 w
+:M 99 Aqua regia cyclone              02 w
+:M 99 Holy rain                       08 w
+:M 99 Holy water                      05 w
+:M 99 Heal                            09 w
+:M 99 Healing rain                    10 w
+:M 99 Holy fountain                   10 w
+:M 99 Extra healing potion of elixir  09 w
+:M 99 Acid coat                       12 w
+:M 99 Holy blade                      12 w
+:M 99 Water plate                     14 w
+:M 99 Water curtain                   14 w
+:M 99 Fogbank                         16 w
+:M 99 Dark mist                       19 w
+:M 99 Poisonous blood                 21 w
+:M 99 Detoxify                        27 w
+:M 99 Stimulus                        28 w
+:M 99 Exorcism                        32 w
+
+:M 99 Harm                            01 s
+:M 99 Agony                           03 s
+:M 99 Injury                          04 s
+:M 99 Anguish                         01 s
+:M 99 Indignation                     04 s
+:M 99 Energy bolt                     01 s
+:M 99 Energy burst                    03 s
+:M 99 Energy storm                    04 s
+:M 99 Psychocrusher                   02 s
+:M 99 Psycho emphasis spear           02 s
+:M 99 Insane                          05 s
+:M 99 Mind blast                      06 s
+:M 99 Disruption                      05 s
+:M 99 Chaos vortex                    08 s
+:M 99 Disturbance mind                05 s
+:M 99 Grand cross catastrophe         08 s
+:M 99 Cure                            09 s
+:M 99 Psychic healing                 10 s
+:M 99 Enchant weapon                  12 s
+:M 99 Disarm                          13 s
+:M 99 Enhance armor                   14 s
+:M 99 Protect                         14 s
+:M 99 Anti-protect                    15 s
+:M 99 Shell                           16 s
+:M 99 Anti-shell                      17 s
+:M 99 Haste                           18 s
+:M 99 Slow                            19 s
+:M 99 Illusion                        20 s
+:M 99 Poison blow                     21 s
+:M 99 Sleep                           22 s
+:M 99 Paralyze                        22 s
+:M 99 Panic                           23 s
+:M 99 Confusion                       24 s
+:M 99 Berserker                       25 s
+:M 99 Silence                         26 s
+:M 99 Antidote                        27 s
+:M 99 Remove                          28 s
+:M 99 Awaken                          29 s
+:M 99 Calm mind                       29 s
+:M 99 Force field                     30 s
+:M 99 Reflex field                    31 s
+:M 99 Erase                           32 s
+:M 99 Dispel magic                    32 s
+
+:M 99 Vacua                           04 a
+:M 99 Ripper                          02 a
+:M 99 Tornado                         04 a
+:M 99 Harricane                       04 a
+:M 99 Whirlwind                       03 a
+:M 99 Air slicer                      01 a
+:M 99 Sonic boom                      02 a
+:M 99 Genocidal hyades wind           04 a
+:M 99 Eraser                          06 a
+:M 99 Daemon breath                   07 a
+:M 99 Ease                            09 a
+:M 99 Healing breeze                  10 a
+:M 99 Sever                           12 a
+:M 99 Wind barrier                    14 a
+:M 99 Mind screen                     16 a
+:M 99 Windy                           18 a
+:M 99 Poison cloud                    21 a
+:M 99 Tear gas                        22 a
+:M 99 Dragon roar                     23 a
+:M 99 Laughing gas                    24 a
+:M 99 Ether bind                      26 a
+
+:M 99 Volt                            04 l
+:M 99 Levin                           01 l
+:M 99 Lightning                       02 l
+:M 99 Thunderbolt                     03 l
+:M 99 Buster ray                      01 l
+:M 99 Photon blast                    02 l
+:M 99 Lightning ball                  03 l
+:M 99 Thor hammer crush               03 l
+:M 99 Saint beam                      05 l
+:M 99 Holy light                      08 l
+:M 99 Sun ray                         10 l
+:M 99 Celestial light                 09 l
+:M 99 Light saber                     12 l
+:M 99 Brightness                      16 l
+:M 99 Moon light shape circle         16 l
+:M 99 Down force                      17 l
+:M 99 Speedup                         18 l
+:M 99 Delay                           19 l
+:M 99 Mirror image                    20 l
+:M 99 Aeon                            22 l
+:M 99 Ghost light                     24 l
+:M 99 Lunatic                         25 l
+
+:M 99 Brizzard                        04 e
+:M 99 Ice spear                       01 e
+:M 99 Ice storm                       04 e
+:M 99 Sand storm                      04 e
+:M 99 Ice missile                     01 e
+:M 99 Stone blast                     01 e
+:M 99 Diamond dust                    04 e
+:M 99 Solid shooter                   02 e
+:M 99 Crystal storm                   04 e
+:M 99 Diamond spear                   02 e
+:M 99 Pressure cannon                 01 e
+:M 99 Guardian of gaea dragon         02 e
+:M 99 Black ray                       05 e
+:M 99 Recover                         09 e
+:M 99 Reinforce                       09 e
+:M 99 Regenerate                      11 e
+:M 99 Dark force                      12 e
+:M 99 Diamond edge                    12 e
+:M 99 Degrade                         13 e
+:M 99 Harden                          14 e
+:M 99 Solid armor                     14 e
+:M 99 Invincible shield of aegis      14 e
+:M 99 Dark sphere                     16 e
+:M 99 Snare                           19 e
+:M 99 Corrosion                       21 e
+:M 99 Lag                             22 e
+:M 99 Stunning blow                   22 e
+:M 99 Shadow binding                  22 e
+:M 99 Daemon scream                   24 e

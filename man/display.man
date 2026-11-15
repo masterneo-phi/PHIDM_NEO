@@ -1,0 +1,82 @@
+●表示内容の解説
+
+・detect
+
+  Name  : (アイテム名)   Wp  : (重さ)
+  Type  : (使用タイプ)
+        : (素材)
+        : (武器タイプ)
+   Fn   : (属性)
+   ATP  : (攻撃力)
+          attack to (攻撃可能方向)
+ (使用タイプ別パラメーター)
+   S.E. : (特殊効果)
+ (Curse : (特殊効果) )
+
+
+鎧
+   DFP  : (物理防御力)%  MRP  : (精神防御力)%
+
+武器
+   ER   : (魔法吸収率)%
+ Effect : (追加効果)
+
+食料
+  Value : (価値)
+Food Lv : (食料LV)
+          (腐っているか)
+
+リソース
+ Effect : (地形)
+
+宝石
+  Value : (値段)
+
+魔石
+  Spell : (呪文)
+  Power : (威力)
+  Fn    : (属性)
+ Effect : (効果)
+
+チャージ
+ Charge : (使用回数)
+ Effect : (効果)
+ Status : (チャージ中か) ※tdに:U CTを指定した時のみ
+
+アクセサリー
+ Effect : (効果)
+
+外貨
+  Value : (値段)
+
+
+・analyze
+
+  Spell : (呪文)
+  Power : (威力)
+  Fn    : (属性)
+ Effect : (効果)
+
+
+・identify
+
+ Name  : (キャラ名)
+    Hp : (hp) / (max)   Mp  : (mp) / (max)
+ Level :
+    Fighter  (Flv)    Wizard  (Wlv)
+ ATP   : (攻撃力)
+ ATT Fn: (攻撃属性)
+ Effect: (追加効果)
+ DFP   : (物理防御)
+ MRP   : (精神防御)
+ DEF Fn: (防御属性)
+ Karma : (カルマ) (カルマ値) ※カルマ値はマスターのみ
+ Speed : (速さ)
+ Status: (防御特性)         ※種族及びアクセサリタイプによる
+Special: (S.E.及び生物特性)
+
+※以下 DEBUGでマスター時のみ
+afn: (攻撃属性値) dfn: (防御属性値) sfn: (呪文属性値)
+wd: (攻撃方向) IA: (生物特性) UD: (Identify不能) AT: (アクセサリ)
+wSE: (武器S.E.パワー値) aSE: (鎧S.E.パワー値) oSE: (アクセS.E.パワー値)
+(以下 各種効果値)

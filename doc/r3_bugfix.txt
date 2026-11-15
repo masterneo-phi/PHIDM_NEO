@@ -1,0 +1,50 @@
+v5y rel 3g
+・HITTOUSEのチャージアイテムで攻撃した時 残数が0になって壊れるとSEGV落ちする bug fix
+
+v5y rel 3f
+・初起動時 初期化が行われる前に毎時処理が走ってセグ落ちする bug fix
+
+v5y rel 3e
+・オブジェ機能off(obj数0)にするとコンパイルが通らなくなっていた bug fix
+・魔石を鑑定するとセグ落ちする bug fix
+
+v5y rel 3d
+・クライアントチェンジするとskill値が他キャラと共有されてしまい
+  キャラが出入りする度skillがリセットされてしまう bug fix
+
+v5y rel 3c
+・m57 Eagle eye上のアイテムタイプ表示をするようにした
+・初期化時にhostnameが取得できないとセグ落ちする問題に対処
+
+v5y rel 3b
+・キャラ入国処理中にそのキャラ番号以降のキャラが固まるbug fix
+
+v5y rel 3a
+・Explode魔法を使った時にオブジェが消えることがある bug fix
+
+v5y rel3 MyunstterBirgn
+・ひっそりと(ぇ)正式公開
+
+v5y rel 3 beta 1
+・分割cd形式(cdi)用コンパイル時にコンパイルが通らなくなっていた不具合修正
+
+v5y rel 3 beta 0
+・NPCに:Aメッセージを流した時NPCが止まったままになる bug fix
+・NPCに:Aメッセージの1つめしか流れない bug(?)fix
+
+v5y rel 3 test 20
+・アイテムが拾えなくなる事があるbug fix
+
+v5y rel 3 test 19
+・spell downのチャージ・魔法の効果がなかったbug fix
+・変数演算で括弧内で優先度の低い演算子を使った時に読み込みに失敗するbug fix
+・槍でノックバックが発生した時 ノックバックの前と後で2回hitするbug(?) fix
+
+v5y rel 3 test 18
+・phi.edの読み込みで正常に読み込めない可能性があるバグ修正
+
+v5y rel 3 test 12
+・spell downでanti-protectも掛かっていたバグ修正
+
+v5y rel 3 test 10
+・リソース用拡張をリソース以外に指定した場合の読込時削除処理のバグ修正

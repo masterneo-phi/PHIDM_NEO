@@ -1,0 +1,83 @@
+
+phi関連ソフト製作者の変更履歴です
+
+オリジナル
+        β-Yak-38 as Hideaki Nagai <bya@gy.scei.co.jp>
+        phi_dm,xphi,phi,xphi,xphis,xawphiのオリジナル版製作
+        紹介ページ: http://samurai.ee.kogakuin.ac.jp/~nagai/
+        最終コード: kabuki.ee.kogakuin.ac.jp:/pub/phi/
+
+WindowsNT/Windows95版クライアント
+        NoF as N.Fujimori <norio.dvpj.sony.co.jp>
+        最終バイナリ: kabuki.ee.kogakuin.ac.jp:/pub/phi/
+
+JAVA版クライアント
+        SuperOne as A.Imagawa <imagawa@fa2.so-net.or.jp>
+        最終バイナリ: kabuki.ee.kogakuin.ac.jp:/pub/phi/
+
+Yokotaパッチ
+        Kazuaki Yokota <yokota@teserver.te.noda.sut.ac.jp>
+        ポートを20017以外に設定可能とした
+        MAX MP の上昇の式を変更
+        エリア処理を追加
+        phi.id オンメモリ化
+        システム魔法(Save id)追加
+        内部漢字コードをEUC化、EUCクライアントに対応
+        インフレ／デフレ対策追加
+        クリーチャー出現確率/出現数をオプションで選べるよう変更
+        出現確率の場合でもクリーチャー発生スイッチが動作するよう変更
+        クリーチャー発生魔法追加
+        NPCが話した時だけ作動するスイッチを追加
+        シークレットドア(金属壁)追加
+        Linux 対応
+        システム魔法(Wizard light)追加
+        アイテムの equip 関連を変更
+        裏システム魔法(Wish/Duplicate)追加
+        システム魔法(Destroy)追加
+        MAX HP/MP の上昇/下降の式を変更
+        クリーチャーの出現数を設定可能とした
+        クリーチャーの再出現条件を設定可能とした
+        phi.edの読み込み関連を全面的に変更
+        クリーチャー発生スイッチを追加
+        メッセージを出力しないスイッチを追加
+        toupper/isspaceを代替関数に置換
+        マップの横方向のサイズが127を超えると起こる障害を回避
+        最終コード: okazakis.ke.yama.sut.ac.jp:
+                     /pub/netgame/phi_dm/phi_dm.y7r3a2u3b3.tar.gz
+
+Ramsyパッチ
+        Ramsy as Keitaro Yoshimura <j9194169@ed.yama.sut.ac.jp>
+        裏システム魔法のいくつか（Dumapic,Resource）追加
+        最終コード: okazakis.ke.yama.sut.ac.jp:
+                     /pub/netgame/phi_dm/phi_dm.y7r3a2u3b3.tar.gz
+
+Alephパッチ
+        Aleph as Atsuhiro Sakata <aleph@ihlab.sccs.chukyo-u.ac.jp>
+        HP/MP変化スイッチを追加
+        スイッチ起動条件8に特定アイテム所持を追加
+        紹介ページ: http://www.ihlab.sccs.chukyo-u.ac.jp/aleph/phi/
+        最終コード: okazakis.ke.yama.sut.ac.jp:
+                     /pub/netgame/phi_dm/phi_dm.y7r3a2u3b3.tar.gz
+
+Uniパッチ
+        Uni as Yasunari Nakamoto <uni@nets.ce.hiroshima-cu.ac.jp>
+	ゲートの認証、位置指定追加
+	キャラクタがどの世界から来たかをログに残すよう変更
+	ゲートの接続先 IP を、#gate パケットの送り主の IP に変更
+	フロアデータに各種禁止区域を追加
+	防御率95以上のPCが攻撃されなくなるのを修正
+        確率モードで再発生が異様に遅くなるバグを修正
+        Eagle eye 時に指定地形の屋根を表示しないオプション追加
+        第3の装備品としてアクセサリ追加
+        パラメータ3として特殊効果を追加
+        Create等を利用した二重装備の禁止
+        能力アップの魔法による攻撃／防御属性の変化がキャンセルされるバグを修正
+        乱数モードのNPC再発生条件に出現数の上限を追加
+        裏システム魔法のいくつか（Malor,Pass wall）追加
+        紹介ページ: http://www.nets.ce.hiroshima-cu.ac.jp/~uni/phi/phi.html
+        最終コード: okazakis.ke.yama.sut.ac.jp:
+                     /pub/netgame/phi_dm/phi_dm.y7r3a2u3b3.tar.gz
+
+Xwindow用2Dクライアント
+        Sigre as Masaaki Suzuki <sigre@egg.ics.nitech.ac.jp>
+        紹介ページ: http://icsserv.ics.nitech.ac.jp/~c23sigre/phi/

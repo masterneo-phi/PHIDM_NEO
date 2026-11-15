@@ -1,0 +1,43 @@
+これらのパラメーター文字列は任意のメッセージ中で使えます。
+(スイッチの動作03、:Aのメッセージ等)
+
+ %name   - n のキャラ名(%Nameで31文字固定長)
+ %vsname - m のキャラ名(スイッチメッセージでは使用不可)
+
+  ↓ nの有効時のみ可(無効時 0文字) 
+ %wpn    - 武器 (非装備時 Knucle) 
+ %arm    - 鎧                     
+ %acc    - アクセ                 
+ %hp     - hp (%Hpで4桁固定)
+ %mp     - mp (%Mpで4桁固定)
+ %maxhp  - max hp (%Maxhpで4桁固定)
+ %maxmp  - max mp (%MaxMpで4桁固定)
+ %php    - "+hp" or "-hp" (hp<1/4max時)
+ %pmp    - "+mp" or "-mp" (mp<1/4max時) 
+ %exp    - 経験値                 
+ %gp     - 所持金                 
+ %area   - 居るエリア             
+ %flv    - Fighter  lv            
+ %wlv    - Wizard   lv            
+ %mlv    - Merchant lv            
+ %clv    - Create   lv            
+ %ip     - IP Address
+ %domain - Domain Address
+ %talk   - 発言内容(スイッチ専用)
+ %y?     - キャラ別変数?の値      
+ %z?     - キャラ別保存変数?の値  
+
+  ↓ nによらず使用可              
+ %dm     - DM (変更可能)
+ %land   - 世界名                 
+ %tax    - 国庫                   
+ %cir    - 通貨単位               
+ %ver    - DM バージョン名        
+ %%      - %
+ %x??    - 汎用変数 x??の値
+ %\      - (無:次の文字との区切用)
+
+  ↓ 対象となるパラメーターが必要
+(スイッチでは使用不可:使うとセグ落ちします 汗)
+ %i      - 数値
+ %s      - 文字列

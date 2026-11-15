@@ -1,0 +1,93 @@
+v5y rel 4_1r (2005/03/30)
+・Remote Put/Getでスイッチ上に反応するアイテムを置いてキャラが転送された時
+　元の位置にキャラの残像が残る bug fix
+
+v5y rel 4_1q
+・NoSkill時に15x15のEagle EyeがSkillを参照してしまっていた bug fix
+
+v5y rel 4_1p
+・SpellUPした状態で SpellDownを掛け合うと SpellPointが累計的に減少し
+　魔法効果が反転・過大な効果が得られるバグを修正
+
+v5y rel 4_1o
+・skillありのdetect時の確率計算で不正な値を参照していたのを修正
+
+v5y rel 4_1n
+・変数操作スイッチでキャラ位置を変更した時 元の位置にキャラ参照が残るbug fix
+
+v5y rel 4_1m
+・サークル内アイテムがファイルに吐き出された後 ddを直接編集してサークルを消し
+  load ddすると アイテムを置いた途端 以前置かれていたアイテムが復活する bug fix
+
+v5y rel 4_1l
+・隠しゲートを通ってPCが他世界へ移動した後 load td/gateするとSEGV落ちするbug fix
+・payで 不正な数値で金銭を受け渡せる bug fix
+
+v5y rel 4_1k
+・titleコマンドでない番号を指定すると看板が壊れる bug fix
+・#privの範囲外指定での SEGVに対処
+
+v5y rel 4_1j
+・接続するとセグ落ちしてしまう(汗) bug fix
+
+v5y rel 4_1i
+・新規時にキャラ別フラグが初期化されず 前の接続キャラの値が残っていたbug fix
+
+v5y rel 4_1h
+・スキルが上がる特殊ケースで上がる確率が 0 になってしまっていたのを修正…
+・ついでに show用skill説明ファイルを追加
+
+v5y rel 4_1g
+・sphere効果のチャージアイテムを使った時 自分に効果が出ない事がある bug fix
+
+v5y rel 4_1f
+・アイテムを置いた/拾った時スイッチで 動けない:Aを流そうとすると 動ける bug fix
+
+v5y rel 4_1d
+・倉庫に有るアイテム数より大きい番号に-付でgetしようとした時 無限ループに陥る bug fix
+・wishで Drop only 指定を付けると 非チャージアイテムでも チャージ中表示が出る bug(?)fix
+
+v5y rel 4_1c
+・腐った Foodを食べた時にメッセージがダブって出る bug(?)fix
+・同梱の cnv_sd.pl の諸々 bug fix
+
+v5y rel 4_1b
+・joinせずにpartyメッセージを使うと 大声になる bug(?)fix
+
+v5y rel 4_1a
+・joinしてなくても byeで パーティ離脱メッセージが出るbug(?)fix
+・HITTOUSEのチャージアイテムで攻撃した時 残数が0になって壊れるとSEGV落ちする bug fix
+
+v5y rel 4_1
+・地形 S が m57の仕様で空に予約されていたので 倉庫の地形を s(小文字)に修正
+
+v5y rel 4 Join Special
+・勢いで正式版にする(ぇ
+
+v5y rel 4 test 21
+・状態異常を受けていないキャラに状態回復魔法を使うとDMがダブって流される bug(?)fix
+
+v5y rel 4 test 20
+・サークル内アイテムのファイルへの吐き出しでセグ落ちする bug fix
+
+v5y rel 4 test 18
+・初起動時 初期化が行われる前に毎時処理が走ってセグ落ちする bug fix
+
+v5y rel 4 test 16
+・オブジェ機能off(obj数0)にするとコンパイルが通らなくなっていた bug fix
+・魔石を鑑定するとセグ落ちする bug fix
+
+v5y rel 4 test 14
+・fangとwhipの効果が技依存になっていなかった bug fix
+・RAINBOW属性でFIRE属性が発現していなかった bug fix
+
+v5y rel 4 test 13
+・クライアントチェンジするとskill値が他キャラと共有されてしまい
+  キャラが出入りする度skillがリセットされてしまう bug fix
+
+v5y rel 4 test 12
+・m57 Eagle eye上のアイテムタイプ表示をするようにした
+・初期化時にhostnameが取得できないとセグ落ちする問題に対処
+
+v5y rel 4 test 3
+・キャラ入国処理中にそのキャラ番号以降のキャラが固まるbug fix

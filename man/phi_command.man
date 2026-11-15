@@ -1,0 +1,69 @@
+●通常コマンド
+
+	exit		切断する
+	quit		〃
+	go ?            ?の方向に進む (?=flrb news NEWS)
+	turn ?          ?の方に向きを変える (?=rlb news)
+	see             周りを見る (マップ情報更新)
+	look            周りを見る (マップ情報更新 看板,アイテム表示)
+	check           ステータスを表示する
+	read            看板を読む
+	write           看板に書込む
+	erase           看板を消す
+	get             アイテムを拾う
+	put             アイテムを置く
+	use             アイテムを使う
+	equip           アイテムを装備する
+	sort            持ち物を整理する
+	unequip         装備を外す
+	hit             攻撃する
+	cast            魔法を唱える
+	pay             お金を払う
+
+
+●特殊コマンド
+
+以下はあんまり必要なさそうだが知ってると便利かも知れないコマンド
+
+        board           移動中に看板の題名を読み出す/出さない
+        floor item      移動中に落ちているアイテムの名前を表示する/しない
+        spells          所持している呪文を表示する
+
+        priv            priv listで出てくる数字 メッセージ で、
+                        プライベートメッセージを送る
+                        (priv name メッセージ でも可)
+                        例： priv 1 てすと
+                             list 番号 1番の人に「てすと」を送る
+
+        chat            立ち止まっている時 周囲の視界を自動更新する/しない (psp12,v5x Rel.10)
+        action          "DM > (キャラ名) is ～"の形式で動作(?)を発言(?)できる (psp12,v5x Rel.11)
+        fakeaction      "DM > "の形式で動作(?)を発言(?)できる (Tofup server edition)
+        gfakeaction     "DM > "の形式で動作(?)を大声で発言(?)できる ※要マスター権限 (Tofup server edition)
+　　　　　　　　　　　　　　
+        version         サーバーのバージョン名を再表示する (v5x Rel.11)
+        board send      #map B による看板情報の送信をする/しない(psp13j5.92,v5x Rel.11)
+        title           看板タイトルを入れ替える。実行後 書込みの選択になるので
+                        選択するとそれが新しいタイトルになる。古いのは普通の書込みになる。
+                        他人の書込みを選択する事でオーナー権を譲渡する事が可能。(v5x Rel.11)
+        show ???        ???で指定されたファイルの内容を読み出す。(psp14j2.0,v5y Rel.1)
+                        ファイル名に使える文字は a～z,_(アンダーバー),0～9のみ
+                        ファイルは dmの phi_shows以下に置く必要がある。
+        skills          全スキルを表示する。
+        skill ???       スキルを表示する。(???=weapon/spell/detect/create)
+
+        join            目の前の相手を仲間に誘う。(v5y rel.4)
+
+        wizlist         Wizard list のコマンド版 (Tofup server edition)
+        wizeye          Wizard eye のコマンド版 (Tofup server edition)
+
+        setcg xxxxx     xxxxx.bmp のキャラクターグラフィックを設定 ※総合レベル１以上 (Tofup server edition)
+        level           次のレベルまでの必要レベルor経験値を表示　※総合レベル５以上 (Tofup server edition)
+
+        sendmail x:y    x宛にyの内容のメールを送る (Tofup server edition)
+        readmail        メールを読む (Tofup server edition)
+        delmail         メールを消す ※全て消去 (Tofup server edition)
+
+        dmsetupcheck    DM設定をチェックする ※要マスター権限 (Tofup server edition 6.5d)
+
+
+

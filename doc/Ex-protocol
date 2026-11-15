@@ -1,0 +1,34 @@
+phiプロトコル 拡張・変更分 (version 05097680? 上位互換)      2000/10/16 Qajin
+                                                             2001/06/14 update
+----------------------------------------------------------------------------
+
+サーバー → サーバー
+ …なし
+
+サーバー → クライアント
+#mapset *            マップパーツセット名通知
+#bgm *               BGM名通知
+#code-euc-no         eucでの送信拒否 (psp12j - 0509????)
+#code-utf-no         utfでの送信拒否 (psp12j3 - 0509????)
+#ex-chr-conflict     キャラクターが3重状態で消えている (v5x Rel.8 - 05098008)
+#mapset-define n *   マップパーツセット名通知 (m57用:v5y test6 - 05098013)
+#m57 *               7x7仕様マップ情報        (SD51?:v5y test6 - 05098013)
+#version-dm *        DM種別通知               (SD52?:v5y test8 - 05100013)
+#ex-notice key=value 世界/エリア名等 情報通知 (SD51?:v5y test8 - 05100013)
+#ex-map *            m57モード変更通知/応答   (SD51?:v5y test7 - 05098013)
+#ex-switch *         モード変更通知/応答      (SD51?:v5y test7 - 05098013)
+#ex-eagleeye *       フォーム用EagleEye情報   (SD51?:v5y test10- 05110000)
+#guard               防御開始                 (v5y Rel.1 test11- 05110000)
+#end-gd              防御終了                 (v5y Rel.1 test11- 05110000)
+#end-edit            編集状態終了             (SD52?)
+
+クライアント → サーバー
+#ex-switch *         モード変更要求           (SD51?:v5y test6 - 05098013)
+#ex-map *            m57モード変更要求        (SD51?:v5y test7 - 05098013)
+
+廃止
+#code-euc-ok         eucでの送信了承 (v5x Rel.10 - 05098010)
+#code-utf-ok         utfでの送信了承 (v5x Rel.10 - 05098010)
+#imagelist           URL情報一覧 (v5x Rel.13 - 05098013)
+#getimage            URL情報通知 (v5x Rel.13 - 05098013)
+

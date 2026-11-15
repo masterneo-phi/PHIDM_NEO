@@ -1,0 +1,10 @@
+# build outputs
+*.o
+*.a
+phi_dm
+phi_dm.exe
+cdcnv
+conf_test
+conf_test.c
+# test world runtime files (copied world data + logs)
+test-world/

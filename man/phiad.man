@@ -1,0 +1,54 @@
+phi.ad(マスター権限ファイル)
+
+  exp99999999のキャラの時ファイルが存在しないと 旧環境との互換の為
+  全権を与えるようになっています。(ファイルがあって IDがない、
+  アドレスが一致しない等の時は 権限なしになります)
+
+例
+-------
+:master          10.20.1.* A
+.
+:submaster       * udrI
+:A 00-05 10
+.
+-------
+
+  形式
+
+  :(キャラID) (アクセス元IPアドレス) (権限文字列)
+  :A (領土指定)
+  .
+  (以下マスター・サブマス分続く)
+
+  キャラID
+   キャラのIDです(笑)。15文字全部いる模様(汗
+
+  アクセス元IPアドレス
+   ワイルドカード使用可。これにマッチする時のみ権限を与えられます。
+   ローカルを指定する時は 127.0.0.1 を使用して下さい。
+   注！) 絶対に *(全一致)は使用しないで下さい
+ 
+  権限文字列
+
+  A = 全権(マスター用)
+  U = ロック解除
+  D = 看板削除
+  K = Kick
+  B = BAN
+  I = wish/dup/cache
+  R = Resource/Createobj/Eraseobj
+  S = Shutdown
+  L = Load/Save *
+  T = Malor/Dumapic/Pass wall
+  Q = Flag/Variable/Metamorphosis/Restoration
+
+  U D R は 小文字にすることで :Aの自領土内でのみ 権限を行使できます。
+
+    複数権限の必要なもの
+    Brizzard from Cokyutos = Kick & Ban
+    Basi Rurla = Kick & Trans
+    Load ban = Load & Ban
+
+  領土指定
+   16進で(メイン)エリアコードを指定します。個々の数字は空白等で区切り、
+   連続する値は - で 開始－終了を指定できます。

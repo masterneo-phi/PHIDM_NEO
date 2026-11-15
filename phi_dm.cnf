@@ -1,0 +1,20 @@
+
+/*	Phantasmal Island ( Configuration )	1994-5(C)b-Yak-38	*/
+
+#define	MAX_X		8
+#define	MAX_Y		8
+
+#define C_BACKUP	16
+
+#define MAX_ENEMIES     128
+#define MAX_OBJECTS     64
+#define GFLAG_MAX       0x100
+#define GVAR_MAX        0x100
+#define PVAR_MAX        0x10
+#define SVAR_MAX        0x10
+
+#define MAX_CHRS_INONE  2
+/* No CDI separation */
+/* No SDI separation */
+/* No SUB area */
+#define DM_LANG_JP

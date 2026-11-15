@@ -1,0 +1,19 @@
+Makefileを編集して -D定義を追加します。
+
+	 Use old weapon property ? (y/n=any)
+
+武器特性を509互換(旧武器特性)にするかどうかを選択してください。
+
+	 Use split logs ? (y/n=any)
+
+ログを分割保存するかどうかを選択してください。
+分割した場合 ログは phi_logs/YYYYMM.log になります。
+
+	 Display client domain name on log ? (y/n=any) 
+
+ログに記録する接続元アドレスをドメイン名にするかどうかを選択して下さい。
+OSの環境によってはドメイン名を取得できない場合があります。
+
+	 Need not skills ? (y/n=any) 
+
+スキル効果を無効にするかどうかを選択してください。
