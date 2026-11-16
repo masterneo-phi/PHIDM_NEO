@@ -632,10 +632,16 @@ void   print_m57(int n, int f)
 void eagleeye_m57(int n)
 {
   const int fl = fld[map[cd[n].y][cd[n].x].area].floor;
-  /* m81 (9x9) クライアントでは Eagle eye は 11x11 にする。
-   * それ以外は従来通り (FF_M57 の土地では 11x11、それ以外は 15x15)。 */
-  const int size = ((cd[n].modef & MD_M81) ? 10
+  /* m81 (9x9) クライアントでは Eagle eye は 20x20 にする
+   * (9x9 の方が 7x7 の 15x15 より広く見えるのが仕様、2026-11-17)。
+   * それ以外は従来通り (FF_M57 の土地では 11x11、それ以外は 15x15)。
+   * 20 は偶数なので範囲は -10..+9 (中心は1マス北西寄り) で、
+   * ヘッダの size は マス数-1 = 19。 */
+  const bool m81 = (cd[n].modef & MD_M81) != 0;
+  const int size = (m81 ? 19
                     : ((fld[map[cd[n].y][cd[n].x].area].flag & FF_M57) ? 10 : 14));
+  const int lo = m81 ? -10 : -size / 2;
+  const int hi = m81 ? 9 : size / 2;
 #ifndef NO_SKILL
   const int j = cd[n].skill[SKL_MAGIC_SP][SKL_MGSP_EAGLE];
 #endif
@@ -647,11 +653,11 @@ void eagleeye_m57(int n)
   check_write(n, (char *)"#ex-eagleeye start\n");
   /* 取り敢えず 座標通知は無し */
 
-  for (int y=-size/2;y<=size/2;y++) {
+  for (int y = lo; y <= hi; y++) {
     /* 行頭 "#ex-eagleeye M %2.2d %2.2d " は 21 バイト。 */
-    std::snprintf(buf.data(),buf.size(),"#ex-eagleeye M %2.2d %2.2d ",size,y+size/2);
+    std::snprintf(buf.data(),buf.size(),"#ex-eagleeye M %2.2d %2.2d ",size,y-lo);
     p = buf.data()+21;
-    for (int x = -size/2; x <= size/2; x++) {
+    for (int x = lo; x <= hi; x++) {
 
 #ifndef NO_SKILL
       /* bug fix for No Skill 20041212 */
