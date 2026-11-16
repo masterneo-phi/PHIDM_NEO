@@ -71,7 +71,7 @@ typedef int SOCKET;
 namespace {
 
 constexpr int kReadBufSize = 1024;	/* 読み込みバッファの大きさ */
-constexpr int kWriteBufSize = 16384;	/* 書き込みバッファの大きさ */
+constexpr int kWriteBufSize = 65536;	/* 書き込みバッファの大きさ (16KB では大量行で溢れやすいため拡大、2026-11-17) */
 constexpr int kWriteTimeout = 600;	/* 書き込めない回数の上限 (超えたら切断) */
 constexpr int kWriteChunkSize = 2048;	/* 1回の write() で送る上限 (EL's idea) */
 
@@ -482,7 +482,11 @@ void	 write_line(int n, char *buf, int len, int t){
   Client &c = clients[n];
   if (!c.reference || !c.connecting) return;
   if (c.wbuf_len + len > kWriteBufSize) {
-    nfflush(n, t);
+    /* t=0 でも、溢れた時だけは少し待って吐き出しを試みる。
+     * 掲示板の検索結果のような大量行の途中で、クライアントの
+     * 受信が一瞬滞っただけで切断されるのを防ぐ (2026-11-17)。
+     * 本当に死んだ相手は、この待ちの後で従来通り切断される。 */
+    nfflush(n, t > 0 ? t : 200);
     if (c.wbuf_len + len > kWriteBufSize) {
       close_client(n, CONNECT_BUFFULL); return ;
     }
