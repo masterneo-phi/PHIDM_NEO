@@ -754,6 +754,7 @@
 #define MD_M57          0x8
 #define MD_M57SOLID     0x10
 #define MD_FEAGLE       0x20
+#define MD_M81          0x40
 
 typedef struct md_t {
   char  *spell;     /* 呪文 */

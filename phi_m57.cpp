@@ -632,7 +632,10 @@ void   print_m57(int n, int f)
 void eagleeye_m57(int n)
 {
   const int fl = fld[map[cd[n].y][cd[n].x].area].floor;
-  const int size = ((fld[map[cd[n].y][cd[n].x].area].flag & FF_M57) ? 10 : 14);
+  /* m81 (9x9) クライアントでは Eagle eye は 11x11 にする。
+   * それ以外は従来通り (FF_M57 の土地では 11x11、それ以外は 15x15)。 */
+  const int size = ((cd[n].modef & MD_M81) ? 10
+                    : ((fld[map[cd[n].y][cd[n].x].area].flag & FF_M57) ? 10 : 14));
 #ifndef NO_SKILL
   const int j = cd[n].skill[SKL_MAGIC_SP][SKL_MGSP_EAGLE];
 #endif
