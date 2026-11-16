@@ -2,22 +2,19 @@
 
 /*	Phantasmal Island ( Dungeon Master )  1994-5(C)b-Yak-38  */
 
-#include  <stdio.h>
-#include  <string.h>
-#include  <ctype.h>
-#include  <math.h>
-#include  <signal.h>
-#include  <sys/time.h>
-#include  <time.h>
-#include  <sys/types.h>
+#include  <cstdio>
+#include  <cstring>
+#include  <csignal>
+#include  <ctime>
 #ifdef Mips
 #include  <sys/timeb.h>
 #else
-#include  <stdlib.h>
+#include  <cstdlib>
 #endif
-#include  <errno.h>
+#include  <cerrno>
 #include  <unistd.h>
-#include  <limits.h>
+#include  <climits>
+#include  <array>
 
 #ifdef AIX
 #include <sys/select.h>
@@ -146,6 +143,8 @@ int    hour = 0;
 int    oldh = 0; /* bug fix 20021130 */
 int    yslide = 0;
 
+/* px/py は他モジュールが extern int px[] / py[] として参照する
+   共有インターフェースのため C 配列のまま */
 int    px[4] = {0, 1, 0, -1}; /* 向きの識別番号と、実際の方向の関係 */
 int    py[4] = {-1, 0, 1, 0};
 
@@ -156,17 +155,22 @@ int    py[4] = {-1, 0, 1, 0};
 /* v					   */
 
 /* テンキー選択の為のパース用 added by Qajin 19991203 */
-char  *parsecom[] =
+namespace {
+
+constexpr std::array<const char*, 10> kParsecom =
 {"check",
  "hit"	 ,"go b"  ,"cast",
  "go l"  ,"turn b","go r",
  "turn l","go"	,"turn r"};
+
+} // namespace
 
 int reflesh_last_map[MAX_NTTYS];
 static int reflesh_last_status[MAX_NTTYS];
 int reflesh_objects;  /* add 20000107 */
 
 /* add for refuse co-addusers 20000706 */
+/* pre_adduser_ip は CPYSTR の宛先のため C 配列のまま */
 static char pre_adduser_ip[32];
 
 /* add for send logs 20010809 */
@@ -185,8 +189,11 @@ extern int lcnt;
 
 int    main(int argc, char **argv)
 {
-  char	 buf[1024], errmsg[100];
-  char	 nm[32], *p;
+  /* buf は CPYSTR の宛先とポインタ演算で使うため C 配列のまま */
+  char	 buf[1024];
+  std::array<char, 100> errmsg;
+  std::array<char, 32> nm;
+  char	 *p;
   int	 n;
   int	 i, j, k;
   int	 fd;
@@ -204,7 +211,7 @@ int    main(int argc, char **argv)
 
   log_op = 0;
   for (argc--; argc > 0; argc--) {
-	if (!strcmp(argv[argc], "-logall"))
+	if (!std::strcmp(argv[argc], "-logall"))
 	  log_op = 1;
   }
   signal(SIGTERM, signal_trap);
@@ -220,13 +227,13 @@ int    main(int argc, char **argv)
 	cd[n].uid[0] = 0;
 	cd[n].type = CT_NOEXIST;
 	cd[n].st = ST_COMMAND;
-	cd[n].auth = NULL;
-	cd[n].extension = NULL;
+	cd[n].auth = nullptr;
+	cd[n].extension = nullptr;
 	cd[n].party = 0; /* add 20020822 */
   }
   tax = 0;
   tslide = 0;
-  abstime = time(NULL);
+  abstime = time(nullptr);
   sttime = (struct tm *) localtime(&abstime);
   CPYSTR(timestr, (char *) asctime(sttime));
   min =   (int) (timestr[14] - '0') * 10 + (int) (timestr[15] - '0');		/* bug fix 20000522 */
@@ -241,21 +248,21 @@ int    main(int argc, char **argv)
   load_dd();
   oldh = hour = (int) (timestr[11] - '0') * 10 + (int) (timestr[12] - '0') + tslide;
   log_print("start    : Dungeon Master ");
-  snprintf(buf, sizeof(buf),"version  : %s ", PHI_VERSION);
+  std::snprintf(buf, sizeof(buf),"version  : %s ", PHI_VERSION);
   log_print(buf);
-  snprintf(buf, sizeof(buf),"tax      : %li ", tax);
+  std::snprintf(buf, sizeof(buf),"tax      : %li ", tax);
   log_print(buf);
   server_lag_cnt = 0;
   server_lag = server_lag_prev = server_lag_prev2 = 10;
-  server_lag_tmp = time(NULL) - 10;
+  server_lag_tmp = time(nullptr) - 10;
   while (1) {
 	/* from psp13j7 */
 	server_lag_cnt = (server_lag_cnt + 1) % 100;
 	if (server_lag_cnt == 1) {
 	  server_lag_prev2 = server_lag_prev;
 	  server_lag_prev = server_lag;
-	  server_lag = time(NULL) - server_lag_tmp;
-	  server_lag_tmp = time(NULL);
+	  server_lag = time(nullptr) - server_lag_tmp;
+	  server_lag_tmp = time(nullptr);
 	}
 	/* ^^ 13j7 */
 
@@ -264,7 +271,7 @@ int    main(int argc, char **argv)
 	connect_check(100 - ((server_lag+server_lag_prev+server_lag_prev2) / 3 - 10 )*10);
 	/* nfclose() 後のエラー発生 */
 	while((n=nfclose_error_check())>=0){
-	  snprintf(buf, sizeof(buf),"exit-err : (%i:%i) = %s (%s)",
+	  std::snprintf(buf, sizeof(buf),"exit-err : (%i:%i) = %s (%s)",
 		  n, fd_check(n), ip_domain_check(n),
 		  errnum_to_msg(connect_error_check(n)));
 	  log_print(buf);
@@ -272,7 +279,7 @@ int    main(int argc, char **argv)
 	/* 新規接続受理 */
 	while((n=new_connect_check())>=0){
 	  if(connect_full()){
-	snprintf(buf, sizeof(buf),"full connect: (%i:%i) = %s ",
+	std::snprintf(buf, sizeof(buf),"full connect: (%i:%i) = %s ",
 		n, fd_check(n), ip_domain_check(n));
 	log_print(buf);
 	write_line(n, " No more connection. \n#x\n", 25, 0);
@@ -282,7 +289,7 @@ int    main(int argc, char **argv)
 	  }
 	  /* add for multi access control 20000713 */
 	  if(multi_access && !ip_multi(n)) {
-		snprintf(buf, sizeof(buf),"multi access refused: (%i:%i) = %s",
+		std::snprintf(buf, sizeof(buf),"multi access refused: (%i:%i) = %s",
 				n, fd_check(n), ip_domain_check(n));
 		log_print(buf);
 		write_line(n, "#x\n", 3, 0);
@@ -293,7 +300,7 @@ int    main(int argc, char **argv)
 	  /* psp4 add - banned check - by aleph */
 	  /* 新規接続の:Bスイッチ拒否 */
 	  if(!ip_banned(n)){
-		snprintf(buf, sizeof(buf),"connection refused: (%i:%i) = %s",
+		std::snprintf(buf, sizeof(buf),"connection refused: (%i:%i) = %s",
 				n, fd_check(n), ip_domain_check(n));
 		log_print(buf);
 		write_line(n, "#x\n", 3, 0);
@@ -303,7 +310,7 @@ int    main(int argc, char **argv)
 	  }
 	  /* end */
 	  init_connected_cd(n);
-	  snprintf(buf, sizeof(buf),"connect  : (%i:%i) = %s ", n, cd[n].fd, cd[n].str);
+	  std::snprintf(buf, sizeof(buf),"connect  : (%i:%i) = %s ", n, cd[n].fd, cd[n].str);
 	  log_print(buf);
 	}
 	/* 接続切断受理 */
@@ -316,7 +323,7 @@ int    main(int argc, char **argv)
 	  min++;
 	  if (min >= 60)
 	min = 0;
-	  abstime = time(NULL);
+	  abstime = time(nullptr);
 	  sttime = (struct tm *) localtime(&abstime);
 	  CPYSTR(timestr, (char *) asctime(sttime));
 	  min_proc();
@@ -337,12 +344,12 @@ int    main(int argc, char **argv)
 	min == 0 /* 負荷時差分散 20020516 */
 #endif
 	) {
-	snprintf(buf, sizeof(buf),"tax      : %li ", tax);
+	std::snprintf(buf, sizeof(buf),"tax      : %li ", tax);
 	log_print(buf);
 #ifdef DEBUG
 	log_print("phi_dm:call save_sd()");
 #endif
-	save_sd(0, 0, 0, 'G', NULL, 0);
+	save_sd(0, 0, 0, 'G', nullptr, 0);
 	}
 	if (
 #ifdef DEBUG_TIME
@@ -568,10 +575,10 @@ int    main(int argc, char **argv)
 		 || TCN_PALSY(n)		   /* 攻撃不可状態では hit しない */
 		 || (fld[map[cd[n].y][cd[n].x].area].flag & FF_ATTACK)
 		 || (is_need_charge_time   /* charged item の対応 */
-		 && cd[n].weq!=NULL
+		 && cd[n].weq!=nullptr
 		 && (cd[n].weq->type & IT_MASK) == IT_CHARGE
 		 && cd[n].weq->SE == SE_HITISUSE
-		 && cd[n].weq->active_time < time(NULL))))
+		 && cd[n].weq->active_time < time(nullptr))))
 	  {
 		cd[n].parse = 0;
 		CPYSTR(buf, "hit");
@@ -620,17 +627,17 @@ int    main(int argc, char **argv)
 	  	continue;
 	  if (!*buf)
 		continue;
-	  if (!strncmp(buf, "#x", 2)) {
-		snprintf(buf, sizeof(buf),"x-detect : %s ", cd[n].name);
+	  if (!std::strncmp(buf, "#x", 2)) {
+		std::snprintf(buf, sizeof(buf),"x-detect : %s ", cd[n].name);
 		log_print(buf);
 		close_connect(n);
 		continue;
-	  } else if (!strncmp(buf, "#open", 5) && CHKSP(buf+5) && buf[6] != '\0' && cd[n].st == ST_COMMAND) { /* check enhance 20000719 */
+	  } else if (!std::strncmp(buf, "#open", 5) && CHKSP(buf+5) && buf[6] != '\0' && cd[n].st == ST_COMMAND) { /* check enhance 20000719 */
 		p = buf + 6; /* bug fix for bad id 20020207 */
 		loadstr(cd[n].uid, &p, ' ', 16);
 		/* add for chrID ban 20030722 */
 		if (id_banned(n)) {
-		  snprintf(buf, sizeof(buf),"login refused: (%i:%i) = %s",
+		  std::snprintf(buf, sizeof(buf),"login refused: (%i:%i) = %s",
 				  n, fd_check(n), cd[n].uid);
 		  log_print(buf);
 		  write_line(n, "#x\n", 3, 0);
@@ -638,7 +645,7 @@ int    main(int argc, char **argv)
 		  nclose(n);
 		  continue;
 		}
-		if (addf && !strcmp(cd[n].uid, "newuser")) {
+		if (addf && !std::strcmp(cd[n].uid, "newuser")) {
 		  dmprintf(n, 0, buf, sizeof(buf),DMM_DISP_VERSION);
 		  check_write(n, buf);
 		  check_write(n, "\n");
@@ -655,65 +662,65 @@ int    main(int argc, char **argv)
 		if (!(i = load_cd(n, 1))) {
 		  dmcheck_write(n, DMM_NO_CHARACTER);
 		  check_write(n, "#x\n");
-		  snprintf(buf, sizeof(buf),"no-chr   : (%i:%i) ", n, cd[n].fd);
+		  std::snprintf(buf, sizeof(buf),"no-chr   : (%i:%i) ", n, cd[n].fd);
 		  log_print(buf);
 		  close_connect(n);
 		  continue;
 		}
 		if (i < 0) {
-		  if(!strcmp(cd[n].uid, "guest")){
+		  if(!std::strcmp(cd[n].uid, "guest")){
 		check_write(n, DMM_GUEST_USED);
 		check_write(n, DMM_GUEST_TRYLATER);
 		check_write(n, "#x\n");
-		snprintf(buf, sizeof(buf),"w-access guest: (%i:%i) ", n, cd[n].fd);
+		std::snprintf(buf, sizeof(buf),"w-access guest: (%i:%i) ", n, cd[n].fd);
 		log_print(buf);
 		close_connect(n);
 		continue;
 		  } else {
 		dmcheck_write(n, DMM_ACCESS_ALREADY);
-		snprintf(buf, sizeof(buf),"w-access : (%i:%i) ", n, cd[n].fd);
+		std::snprintf(buf, sizeof(buf),"w-access : (%i:%i) ", n, cd[n].fd);
 		log_print(buf);
 		for(i = 1; i < MAX_NTTYS; i++)
-		  if (i != n && cd[i].type && !strcmp(cd[n].uid, cd[i].uid))
+		  if (i != n && cd[i].type && !std::strcmp(cd[n].uid, cd[i].uid))
 			break;
 		if (i < MAX_NTTYS) {
 		  dmcheck_write(i, DMM_ACCESS_BY_OTHER);
 		  dmcheck_write(i, DMM_CHANGE_CLIENT_OUT);
 		  check_write(i, "#close\n");
-		  snprintf(buf, sizeof(buf),"cli-chang: (%i:%i) -> (%i:%i) ", i, cd[i].fd, n, cd[n].fd);
+		  std::snprintf(buf, sizeof(buf),"cli-chang: (%i:%i) -> (%i:%i) ", i, cd[i].fd, n, cd[n].fd);
 		  log_print(buf);
-		  snprintf(buf, sizeof(buf),"#name %s\n", cd[i].name); /* change for Rphi 20001018 */
+		  std::snprintf(buf, sizeof(buf),"#name %s\n", cd[i].name); /* change for Rphi 20001018 */
 		  check_write(n, buf);
 		  if (IS_CGCHGED(i)) { /* キャラグラ変更 added by Qajin 19991224 */
 			if(IS_CLIENT_RPHIWIN(n)) {				 /* phiwin/tphi 識別追加 added 20000101 */
-			  snprintf(buf, sizeof(buf),"#name %s\n", CHRGRA(i));
+			  std::snprintf(buf, sizeof(buf),"#name %s\n", CHRGRA(i));
 			  check_write(n, buf);
 			} else if(cd[i].cv >= 5085910)
 			  check_write(n,"#name __\n");
 		  }
 		  fd = cd[n].fd;
 		  sklbk = cd[n].skill; /* bug fix for skill clush 20021031 */
-		  memcpy(&(cd[n]), &(cd[i]), sizeof(CHRData));
+		  std::memcpy(&(cd[n]), &(cd[i]), sizeof(CHRData));
 		  cd[i].skill = sklbk; /* bug fix for skill clush 20021031 */
 		  cd[n].fd = fd;
 		  cd[n].cv = 0;
 		  cd[n].modef &= ~MD_M57; /* for client change from m57 */
-		  cd[n].weq = NULL;
-		  cd[n].aeq = NULL;
-		  cd[n].oeq = NULL;
-		  if(cd[i].weq!=NULL)
+		  cd[n].weq = nullptr;
+		  cd[n].aeq = nullptr;
+		  cd[n].oeq = nullptr;
+		  if(cd[i].weq!=nullptr)
 			for(j=0; j< MAX_ITEMS; j++)
 			  if(cd[i].weq == &(cd[i].id[j])){
 			cd[n].weq = &(cd[n].id[j]);
 			break;
 			  }
-		  if(cd[i].aeq!=NULL)
+		  if(cd[i].aeq!=nullptr)
 			for(j=0; j< MAX_ITEMS; j++)
 			  if(cd[i].aeq == &(cd[i].id[j])){
 			cd[n].aeq = &(cd[n].id[j]);
 			break;
 			  }
-		  if(cd[i].oeq!=NULL)
+		  if(cd[i].oeq!=nullptr)
 			for(j=0; j< MAX_ITEMS; j++)
 			  if(cd[i].oeq == &(cd[i].id[j])){
 			cd[n].oeq = &(cd[n].id[j]);
@@ -725,8 +732,8 @@ int    main(int argc, char **argv)
 			  if(cd[j].trace == i) cd[j].trace = n;
 			  if(cd[j].vf2	 == i) cd[j].vf2   = n; /* bug fix 20000621 */
 			}
-		  cd[i].auth = NULL; /* bug fix by Qajin 19991208 */
-		  cd[i].extension = NULL; /* bug fix by Qajin 20010316 */
+		  cd[i].auth = nullptr; /* bug fix by Qajin 19991208 */
+		  cd[i].extension = nullptr; /* bug fix by Qajin 20010316 */
 		  dmcheck_write(n, DMM_CHANGE_CLIENT_IN);
 		  cd[i].type = CT_NOEXIST;
 		  close_connect(i);
@@ -743,13 +750,13 @@ int    main(int argc, char **argv)
 		}
 		  }
 		}
-		snprintf(buf, sizeof(buf),"#name %s\n", cd[n].name);
+		std::snprintf(buf, sizeof(buf),"#name %s\n", cd[n].name);
 		check_write(n, buf);
 		cd[n].type = CT_NORMAL;
 		cd[n].cv = 0;
 		ex_notice(n,1); /* add for SD51 */
 		set_chr(n);
-		snprintf(buf, sizeof(buf),"access   : %s (%i:%i) ", cd[n].name, n, cd[n].fd);
+		std::snprintf(buf, sizeof(buf),"access   : %s (%i:%i) ", cd[n].name, n, cd[n].fd);
 		log_print(buf);
 		dmprintf(n, 0, buf, sizeof(buf),DMM_DISP_VERSION);
 		check_write(n, buf);
@@ -772,13 +779,13 @@ int    main(int argc, char **argv)
 		else			wizard_eye_f(n,0);
 
 		#ifdef ENPRN /* DM負荷表示 by NEO 2011/11/13 */
-		  snprintf(buf, sizeof(buf)-1, 
+		  std::snprintf(buf, sizeof(buf)-1, 
 		  " [DM LOAD: %i(%.2f) -> %i(%.2f) -> %i(%.2f)]\n", 
 		  (int)server_lag_prev2, (long)server_lag_prev2 / 10.0, 
 		  (int)server_lag_prev, (long)server_lag_prev / 10.0, 
 		  (int)server_lag, (long)server_lag / 10.0);
 		#else
-		  snprintf(buf, sizeof(buf)-1, 
+		  std::snprintf(buf, sizeof(buf)-1, 
 		  " [DM負荷: %i(%.2f) -> %i(%.2f) -> %i(%.2f)]\n", 
 		  (int)server_lag_prev2, (long)server_lag_prev2 / 10.0, 
 		  (int)server_lag_prev, (long)server_lag_prev / 10.0, 
@@ -791,9 +798,9 @@ int    main(int argc, char **argv)
 		if (autoeqf) {
 		  auto_equip(n);
 		} else {
-		  cd[n].weq = NULL;
-		  cd[n].aeq = NULL;
-		  cd[n].oeq = NULL;
+		  cd[n].weq = nullptr;
+		  cd[n].aeq = nullptr;
+		  cd[n].oeq = nullptr;
 		}
 		check_mail(n); /* Add for メールシステム:接続時メール件数チェック by NEO 2008/05/02 */
 		
@@ -849,17 +856,17 @@ int    main(int argc, char **argv)
 *****************/
 
 
-	} else if (!strncmp(buf, "#version-srv ", 13)
+	} else if (!std::strncmp(buf, "#version-srv ", 13)
 		 && cd[n].st == ST_CONNECTSERVER){
 	  /* for gate auto delete added by Qajin 20000523 */
 	  /* 接続成功時は時間をリセット */
-	  if (gatedata[i=cd[n].vf2] != NULL && gatedata[i][0].di == 'G') /* bug fix 20000803 fix2 20031007 */
+	  if (gatedata[i=cd[n].vf2] != nullptr && gatedata[i][0].di == 'G') /* bug fix 20000803 fix2 20031007 */
 		  gatedata[i][7].dl = 0;
 	  /* バージョンチェックのために必要 */
-	  if(strcmp(cd[i=cd[n].vf].uid, cd[n].uid)){
+	  if(std::strcmp(cd[i=cd[n].vf].uid, cd[n].uid)){
 		check_write(n, "#x\n"); /* クライアントが落ち */
 		close_connect(n);
-	  } else if(!server_version_check(i, atoi(buf+13), errmsg, sizeof(errmsg))){
+	  } else if(!server_version_check(i, std::atoi(buf+13), errmsg.data(), errmsg.size())){
 		cd[i].type = CT_NORMAL; /* バージョンチェックでだめ */
 		cd[i].st = ST_COMMAND;
 		cd[i].wt = 0;
@@ -867,14 +874,14 @@ int    main(int argc, char **argv)
 		cd[i].iy = cd[i].y;
 		set_chr(i);
 		print_map(i, 0);
-		check_write(i, errmsg);
+		check_write(i, errmsg.data());
 		check_write(n, "#x\n");
 		close_connect(n);
 	  } else {
 		/* for character graphic added by Qajin 19991224 */
 		/* バージョンチェック追加 changed by Qajin 19991228 */
-		if(atoi(buf+13) < 5098003 && cd[i].cv >= 5085910 && IS_CGCHGED(i)) {
-			snprintf(buf,sizeof(buf),"#name %s\n",CHRGRA(i));
+		if(std::atoi(buf+13) < 5098003 && cd[i].cv >= 5085910 && IS_CGCHGED(i)) {
+			std::snprintf(buf,sizeof(buf),"#name %s\n",CHRGRA(i));
 		check_write(i,buf);
 		}
 		cd[n].wt = cd[i].wt; /* 残り時間を延長 */
@@ -883,13 +890,13 @@ int    main(int argc, char **argv)
 		/* クライアントに #ch-srv を送信 */
 		cd[n].st = ST_CONNECTSERVER_;
 	  }
-	} else if (cd[n].st == ST_COMMAND && !strncmp(buf, "#reserve", 8) && CHKSP(buf+8) && buf[9] != '\0') { /* check enhance 20000719 */
+	} else if (cd[n].st == ST_COMMAND && !std::strncmp(buf, "#reserve", 8) && CHKSP(buf+8) && buf[9] != '\0') { /* check enhance 20000719 */
 		p = buf + 9;  /* bug fix for bad id 20020207 */
 		loadstr(cd[n].uid, &p, ' ', 16);
 		cd[n].name = findstr("????");
 		/* add for chrID ban 20030722 */
 		if (id_banned(n)) {
-		  snprintf(buf, sizeof(buf),"reserve refused: (%i:%i) = %s",
+		  std::snprintf(buf, sizeof(buf),"reserve refused: (%i:%i) = %s",
 				  n, fd_check(n), cd[n].uid);
 		  log_print(buf);
 		  write_line(n, "#rsv-no\n#x\n", 3, 0);
@@ -902,8 +909,8 @@ int    main(int argc, char **argv)
 	  /**** 97/Jun/9 b-Yak-38 ADD ****/
 	  for (i = 1; i < MAX_NTTYS; i++) {
 		if (cd[i].st == ST_RESERVE
-	  && (int) strlen(cd[i].uid) > 0
-	  && !strncmp(cd[i].uid, buf + 9, strlen(cd[i].uid)))
+	  && (int) std::strlen(cd[i].uid) > 0
+	  && !std::strncmp(cd[i].uid, buf + 9, std::strlen(cd[i].uid)))
 	break;
 	  }
 	  if (i < MAX_NTTYS) {
@@ -915,27 +922,27 @@ int    main(int argc, char **argv)
 		cd[i].wt = 600; /* 時間延長 */
 	  } else {
 		/*******************************/
-		cd[n].cg = NULL /*findstr("unknown")*/;
+		cd[n].cg = nullptr /*findstr("unknown")*/;
 		cd[n].st = ST_RESERVE;
 		cd[n].wt = 600;
 		check_write(n, "#rsv-ok\n");
-		snprintf(buf, sizeof(buf),"reserve  : (%i:%i) ", n, cd[n].fd);
+		std::snprintf(buf, sizeof(buf),"reserve  : (%i:%i) ", n, cd[n].fd);
 		log_print(buf);
 		for (i = 0; i < MAX_TALKS; i++){
 	cd[n].td[i].type = TT_NONE;
-	cd[n].td[i].string = NULL;
+	cd[n].td[i].string = nullptr;
 		}
 		for (i = 0; i < MAX_MAGICS; i++){
-	cd[n].md[i].spell = NULL;
+	cd[n].md[i].spell = nullptr;
 	cd[n].md[i].effect = EF_NONE;
 	cd[n].md[i].fn = FN_NONE;
 	cd[n].md[i].is_inherence = 0;
-	cd[n].md[i].extension = NULL; /* bug fix 20000320 */
+	cd[n].md[i].extension = nullptr; /* bug fix 20000320 */
 		}
 		for (i = 0; i < MAX_ITEMS; i++)
 	delete_item(&(cd[n].id[i]));
 	  }
-	} else if (cd[n].st == ST_TRYRESERVE && !strcmp(buf, "#no-srv")) { /* check enhance for bug fix 20000710 */
+	} else if (cd[n].st == ST_TRYRESERVE && !std::strcmp(buf, "#no-srv")) { /* check enhance for bug fix 20000710 */
 	  /* クライアントより転送先サーバへの接続が失敗したとの報告 */
 	  cd[n].type = CT_NORMAL;
 	  cd[n].st = ST_COMMAND;
@@ -944,21 +951,21 @@ int    main(int argc, char **argv)
 	  cd[n].iy = cd[n].y;
 	  if (IS_CGCHGED(n)) { /* bug fix by Qajin 19991228 */
 		 if (cd[n].cv >= 5090152) { 			/* phiwin/tphi 識別追加  added 20000101 */
-		   snprintf(buf,sizeof(buf),"#name %s\n",CHRGRA(n));
+		   std::snprintf(buf,sizeof(buf),"#name %s\n",CHRGRA(n));
 		   check_write(n,buf);
 		 } else if (cd[n].cv >= 5085910)
 		   check_write(n,"#name __\n");
 	  }
 	  dmcheck_write(n, DMM_TRANS_NO_MISS_DEST);
-	  if(!strcmp(cd[i=cd[n].vf].uid, cd[n].uid)){
+	  if(!std::strcmp(cd[i=cd[n].vf].uid, cd[n].uid)){
 		check_write(i, "#x\n");
 		close_connect(i);
 	  }
-	} else if (cd[n].st == ST_TRYRESERVE && !strncmp(buf, "#trans", 6)) { /* check enhance for bug fix 20000710 */
+	} else if (cd[n].st == ST_TRYRESERVE && !std::strncmp(buf, "#trans", 6)) { /* check enhance for bug fix 20000710 */
 	  /* クライアントより転送先サーバへのキャラクタ情報転送要求 */
-	  if(strcmp(cd[i=cd[n].vf].uid, cd[n].uid)){
+	  if(std::strcmp(cd[i=cd[n].vf].uid, cd[n].uid)){
 		check_write(n, "#trs-no\n");  /* 転送ソケット落ち */
-		snprintf(buf, sizeof(buf),"trs-err  : %s -> %s ",cd[n].name, cd[n].str);
+		std::snprintf(buf, sizeof(buf),"trs-err  : %s -> %s ",cd[n].name, cd[n].str);
 		log_print(buf);
 		cd[n].type = CT_NORMAL;
 		cd[n].st = ST_COMMAND;
@@ -967,27 +974,27 @@ int    main(int argc, char **argv)
 		cd[n].iy = cd[n].y;
 		dmcheck_write(n, DMM_TRANS_NO_MISS_DEST);
 	  } else {
-		snprintf(buf, sizeof(buf),"chr-trs  : (%i:%i) %s ", i,cd[i].fd,cd[n].name);
+		std::snprintf(buf, sizeof(buf),"chr-trs  : (%i:%i) %s ", i,cd[i].fd,cd[n].name);
 		log_print(buf);
 		p = cd[i].str + 8;
-		loadstr(nm, &p, ' ', 32); /* ip */
-		p = select_password(cd[n].str, nm);
+		loadstr(nm.data(), &p, ' ', 32); /* ip */
+		p = select_password(cd[n].str, nm.data());
 		cd[n].st = ST_TRANSFER; /* add for checking abnomal process sequence 20000725 */
 		cd[i].st = ST_SENDCHR;
 		put_cd(n, i, p); /* #rcv-ok 待ちへ */
 	  }
-	} else if (!strncmp(buf, "#chr-D", 6)) {
+	} else if (!std::strncmp(buf, "#chr-D", 6)) {
 	  /* 他サーバからキャラクターデータ転送 */
 	  for (i = 1; i < MAX_NTTYS; i++)
 		if (cd[i].st == ST_RESERVE
-	  && (int) strlen(cd[i].uid) > 0
-	  && !strncmp(cd[i].uid, buf + 7, strlen(cd[i].uid)))
+	  && (int) std::strlen(cd[i].uid) > 0
+	  && !std::strncmp(cd[i].uid, buf + 7, std::strlen(cd[i].uid)))
 	break;
 	  if (i >= MAX_NTTYS) {
 		/* 転送要求してたクライアントが見当たらない */
 		log_print(buf);
 		check_write(n, "#rcv-no\n");
-		snprintf(buf, sizeof(buf),"rcv-err  : (%i:%i) ", n, cd[n].fd);
+		std::snprintf(buf, sizeof(buf),"rcv-err  : (%i:%i) ", n, cd[n].fd);
 		log_print(buf);
 		close_connect(n);
 		continue;
@@ -996,7 +1003,7 @@ int    main(int argc, char **argv)
 	  case -3:
 		log_print(buf);
 		check_write(n, "#rcv-no\n");
-		snprintf(buf, sizeof(buf),"refuse master in : (%i:%i) ", n, cd[n].fd);
+		std::snprintf(buf, sizeof(buf),"refuse master in : (%i:%i) ", n, cd[n].fd);
 		log_print(buf);
 		close_connect(n);
 		continue;
@@ -1004,7 +1011,7 @@ int    main(int argc, char **argv)
 	  case -1:			/* エラー発生 */
 		log_print(buf);
 		check_write(n, "#rcv-no\n");
-		snprintf(buf, sizeof(buf),"rcv-err  : (%i:%i) ", n, cd[n].fd);
+		std::snprintf(buf, sizeof(buf),"rcv-err  : (%i:%i) ", n, cd[n].fd);
 		log_print(buf);
 		close_connect(n);
 	  case 1:
@@ -1013,38 +1020,38 @@ int    main(int argc, char **argv)
 	  cd[i].wt = 600; /* 列車事故対策 20000718 */
 	  check_write(n, "#rcv-ok\n");
 	  while (!save_cd(i, 1));
-	  snprintf(buf, sizeof(buf),"chr-rcv  : (%i:%i) ", n, cd[n].fd);
+	  std::snprintf(buf, sizeof(buf),"chr-rcv  : (%i:%i) ", n, cd[n].fd);
 	  log_print(buf);
 	  close_connect(n);
-	} else if (cd[n].st == ST_SENDCHR && !strcmp(buf, "#rcv-no")){ /* check enhance 20000719 */
+	} else if (cd[n].st == ST_SENDCHR && !std::strcmp(buf, "#rcv-no")){ /* check enhance 20000719 */
 	  /* 転送先のサーバより、受け取り失敗連絡 */
-	  if(strcmp(cd[i=cd[n].vf].uid, cd[n].uid)){
+	  if(std::strcmp(cd[i=cd[n].vf].uid, cd[n].uid)){
 		close_connect(n); /* クライアント落ち */
 	  } else {
 		cd[i].st = ST_TRANSFAILE; /* add for checking abnomal process sequence 20000725 */
 		check_write(i, "#trs-no\n");
-		snprintf(buf, sizeof(buf),"trs-err  : %s -> %s ",cd[i].name, cd[i].str);
+		std::snprintf(buf, sizeof(buf),"trs-err  : %s -> %s ",cd[i].name, cd[i].str);
 		log_print(buf);
 		/* 転送用ソケットを閉じる */
 		close_connect(n);
 		/* クライアント側のソケットは、閉じない(#ch-srv-no 待ち) */
 	  }
-	} else if (cd[n].st == ST_SENDCHR && !strcmp(buf, "#rcv-ok")) { /* check enhance 20000719 */
+	} else if (cd[n].st == ST_SENDCHR && !std::strcmp(buf, "#rcv-ok")) { /* check enhance 20000719 */
 	  while (!save_cd(n, 0)); /* vs Tphi dup 20010627 */
 	  /* 転送先のサーバより、転送受渡し成功連絡 */
-	  if(strcmp(cd[i=cd[n].vf].uid, cd[n].uid)){
+	  if(std::strcmp(cd[i=cd[n].vf].uid, cd[n].uid)){
 		close_connect(n); /* クライアント落ち。今更… */
 	  } else {
 		check_write(i, "#trs-ok\n");
 		close_connect(i);
-		snprintf(buf, sizeof(buf),"out      : %s -> %s ",cd[i].name, cd[i].str);
+		std::snprintf(buf, sizeof(buf),"out      : %s -> %s ",cd[i].name, cd[i].str);
 		log_print(buf);
 		dmprintf(i, 0, buf, sizeof(buf),DMM_OUT
 		  , cd[i].str);
 		write_companion(i, 0, buf, access_dm);
 		close_connect(n);
 	  }
-	} else if (cd[n].st == ST_TRANSFAILE && !strcmp(buf, "#ch-srv-no")) { /* check enhance for bug fix 20000710 */
+	} else if (cd[n].st == ST_TRANSFAILE && !std::strcmp(buf, "#ch-srv-no")) { /* check enhance for bug fix 20000710 */
 	  cd[n].type = CT_NORMAL;
 	  cd[n].st = ST_COMMAND;
 	  cd[n].wt = 0;
@@ -1053,15 +1060,15 @@ int    main(int argc, char **argv)
 	  set_chr(n);
 	  if (IS_CGCHGED(n)) { /* bug fix by Qajin 19991228 */
 		 if (cd[n].cv >= 5090152) { 			/* phiwin/tphi 識別追加  added 20000101 */
-		   snprintf(buf, sizeof(buf),"#name %s\n",CHRGRA(n));
+		   std::snprintf(buf, sizeof(buf),"#name %s\n",CHRGRA(n));
 		   check_write(n,buf);
 		 } else if (cd[n].cv >= 5085910)
 		   check_write(n,"#name __\n");
 	  }
 	  print_map(n, 0);
 	  dmcheck_write(n, DMM_TRANS_FAIL);
-	} else if (cd[n].st == ST_RECEIVECOMPLETE && !strcmp(buf, "#ch-srv-ok")) { /* check enhance for bug fix 20000710 */
-	  snprintf(buf, sizeof(buf), "in       : %s from %s"
+	} else if (cd[n].st == ST_RECEIVECOMPLETE && !std::strcmp(buf, "#ch-srv-ok")) { /* check enhance for bug fix 20000710 */
+	  std::snprintf(buf, sizeof(buf), "in       : %s from %s"
 		,cd[n].name, cd[n].str);
 	  log_print(buf);
 	  cd[n].type = CT_NORMAL; /* change sequence for dmprintf 20021226 */
@@ -1091,13 +1098,13 @@ int    main(int argc, char **argv)
 	  else			  wizard_eye_f(n,0);
 	  
 		#ifdef ENPRN /* DM負荷表示 by NEO 2011/11/13 */
-		  snprintf(buf, sizeof(buf)-1, 
+		  std::snprintf(buf, sizeof(buf)-1, 
 		  " [DM LOAD: %i(%.2f) -> %i(%.2f) -> %i(%.2f)]\n", 
 		  (int)server_lag_prev2, (long)server_lag_prev2 / 10.0, 
 		  (int)server_lag_prev, (long)server_lag_prev / 10.0, 
 		  (int)server_lag, (long)server_lag / 10.0);
 		#else
-		  snprintf(buf, sizeof(buf)-1, 
+		  std::snprintf(buf, sizeof(buf)-1, 
 		  " [DM負荷: %i(%.2f) -> %i(%.2f) -> %i(%.2f)]\n", 
 		  (int)server_lag_prev2, (long)server_lag_prev2 / 10.0, 
 		  (int)server_lag_prev, (long)server_lag_prev / 10.0, 
@@ -1110,9 +1117,9 @@ int    main(int argc, char **argv)
 	  if (autoeqf) {
 		auto_equip(n);
 	  } else {
-		cd[n].weq = NULL;
-		cd[n].aeq = NULL;
-		cd[n].oeq = NULL;
+		cd[n].weq = nullptr;
+		cd[n].aeq = nullptr;
+		cd[n].oeq = nullptr;
 	  }
 	  importcir(n);
 	  load_sav(n); /* add for saved flags 20010622 */
@@ -1128,10 +1135,10 @@ int    main(int argc, char **argv)
 		  break;
 	  }
 	  CN_GASIFY(n) = 0x10000; /* add 20020908 */
-	} else if (!strncmp(buf, "#gate", 5)) {
+	} else if (!std::strncmp(buf, "#gate", 5)) {
 	  if (get_gate(buf + 5, 0, n)) {
 		CPYSTR(cd[n].str, buf + 22);
-		snprintf(buf, sizeof(buf), "bad gate : %s ", cd[n].str);
+		std::snprintf(buf, sizeof(buf), "bad gate : %s ", cd[n].str);
 		log_print(buf);
 		close_connect(n);
 		cd[n].str[31]='\0';
@@ -1140,7 +1147,7 @@ int    main(int argc, char **argv)
 		write_companion(0, 0, buf, 1);
 	  } else {
 		CPYSTR(cd[n].str, buf + 22);
-		snprintf(buf, sizeof(buf), "gate     : %s ", cd[n].str);
+		std::snprintf(buf, sizeof(buf), "gate     : %s ", cd[n].str);
 		log_print(buf);
 		close_connect(n);
 		cd[n].str[31]='\0';
@@ -1148,26 +1155,26 @@ int    main(int argc, char **argv)
 		  ,cd[n].str);
 		write_companion(0, 0, buf, 1);
 	  }
-	} else if (!strncmp(buf, "#g-close", 8)) {
+	} else if (!std::strncmp(buf, "#g-close", 8)) {
 	  get_gate(buf + 8, 1, n);
 	  CPYSTR(cd[n].str, buf + 25);
-	  snprintf(buf, sizeof(buf), "g-close  : %s ", cd[n].str);
+	  std::snprintf(buf, sizeof(buf), "g-close  : %s ", cd[n].str);
 	  log_print(buf);
 	  close_connect(n);
 	  cd[n].str[31]='\0';
 	  dmprintf(n, 0, buf, sizeof(buf),DMM_GATE_CLOSE, cd[n].str);
 	  write_companion(0, 0, buf, 1);
-	} else if (!strncmp(buf, "#shutdown", 9)) {
+	} else if (!std::strncmp(buf, "#shutdown", 9)) {
 	  nm[0] = '\0';
 	  p = buf + 9;
 	  SKIP_SPACE(p);
 	  loadstr(cd[n].str, &p, ' ', 32);
 	  SKIP_SPACE(p);
-	  if (!strncmp(p, "P:", 2)) {
-		loadstr(nm, &p, '\n', 32);
+	  if (!std::strncmp(p, "P:", 2)) {
+		loadstr(nm.data(), &p, '\n', 32);
 	  }
-	  if (!authorize(nm)) {
-		snprintf(buf, sizeof(buf), "bad shut : %s", ip_domain_check(n));
+	  if (!authorize(nm.data())) {
+		std::snprintf(buf, sizeof(buf), "bad shut : %s", ip_domain_check(n));
 		log_print(buf);
 		/* psp5 fix ここから */
 		dmprintf(n, 0, buf, sizeof(buf),DMM_ILLEGAL_SHUTDOWN,cd[n].str);
@@ -1178,15 +1185,15 @@ int    main(int argc, char **argv)
 		close_connect(n);
 		signal_trap(0xff);
 	  }
-	} else if (!strcmp(buf, "#code-sjis")) {
+	} else if (!std::strcmp(buf, "#code-sjis")) {
 	  check_write(n, "#code-sjis-ok\n");
-	} else if (!strncmp(buf, "#version-cli ", 13)) {
+	} else if (!std::strncmp(buf, "#version-cli ", 13)) {
 	  /* for character change added by Qajin 19991228 */
-	  i = atoi(buf + 13);
+	  i = std::atoi(buf + 13);
 	  if (i != 0 && cd[n].cv == 0 && IS_CGCHGED(n) /* bug fix 20000321 fix2 0919 */
 		  ) {
 		if (i >= 5090152) {
-		  snprintf(buf, sizeof(buf),"#name %s\n",CHRGRA(n));  /* phiwin/Tphi 識別追加 added by Qajin 20000101 */
+		  std::snprintf(buf, sizeof(buf),"#name %s\n",CHRGRA(n));  /* phiwin/Tphi 識別追加 added by Qajin 20000101 */
 		  check_write(n,buf);
 		} else if (i >= 5085910)
 		  check_write(n,"#name __\n");
@@ -1195,9 +1202,9 @@ int    main(int argc, char **argv)
 	  if (!i)
 		check_write(n,"#code-sjis\n"); /* for old euc server ... 20010527 */
 	  ex_version_dm(n);
-   	  snprintf(buf, sizeof(buf), "#version-srv %s\n", PHI_PROT_VERS);
+   	  std::snprintf(buf, sizeof(buf), "#version-srv %s\n", PHI_PROT_VERS);
 	  check_write(n, buf);
-	} else if (!strncmp(buf,"#ex-register", 12)) {
+	} else if (!std::strncmp(buf,"#ex-register", 12)) {
 		if (ex_register(n, buf+12)) {
 			ex_notice(n,1); /* add for SD51 */
 			dmprintf(n, 0, buf, sizeof(buf),DMM_ACCESS_NEW);
@@ -1229,7 +1236,7 @@ int    main(int argc, char **argv)
 			CN_GASIFY(n) = 0x10000; /* add 20020908 */
 			cd[n].st = ST_COMMAND;
 		}
-	} else if (!strncmp(buf,"#ex-get", 7)) {
+	} else if (!std::strncmp(buf,"#ex-get", 7)) {
 		ex_get(n, buf+7);
 	} else if (buf[0] != '#') {
 	  if (cd[n].st == ST_USERID || cd[n].st == ST_USERNM ||
@@ -1248,6 +1255,7 @@ int    main(int argc, char **argv)
 
 void   signal_trap(int sig)
 {
+  /* buf は CPYSTR の宛先のため C 配列のまま */
   char	 buf[256];
 #ifdef __CYGWIN32__
   char	 buf2[256];
@@ -1326,7 +1334,7 @@ void   signal_trap(int sig)
 #ifdef DEBUG
   log_print("save_sd");
 #endif
-  save_sd(0, 0, 0, 'G', NULL, 0);
+  save_sd(0, 0, 0, 'G', nullptr, 0);
 #ifdef DEBUG
   log_print("save_dd");
 #endif
@@ -1362,14 +1370,14 @@ void   log_print(char *mes)
   char tstr[TIMESTRMAX];
 #endif
 
-  abstime = time(NULL);
+  abstime = time(nullptr);
   sttime = (struct tm *) localtime(&abstime);
 
 #ifdef SPLITLOG
   strftime(tstr, TIMESTRMAX, "phi_logs/%Y%m.log", sttime);
-  if ((fp = fopen(tstr, "ab")) == NULL)
+  if ((fp = fopen(tstr, "ab")) == nullptr)
 #else
-  if ((fp = fopen("phi.log", "ab")) == NULL)
+  if ((fp = fopen("phi.log", "ab")) == nullptr)
 #endif
 	return;
 
@@ -1389,7 +1397,7 @@ int init_connected_cd(int n)
 	cd[n].st = ST_COMMAND;
 	reflesh_last_map[n] = reflesh_last_status[n] = 1;
 	CPYSTR(cd[n].str, ip_address_check(n));
-	cd[n].extension = NULL;
+	cd[n].extension = nullptr;
 	cd[n].party = 0; /* add 20020822 */
 	cd[n].pflag = 0; /* add 20030726 */
 	return(0);
@@ -1406,7 +1414,7 @@ void   close_connect(int n)
 	  if(cd[i].angry == n){
 	cd[i].angry = -1;
 #ifdef DEBUG_ANGRY
-	snprintf(debug_buf, sizeof(debug_buf), "lost angry: %s(%d) ", cd[i].name,i);
+	std::snprintf(debug_buf, sizeof(debug_buf), "lost angry: %s(%d) ", cd[i].name,i);
 	log_print(debug_buf);
 #endif
 	  }
@@ -1421,7 +1429,7 @@ void   close_connect(int n)
 	  if(cd[i].vf2 == n){
 	cd[i].vf2 = -1; /* bug fix 20000727 */
 #ifdef DEBUG_ANGRY_SAMMON
-	snprintf(debug_buf, sizeof(debug_buf), "lost master: %s(%d) ", cd[i].name,i);
+	std::snprintf(debug_buf, sizeof(debug_buf), "lost master: %s(%d) ", cd[i].name,i);
 	log_print(debug_buf);
 #endif
 	  }
@@ -1434,18 +1442,18 @@ void   close_connect(int n)
 	tax += cd[n].gp;
 	cd[n].gp = 0;
 	  }
-	  if (cd[n].auth != NULL) { /* moved from phi_data.c 20000719 */
-		if (cd[n].auth->territory != NULL)
+	  if (cd[n].auth != nullptr) { /* moved from phi_data.c 20000719 */
+		if (cd[n].auth->territory != nullptr)
 		  free(cd[n].auth->territory);
 		free(cd[n].auth);
 	  }
-	  cd[n].auth = NULL;
+	  cd[n].auth = nullptr;
 	  while (!save_cd(n, 1));
 	  while (!save_sav(n)); /* for saved flags 20010622 */
 	  skill_clear(n); /* for skills 20020307 */
 	}
 	erase_chrex(cd[n].extension); /* add for Chr Extension data 20000929 */
-	cd[n].extension = NULL;
+	cd[n].extension = nullptr;
 	i = cd[n].party;
 	cd[n].party = 0;
 	renumber_party(i);
@@ -1474,7 +1482,7 @@ void   close_connect(int n)
 	  }
 	} else if (ed_o[i].apc == 4) { /* add for threatened species 20020520 */
 		cd[n].type = CT_NOEXIST;
-		j = time(NULL) - cd[n].last;
+		j = time(nullptr) - cd[n].last;
 	if (j < 1) {
 		  cd[n].wt = fsps(80, ed_o[i].apt * ed_o[i].threaten * 2, 990000);
 		} else if (j < ed_o[i].threaten) {
@@ -1509,6 +1517,7 @@ void   close_connect(int n)
 void   check_write(int n, char *mes)
 {
   int	 i;
+  /* buf は CPYSTR の宛先のため C 配列のまま */
   char	 buf[MAX_MESSAGE_SIZE];
 
   if (n < MAX_NTTYS) {
@@ -1520,20 +1529,22 @@ void   check_write(int n, char *mes)
 	 || cd[n].st == ST_TRYRESERVE
 	 || cd[n].st == ST_TRANSFAILE) && *mes != '#') return;
 #ifdef DEBUG_SEND_MSG
-	snprintf(debug_buf_msg,sizeof(debug_buf_msg),"send following message to cd[%d]",n);
+	std::snprintf(debug_buf_msg,sizeof(debug_buf_msg),"send following message to cd[%d]",n);
 	log_print(debug_buf_msg);
 	log_print(mes);
 #endif
 	/* added for Tphi suport by Qajin 20000228 */
-	if (!IS_CLIENT_RPHIWIN(n) && !strcmp(mes,"#s-edit\n"))
+	if (!IS_CLIENT_RPHIWIN(n) && !std::strcmp(mes,"#s-edit\n"))
 	cd[n].parse = 1;
 	CPYSTR(buf, mes);
 	buf[MAX_MESSAGE_SIZE-2]='\0';
-	if(buf[(i=strlen(buf)-1)]!='\n'){
+	/* mes が空だと strlen が 0 になり buf[-1] を読むため、空で
+	   ないことを先に確かめる（2026-11-16 修正）。 */
+	if(buf[0] != '\0' && buf[(i=std::strlen(buf)-1)]!='\n'){
 	  buf[i+1]='\n';
 	  buf[i+2]='\0';
 	}
-	  write_line(n, buf, strlen(buf), 0);
+	  write_line(n, buf, std::strlen(buf), 0);
   }
   if(cd[n].exp == 99999999) nfflush(n, 1000);
   return;
@@ -1587,7 +1598,7 @@ void   write_companion(int n, int m, char *mes, int f)
 		check_write(j, mes);
 	  else if (cd[j].type == CT_NORMAL
 		 && cd[j].st != ST_CAST
-		 && strncmp(mes,DMM_DM,strlen(DMM_DM))) {
+		 && std::strncmp(mes,DMM_DM,std::strlen(DMM_DM))) {
 		cd[j].target = n;
 		CPYSTR(cd[j].str, mes);
 	  }
@@ -1840,16 +1851,16 @@ void   dd_char(char *p, MapData d, int f)
 	}
 	break;
   case T_LGATE:
-	if (strchr(&roofoff[0], '[') == NULL)
+	if (std::strchr(&roofoff[0], '[') == nullptr)
 	  *(p + 1) = '~';
 	break;
   case T_LBOX:
-	if (strchr(&roofoff[0], '%') == NULL)
+	if (std::strchr(&roofoff[0], '%') == nullptr)
 	  *(p + 1) = '~';
 	break;
   case T_LSGATE:
   default:
-	if (strchr(&roofoff[0], *p) == NULL)
+	if (std::strchr(&roofoff[0], *p) == nullptr)
 	  *(p + 1) = '~';
 	break;
   }
@@ -1883,14 +1894,16 @@ void   dd_char(char *p, MapData d, int f)
 
 void   print_map(int n, int f)
 {
-  static char dc[4] = {'N', 'E', 'S', 'W'};
-  static char rdc[4] = {'B', 'R', 'F', 'L'};
+  static constexpr std::array<char, 4> kDc = {'N', 'E', 'S', 'W'};
+  static constexpr std::array<char, 4> kRdc = {'B', 'R', 'F', 'L'};
+  /* buf は dd_char へ buf + offset を渡すポインタ演算で使うため C 配列のまま */
   char	 buf[256];
   int	 x, y, xx, yy;
   int	 i, j, k, l;
   static int last_x[MAX_NTTYS], last_y[MAX_NTTYS], last_d[MAX_NTTYS];
   static time_t last_time[MAX_NTTYS];
   static MapData last_view[MAX_NTTYS][5][5];
+  /* last_npc / last_board_title は CPYSTR の宛先・sizeof 依存のため C 配列のまま */
   static char last_npc[MAX_NTTYS][MAX_PRINT_NPC][256];
   static int  last_npc_num[MAX_NTTYS];
   static char last_board_title[MAX_NTTYS][256]; /* added by Qajin 20000102 */
@@ -1932,7 +1945,7 @@ void   print_map(int n, int f)
   if(!need_check && ((f & MD_CHAT) || !cd[n].eye))
 	return;
 
-  abstime = time(NULL);
+  abstime = time(nullptr);
   if(need_check
 	 || abstime - last_time[n] >= 60	 /* 1分以上経った */
 	 || abstime%60 < last_time[n]%60){ /* 分が変わった	*/
@@ -1946,9 +1959,9 @@ void   print_map(int n, int f)
   }
   set_view(n);
   if(need_check
-	 || memcmp(&(last_view[n][0][0]), &(cd[n].view[0][0]),sizeof(MapData)*5*5)){
+	 || std::memcmp(&(last_view[n][0][0]), &(cd[n].view[0][0]),sizeof(MapData)*5*5)){
 	need_check = 1;
-	memcpy(&(last_view[n][0][0]), &(cd[n].view[0][0]),sizeof(MapData)*5*5);
+	std::memcpy(&(last_view[n][0][0]), &(cd[n].view[0][0]),sizeof(MapData)*5*5);
   }
 
   for (y=k=0; y<5 && k<MAX_PRINT_NPC; y++)
@@ -1959,19 +1972,19 @@ void   print_map(int n, int f)
   if ((j = cd[n].view[4-y][x].chr[i] - 1) < 0) continue;
   if (j != n && ((cd[j].name[0] != ' ' && !TCN_VANISH(j))
 		   || cd[n].at == AT_VISIBLE)) {
-	snprintf(buf, sizeof(buf),
+	std::snprintf(buf, sizeof(buf),
 	  "#map C%02i:%01i %01i %c %-31s %02x %-15s %c %02x \n",
 	  k, x, y,
-	  rdc[(4 + cd[j].d - cd[n].d) & 3] , cd[j].name ,
+	  kRdc[(4 + cd[j].d - cd[n].d) & 3] , cd[j].name ,
 	  (!(cd[j].st) && CN_GASIFY(j) >= 60 ? ST_GASIFY : cd[j].st),
 	  CHRGRA(j),
 	   ((!(cd[j].sg & 3) && gigant_check(j))||(cd[j].sg & 1)) ? '*' : '#',
 	  /* for change character graphic added by Qajin 19991224 */
-	  (j < MAX_NTTYS ? ((cd[j].cg !=NULL || cd[j].ocg != NULL) ? 0x40: 0) : cd[j].type));
+	  (j < MAX_NTTYS ? ((cd[j].cg !=nullptr || cd[j].ocg != nullptr) ? 0x40: 0) : cd[j].type));
 
 	if(need_check
 	   || last_npc_num[n]<=k
-	   || strcmp(last_npc[n][k]+6,buf+6)){
+	   || std::strcmp(last_npc[n][k]+6,buf+6)){
 	  need_check = 1;
 	  CPYSTR(last_npc[n][k],buf);
 	}
@@ -1983,7 +1996,7 @@ void   print_map(int n, int f)
 
   /* for change character graphic added by Qajin 19991224 changed 20000101 */
   if(cd[n].cv >= 5085910 && cd[n].cv < 5090152 && IS_CGCHGED(n)) {
-	snprintf(buf, sizeof(buf),
+	std::snprintf(buf, sizeof(buf),
 	  "#map C%02i:2 3 B                                 %02x %-15s %c 40 \n",
 	  k, (!(cd[n].st) && CN_GASIFY(n) >= 60 ? ST_GASIFY : cd[n].st),
 	  CHRGRA(n),
@@ -1991,7 +2004,7 @@ void   print_map(int n, int f)
 
 	if(need_check
 	   || last_npc_num[n]<=k
-	   || strcmp(last_npc[n][k]+6,buf+6)){
+	   || std::strcmp(last_npc[n][k]+6,buf+6)){
 	  need_check = 1;
 	  CPYSTR(last_npc[n][k],buf);
 	}
@@ -2042,28 +2055,28 @@ void   print_map(int n, int f)
 	  if ((obj = dobj[yy][xx]-1) < 0)
 		 continue;
 
-	  if (od[obj].gname == NULL)
+	  if (od[obj].gname == nullptr)
 		 continue;
 
 	  if ((od[obj].dir & OD_BOARD) && cd[n].cv < 5085910)
 		 continue;
 
-	  snprintf(buf, sizeof(buf),
+	  std::snprintf(buf, sizeof(buf),
 		"#map C%02i:%01i %01i %c %-31s 00 %-15s %c %02x \n",
 		k, x+2, 3-y,
 		(od[obj].dir & OD_TRACE) ?
-			rdc[(((abs(y)>abs(x))?(y>=0?0:2):(x>0?1:3)) + od[obj].dir) & 0x3] : /* 観測者との位置関係による向き */
+			kRdc[(((std::abs(y)>std::abs(x))?(y>=0?0:2):(x>0?1:3)) + od[obj].dir) & 0x3] : /* 観測者との位置関係による向き */
 		((od[obj].dir & OD_CONSTDIR) ?
-			rdc[od[obj].dir & OD_DIRECTION] :						   /* 固定向き */
-			rdc[(4 + od[obj].dir - cd[n].d) & 3]),				   /* ノーマル */
-		(od[obj].name != NULL) ? od[obj].name : "",
+			kRdc[od[obj].dir & OD_DIRECTION] :						   /* 固定向き */
+			kRdc[(4 + od[obj].dir - cd[n].d) & 3]),				   /* ノーマル */
+		(od[obj].name != nullptr) ? od[obj].name : "",
 		 od[obj].gname,
 	   (od[obj].dir & OD_DEBU) ? '*' : '#',
 		 ((od[obj].dir & 0x30) >> 4) + OT_STATUE);
 
 	  if(need_check
 		 || last_npc_num[n]<=k
-		 || strcmp(last_npc[n][k]+6,buf+6)){
+		 || std::strcmp(last_npc[n][k]+6,buf+6)){
 		need_check = 1;
 		CPYSTR(last_npc[n][k],buf);
 	  }
@@ -2088,11 +2101,11 @@ void   print_map(int n, int f)
 	return;
   }
 #ifdef DEBUG_LAZY
-  snprintf(debug_buf, sizeof(debug_buf),"print map(%d)(print_map)",n);
+  std::snprintf(debug_buf, sizeof(debug_buf),"print map(%d)(print_map)",n);
   log_print(debug_buf);
 #endif
 
-  snprintf(buf, sizeof(buf), "#map M %c %08lx:",dc[cd[n].d],time(NULL)+tslide*60*60);
+  std::snprintf(buf, sizeof(buf), "#map M %c %08lx:",kDc[cd[n].d],time(nullptr)+tslide*60*60);
   for (j = 0, y = 0; y < 5; y++)
 	for (x = 0; x < 5; x++) {
 	  dd_char(buf + 18 + 50 + y * 10 + x * 2, cd[n].view[4 - y][x], 0x2);
@@ -2120,7 +2133,7 @@ void   print_map(int n, int f)
 	  list_item(n, 1);
 	}
   }
-  snprintf(buf, sizeof(buf), "#map .\n");
+  std::snprintf(buf, sizeof(buf), "#map .\n");
   check_write(n, buf);
   cd[n].m_wait_c = 0;
   return;
@@ -2128,26 +2141,27 @@ void   print_map(int n, int f)
 
 void   print_status(int n)
 {
-  char	 buf[256];
+  std::array<char, 256> buf;
+  /* last_status / last_cond は CPYSTR の宛先のため C 配列のまま */
   static char last_status[MAX_NTTYS][256],last_cond[MAX_NTTYS][256];
 
   if(n>=MAX_NTTYS || cd[n].fd==-1) return;
 
-  snprintf(buf, sizeof(buf), "#status %-31s:% 5li:% 5li:% 5li:% 5li:% 9i:% 5i:% 5i:% 5i:% 5i:% 5i \n"
+  std::snprintf(buf.data(), buf.size(), "#status %-31s:% 5li:% 5li:% 5li:% 5li:% 9i:% 5i:% 5i:% 5i:% 5i:% 5i \n"
   /* changed by Qajin 19991224,19991228,20000101 */
   , (cd[n].cv < 5085910 || !IS_CGCHGED(n) || (cd[n].modef & MD_M57)) ? cd[n].name : (cd[n].cv >= 5090152 ? CHRGRA(n) : "__")
 	, cd[n].hp, cd[n].mhp, cd[n].mp, cd[n].mmp, cd[n].exp, cd[n].gp
 	,cd[n].lv[LV_FIGHTER], cd[n].lv[LV_WIZARD]
 	,cd[n].lv[LV_MERCHANT], cd[n].lv[LV_CREATER]);
-  if(reflesh_last_status[n] || strcmp(buf, last_status[n])){
-	CPYSTR(last_status[n], buf);
-	check_write(n, buf);
+  if(reflesh_last_status[n] || std::strcmp(buf.data(), last_status[n])){
+	CPYSTR(last_status[n], buf.data());
+	check_write(n, buf.data());
 #ifdef DEBUG_LAZY
-	snprintf(debug_buf, sizeof(debug_buf),"send status(%d)(print_status)",n);
+	std::snprintf(debug_buf, sizeof(debug_buf),"send status(%d)(print_status)",n);
 	log_print(debug_buf);
 #endif
   }
-  snprintf(buf, sizeof(buf), "#cond %c%c%c%c%c%c%c\n",
+  std::snprintf(buf.data(), buf.size(), "#cond %c%c%c%c%c%c%c\n",
 	(TCN_POISON(n) ? '*' : '-'),
 	(TCN_PALSY(n) ? '*' : '-'),
 	(TCN_PANIC(n) ? '*' : '-'),
@@ -2155,11 +2169,11 @@ void   print_status(int n)
 	(TCN_BERSERK(n) ? '*' : '-'),
 	(TCN_SILENCE(n) ? '*' : '-'),
 	(TCN_BLIND(n) ? '*' : '-'));
-  if(reflesh_last_status[n] || strcmp(buf, last_cond[n])){
-	CPYSTR(last_cond[n], buf);
-	check_write(n, buf);
+  if(reflesh_last_status[n] || std::strcmp(buf.data(), last_cond[n])){
+	CPYSTR(last_cond[n], buf.data());
+	check_write(n, buf.data());
 #ifdef DEBUG_LAZY
-	snprintf(debug_buf, sizeof(debug_buf),"send cond(%d)(print_status)",n);
+	std::snprintf(debug_buf, sizeof(debug_buf),"send cond(%d)(print_status)",n);
 	log_print(debug_buf);
 #endif
   }
@@ -2170,13 +2184,13 @@ void   print_status(int n)
 
 void   print_lists(int n)
 {
-  char	 buf[256];
+  std::array<char, 256> buf;
   int	 i;
 
   for (i = 1; i < MAX_NTTYS; i++) {
 	if (cd[i].type) {
-	  snprintf(buf, sizeof(buf), "#user %04d %-31s\n", i, cd[i].name);
-	  check_write(n, buf);
+	  std::snprintf(buf.data(), buf.size(), "#user %04d %-31s\n", i, cd[i].name);
+	  check_write(n, buf.data());
 	}
   }
   return;
@@ -2257,7 +2271,7 @@ void   move_chr(int n, int sx, int sy, int ex, int ey, int msg)
 			cng = 1;
 			ex = sx;
 			ey = sy;
-		} else if (od[j].id != NULL) {
+		} else if (od[j].id != nullptr) {
 			CPYSTR(cd[n].str,od[j].id);
 			load_switch(n, ex, ey, 31);
 		}
@@ -2284,7 +2298,7 @@ void   move_chr(int n, int sx, int sy, int ex, int ey, int msg)
 	/* add for pushable object 20011203 */
 	if ((i=dobj[ey][ex]-1)>=0 && (od[i].dir & OD_PUSH)) {
 		move_obj(i,(j=ex+fsign(ex-sx)),(k=ey+fsign(ey-sy)),-1);
-		if(od[i].id != NULL && (map[k][j].tip & T_SWITCH)) {
+		if(od[i].id != nullptr && (map[k][j].tip & T_SWITCH)) {
 			CPYSTR(cd[n].str,od[i].id);
 	  		load_switch(n, j, k, 30);
 	  	}
@@ -2342,7 +2356,7 @@ void   set_chr(int n)
 /* これにより、他のキャラからの認識ができる */
 {
   MapData *d;
-  char	buf[256];
+  std::array<char, 256> buf;
   int i;
 
   if (!cd[n].type)
@@ -2386,26 +2400,26 @@ void   set_chr(int n)
 		ex_notice(n,3); /* add for SD51 */
 
 	  /** mapsetの送信 **/
-		if (fld[map[cd[n].y][cd[n].x].area].mapset != NULL) {  /* 定義済みの場所へ */
-		  snprintf(buf, sizeof(buf), "#mapset %s\n", fld[map[cd[n].y][cd[n].x].area].mapset);
-		  check_write(n, buf);
+		if (fld[map[cd[n].y][cd[n].x].area].mapset != nullptr) {  /* 定義済みの場所へ */
+		  std::snprintf(buf.data(), buf.size(), "#mapset %s\n", fld[map[cd[n].y][cd[n].x].area].mapset);
+		  check_write(n, buf.data());
 		} else {										   /* 未定義の場所へ */
 		  if (cd[n].by < 0 || cd[n].bx < 0 ||				   /* 初期アクセス時 */
-			  fld[map[cd[n].by][cd[n].bx].area].mapset != NULL) {  /* 定義済みの場所から*/
-			snprintf(buf, sizeof(buf), "#mapset default\n");
-			check_write(n, buf);
+			  fld[map[cd[n].by][cd[n].bx].area].mapset != nullptr) {  /* 定義済みの場所から*/
+			std::snprintf(buf.data(), buf.size(), "#mapset default\n");
+			check_write(n, buf.data());
 		  }
 		}
 
 	  /** bgm名の送信 **/
 		if (fld[map[cd[n].y][cd[n].x].area].bgm[0] != ' ') {  /* 定義済みの場所へ */
-		  snprintf(buf, sizeof(buf), "#bgm %s\n", fld[map[cd[n].y][cd[n].x].area].bgm);
-		  check_write(n, buf);
+		  std::snprintf(buf.data(), buf.size(), "#bgm %s\n", fld[map[cd[n].y][cd[n].x].area].bgm);
+		  check_write(n, buf.data());
 		} else {										   /* 未定義の場所へ */
 		  if (cd[n].by < 0 || cd[n].bx < 0 ||				/* 初期アクセス時 */
 			  fld[map[cd[n].by][cd[n].bx].area].bgm[0] != ' ') {  /* 定義済みの場所から*/
-			snprintf(buf, sizeof(buf), "#bgm default\n");
-			check_write(n, buf);
+			std::snprintf(buf.data(), buf.size(), "#bgm default\n");
+			check_write(n, buf.data());
 		  }
 		}
 
@@ -2438,24 +2452,24 @@ void   clear_chr_pos(int n, int x, int y)
 
 void   func_analyze(int n, char *rbuf)
 {
-  char	 wbuf[255];
+  std::array<char, 255> wbuf;
   int	 i;
 
-  if (!strcmp(rbuf, "#map"))
+  if (!std::strcmp(rbuf, "#map"))
 	print_map(n,0);
-  else if (!strcmp(rbuf, "#status"))
+  else if (!std::strcmp(rbuf, "#status"))
 	print_status(n);
-  else if (!strcmp(rbuf, "#ulist"))
+  else if (!std::strcmp(rbuf, "#ulist"))
 	print_lists(n);
-  else if (!strcmp(rbuf, "#enter-win")) {
+  else if (!std::strcmp(rbuf, "#enter-win")) {
 	cd[n].eye = 1;
-	snprintf(wbuf, sizeof(wbuf), "#enter-win %s\n", cd[n].name);
-	write_companion(n, 0, wbuf, 0);
-  } else if (!strcmp(rbuf, "#leave-win")) {
+	std::snprintf(wbuf.data(), wbuf.size(), "#enter-win %s\n", cd[n].name);
+	write_companion(n, 0, wbuf.data(), 0);
+  } else if (!std::strcmp(rbuf, "#leave-win")) {
 	cd[n].eye = 0;
-	snprintf(wbuf, sizeof(wbuf), "#leave-win %s\n", cd[n].name);
-	write_companion(n, 0, wbuf, 0);
-  } else if (!strcmp(rbuf, "#end-lag")) {
+	std::snprintf(wbuf.data(), wbuf.size(), "#leave-win %s\n", cd[n].name);
+	write_companion(n, 0, wbuf.data(), 0);
+  } else if (!std::strcmp(rbuf, "#end-lag")) {
 	if (n < MAX_NTTYS && CN_ALAG(n)) {
 	  if (CN_ALAG(n) == 2) {
   CN_LAG(n) = -CN_LAG(n) - 2;
@@ -2467,60 +2481,60 @@ void   func_analyze(int n, char *rbuf)
 	} else {
 	  CN_LAG(n) = -CN_LAG(n) - 2;
 	}
-  } else if (!strcmp(rbuf, "#code-sjis")) {
+  } else if (!std::strcmp(rbuf, "#code-sjis")) {
 	check_write(n, "#code-sjis-ok\n");
-  } else if (!strncmp(rbuf, "#version-cli ", 13)) {
+  } else if (!std::strncmp(rbuf, "#version-cli ", 13)) {
 	/* for character graphic added by Qajin 19991228 */
-	i = atoi(rbuf + 13);
+	i = std::atoi(rbuf + 13);
 
 	if (i && cd[n].cv == 0 && IS_CGCHGED(n)) {
 	  if (i >= 5090152) {
-		snprintf(wbuf, sizeof(wbuf), "#name %s\n", CHRGRA(n)); /* phiwin/Tphi 識別追加 added 20000101 */
-		check_write(n, wbuf);
+		std::snprintf(wbuf.data(), wbuf.size(), "#name %s\n", CHRGRA(n)); /* phiwin/Tphi 識別追加 added 20000101 */
+		check_write(n, wbuf.data());
 	  } else if (i >= 5085910)
 		check_write(n, "#name __\n");
 	}
 
 	cd[n].cv = i;
 	ex_version_dm(n);
-	snprintf(wbuf, sizeof(wbuf), "#version-srv %s\n", PHI_PROT_VERS);
-	check_write(n, wbuf);
+	std::snprintf(wbuf.data(), wbuf.size(), "#version-srv %s\n", PHI_PROT_VERS);
+	check_write(n, wbuf.data());
 
 	/** psp6 **/
 	if (cd[n].cv >= 5100006) {
-	  if (fld[map[cd[n].y][cd[n].x].area].mapset != NULL) {  /* 定義済みの場所 */
-		snprintf(wbuf, sizeof(wbuf), "#mapset %s\n", fld[map[cd[n].y][cd[n].x].area].mapset);
-		check_write(n, wbuf);
+	  if (fld[map[cd[n].y][cd[n].x].area].mapset != nullptr) {  /* 定義済みの場所 */
+		std::snprintf(wbuf.data(), wbuf.size(), "#mapset %s\n", fld[map[cd[n].y][cd[n].x].area].mapset);
+		check_write(n, wbuf.data());
 	  } else {											 /* 未定義の場所 */
-		snprintf(wbuf, sizeof(wbuf), "#mapset default\n");
-		check_write(n, wbuf);
+		std::snprintf(wbuf.data(), wbuf.size(), "#mapset default\n");
+		check_write(n, wbuf.data());
 	  }
 	  if (fld[map[cd[n].y][cd[n].x].area].bgm[0] != ' ') {	/* 定義済みの場所へ */
-		snprintf(wbuf, sizeof(wbuf), "#bgm %s\n", fld[map[cd[n].y][cd[n].x].area].bgm);
-		check_write(n, wbuf);
+		std::snprintf(wbuf.data(), wbuf.size(), "#bgm %s\n", fld[map[cd[n].y][cd[n].x].area].bgm);
+		check_write(n, wbuf.data());
 	  } else {											 /* 未定義の場所へ */
-		snprintf(wbuf, sizeof(wbuf), "#bgm default\n");
-		check_write(n, wbuf);
+		std::snprintf(wbuf.data(), wbuf.size(), "#bgm default\n");
+		check_write(n, wbuf.data());
 	  }
 
-	  snprintf(wbuf, sizeof(wbuf), "#remap\n");
-	  check_write(n, wbuf);
+	  std::snprintf(wbuf.data(), wbuf.size(), "#remap\n");
+	  check_write(n, wbuf.data());
 	}
 	/** end **/
 
-  } else if (!strncmp(rbuf, "#map-iv", 7))
-	cd[n].m_wait = atoi(rbuf + 8);
-  else if (!strncmp(rbuf, "#status-iv", 10))
-	cd[n].s_wait = atoi(rbuf + 11);
-  else if (!strncmp(rbuf, "#priv ", 6)) {
-	strlcpy(wbuf, rbuf + 6, 5);
+  } else if (!std::strncmp(rbuf, "#map-iv", 7))
+	cd[n].m_wait = std::atoi(rbuf + 8);
+  else if (!std::strncmp(rbuf, "#status-iv", 10))
+	cd[n].s_wait = std::atoi(rbuf + 11);
+  else if (!std::strncmp(rbuf, "#priv ", 6)) {
+	strlcpy(wbuf.data(), rbuf + 6, 5);
 /*	  wbuf[4] = '\0';*/  /* PHI:0055 Bug Fix by EL */
-	i = atoi(wbuf);
+	i = std::atoi(wbuf.data());
 	if (i < MAX_NTTYS) { /* bug fix for over range 20030915 */
-		snprintf(wbuf, sizeof(wbuf), "#priv %04d %s\n", n, rbuf + 11);
-		check_write(i, wbuf);
+		std::snprintf(wbuf.data(), wbuf.size(), "#priv %04d %s\n", n, rbuf + 11);
+		check_write(i, wbuf.data());
 	}
-  } else if (!strncmp(rbuf, "#ex-",4)) {
+  } else if (!std::strncmp(rbuf, "#ex-",4)) {
 	func_analyze_ex(n,rbuf);
   }
   return;
@@ -2529,21 +2543,22 @@ void   func_analyze(int n, char *rbuf)
 void   input_analyze(int n, char *rbuf)
 {
   FILE	*fp;
-  char	 wbuf[256], wbuf2[256];
+  std::array<char, 256> wbuf;
+  std::array<char, 256> wbuf2;
   char	*p;
   int	 in, tn, size, ic, wn, an, on;
   int	 i, j, k, l;
   int	 mbuf[7];
   int	 numbers[MAX_ANALYZE_INPUT_NUMBERS];
   int	 x, y; /* add for remote get & put 20000612 */
-  char	 fid[16];
+  std::array<char, 16> fid;
 
   k = 0;
   if (n < MAX_NTTYS && cd[n].parse != 0) {
 	if (cd[n].parse > 0) {
 	  for(i=0;i<10;i++)
-		if (!strcmp(rbuf,parsecom[i])) {
-		snprintf(rbuf, 1023,"%1x",i); /* main()のbufサイズに依存 */
+		if (!std::strcmp(rbuf,kParsecom[i])) {
+		std::snprintf(rbuf, 1023,"%1x",i); /* main()のbufサイズに依存 */
 		cd[n].parse = -1;
 		break;
 	  }
@@ -2552,7 +2567,7 @@ void   input_analyze(int n, char *rbuf)
 	} else {
 	   if (*rbuf >= '0' && *rbuf <= '9'){ /* bug fix 20000324 */
 	  i = (*rbuf - '0');
-	  strlcpy(rbuf,parsecom[i],1023); /* main()のbufサイズに依存 */
+	  strlcpy(rbuf,kParsecom[i],1023); /* main()のbufサイズに依存 */
 	   }
 	cd[n].parse = 0;
 	}
@@ -2564,8 +2579,8 @@ void   input_analyze(int n, char *rbuf)
 	cd[n].st = ST_COMMAND;
   }
   if (cd[n].st == ST_JOIN_INVITE) {
-	dmprintf(n,0,wbuf,sizeof(wbuf),DMM_JOIN_GIVEUP);
-	write_companion(n,0,wbuf,0);
+	dmprintf(n,0,wbuf.data(),wbuf.size(),DMM_JOIN_GIVEUP);
+	write_companion(n,0,wbuf.data(),0);
 	cd[n].st = ST_COMMAND;
 	for (i = 0; i < MAX_CHRS_INONE; i++) {
 		j = map[cd[n].y+py[cd[n].d]][cd[n].x+px[cd[n].d]].chr[i] - 1;
@@ -2608,8 +2623,8 @@ void   input_analyze(int n, char *rbuf)
   cd[n].vf = 0;
   check_write(n, "#list\n");
   if (!IS_CLIENT_RPHIWIN(n) && numbers[0] > 1) {
-	snprintf(wbuf, sizeof(wbuf), "0) [%2i] ... previous\n",numbers[0] - 1);
-	check_write(n, wbuf);
+	std::snprintf(wbuf.data(), wbuf.size(), "0) [%2i] ... previous\n",numbers[0] - 1);
+	check_write(n, wbuf.data());
   }
   cd[n].vf2 = numbers[0];
   list_item(n, numbers[0]);
@@ -2636,8 +2651,8 @@ void   input_analyze(int n, char *rbuf)
 	  dmcheck_write(n, DMM_GET_NO);
 	break;
   } else {
-	dmprintf(n, 0, wbuf, sizeof(wbuf),DMM_GET , cd[n].str);
-	write_companion(n, 0, wbuf, 0);
+	dmprintf(n, 0, wbuf.data(), wbuf.size(),DMM_GET , cd[n].str);
+	write_companion(n, 0, wbuf.data(), 0);
 	load_switch(n, cd[n].x, cd[n].y, 18); /* for take switch 20000803 */
 	tn++;
 	if(numbers[i]!=-1) i++;
@@ -2672,8 +2687,8 @@ void   input_analyze(int n, char *rbuf)
   cd[n].vf = 0;
   check_write(n, "#list\n");
   if (!IS_CLIENT_RPHIWIN(n) && i > 1) {
-	snprintf(wbuf, sizeof(wbuf), "0) [%2i] ... previous\n",i - 1);
-	check_write(n, wbuf);
+	std::snprintf(wbuf.data(), wbuf.size(), "0) [%2i] ... previous\n",i - 1);
+	check_write(n, wbuf.data());
   }
   cd[n].vf2 = i;
   list_board(n, i);
@@ -2684,8 +2699,8 @@ void   input_analyze(int n, char *rbuf)
 	  } else {
 		if(!IS_CLIENT_RPHIWIN(n) && cd[n].vf2 > 8 && i < 10)
 		  i += cd[n].vf2 - 1;
-  dmprintf(n, 0, wbuf, sizeof(wbuf),DMM_READ);
-  write_companion(n, 0, wbuf, 0);
+  dmprintf(n, 0, wbuf.data(), wbuf.size(),DMM_READ);
+  write_companion(n, 0, wbuf.data(), 0);
   cd[n].vf = i;
   j = load_sd(n, cd[n].x, cd[n].y, 'B', i);
   if (i == 1) {
@@ -2718,8 +2733,8 @@ void   input_analyze(int n, char *rbuf)
   cd[n].vf = 0;
   check_write(n, "#list\n");
   if (!IS_CLIENT_RPHIWIN(n) && i > 1) {
-	snprintf(wbuf, sizeof(wbuf), "0) [%2i] ... previous\n",i - 1);
-	check_write(n, wbuf);
+	std::snprintf(wbuf.data(), wbuf.size(), "0) [%2i] ... previous\n",i - 1);
+	check_write(n, wbuf.data());
   }
   cd[n].vf2 = i;
   list_board(n, i);
@@ -2732,8 +2747,8 @@ void   input_analyze(int n, char *rbuf)
 		  i += cd[n].vf2 - 1;
 		j = set_title(n, cd[n].x, cd[n].y, i);
 		if (!j) {
-		  dmprintf(n, 0, wbuf, sizeof(wbuf),DMM_TITLE);
-		  write_companion(n, 0, wbuf, 0);
+		  dmprintf(n, 0, wbuf.data(), wbuf.size(),DMM_TITLE);
+		  write_companion(n, 0, wbuf.data(), 0);
 		} else if (j == -1) {
 		  dmcheck_write(n, DMM_NO_OWNER);
 		} else if (j == -2) {
@@ -2761,8 +2776,8 @@ void   input_analyze(int n, char *rbuf)
 		check_write(n, "#list\n");
 
 		if (!IS_CLIENT_RPHIWIN(n) && numbers[0] > 1) {
-		  snprintf(wbuf, sizeof(wbuf), "0) [%2i] ... previous\n",numbers[0] - 1);
-		  check_write(n, wbuf);
+		  std::snprintf(wbuf.data(), wbuf.size(), "0) [%2i] ... previous\n",numbers[0] - 1);
+		  check_write(n, wbuf.data());
 		}
 		cd[n].vf2 = numbers[0];
 		list_board(n, numbers[0]);
@@ -2785,10 +2800,10 @@ void   input_analyze(int n, char *rbuf)
 		if(!IS_CLIENT_RPHIWIN(n) && cd[n].vf2 > 8 && k < 10)
 		  k += cd[n].vf2 - 1;
 
-		if ((j=save_sd(n,cd[n].x,cd[n].y,'B',NULL,k-tn))<0)
+		if ((j=save_sd(n,cd[n].x,cd[n].y,'B',nullptr,k-tn))<0)
 		{
-		  dmprintf(n, 0, wbuf, sizeof(wbuf),DMM_ERASE);
-		  write_companion(n, 0, wbuf, 0);
+		  dmprintf(n, 0, wbuf.data(), wbuf.size(),DMM_ERASE);
+		  write_companion(n, 0, wbuf.data(), 0);
 		  tn++;
 		  if (numbers[i] != -1)
 			i++;
@@ -2812,8 +2827,8 @@ void   input_analyze(int n, char *rbuf)
 	if (*rbuf == '.')
 	  dmcheck_write(n, DMM_READ_STOP);
 	else {
-	  dmprintf(n, 0, wbuf, sizeof(wbuf),DMM_READ);
-	  write_companion(n, 0, wbuf, 0);
+	  dmprintf(n, 0, wbuf.data(), wbuf.size(),DMM_READ);
+	  write_companion(n, 0, wbuf.data(), 0);
 	  load_sd(n, cd[n].x, cd[n].y, 'B', cd[n].vf);
 	  if (--(cd[n].vf) > 0) {
   dmcheck_write(n, DMM_READ_MORE);
@@ -2843,9 +2858,9 @@ void   input_analyze(int n, char *rbuf)
 	  } else {
   item_gc(n);
   set_fn(n);
-  dmprintf(n, 0, wbuf, sizeof(wbuf),DMM_PUT
+  dmprintf(n, 0, wbuf.data(), wbuf.size(),DMM_PUT
 	, cd[n].str);
-  write_companion(n, 0, wbuf, 0);
+  write_companion(n, 0, wbuf.data(), 0);
   if (map[cd[n].y][cd[n].x].tip & T_SWITCH)
 	load_switch(n, cd[n].x, cd[n].y, 4);
   tn++;
@@ -2884,8 +2899,8 @@ void   input_analyze(int n, char *rbuf)
   if(numbers[i]!=-1)
 	dmcheck_write(n, DMM_USE_NO_CHARGE);
 	  } else {
-  dmprintf(n, 0, wbuf, sizeof(wbuf),DMM_USE_ITEM, cd[n].id[ic].name);
-  write_companion(n, 0, wbuf, 0);
+  dmprintf(n, 0, wbuf.data(), wbuf.size(),DMM_USE_ITEM, cd[n].id[ic].name);
+  write_companion(n, 0, wbuf.data(), 0);
   if(use_item(n, ic)) tn++;
 	  }
 	  if(numbers[i]!=-1) i++;
@@ -2897,9 +2912,9 @@ void   input_analyze(int n, char *rbuf)
 	  if(numbers[i]==-1) k++;
 	  else k=numbers[i++];
 	  if((ic=item_count(n, k))< 0) break;
-	  dmprintf(n, 0, wbuf, sizeof(wbuf),DMM_DETECT_ITEM
+	  dmprintf(n, 0, wbuf.data(), wbuf.size(),DMM_DETECT_ITEM
 		, cd[n].id[ic].name);
-	  write_companion(n, 0, wbuf, 0);
+	  write_companion(n, 0, wbuf.data(), 0);
 	  detect_item(n, ic);
 	}
 	cd[n].st = ST_COMMAND;
@@ -2914,9 +2929,9 @@ void   input_analyze(int n, char *rbuf)
   break;
 	  if (cd[n].md[k - 1].effect == EF_NONE)
   break;
-	  dmprintf(n, 0, wbuf, sizeof(wbuf),DMM_ANALYZE_SPELL,
+	  dmprintf(n, 0, wbuf.data(), wbuf.size(),DMM_ANALYZE_SPELL,
 		 cd[n].md[k - 1].spell);
-	  write_companion(n, 0, wbuf, 0);
+	  write_companion(n, 0, wbuf.data(), 0);
 	  detect_magic(n, k - 1);
 	}
 	cd[n].st = ST_COMMAND;
@@ -2928,8 +2943,8 @@ void   input_analyze(int n, char *rbuf)
 	if (i<MAX_TALKS){
 	  cd[n].td[i].type = TT_KILL;
 	  cd[n].td[i].string = findstr(rbuf);
-	  dmprintf(n, 0, wbuf, sizeof(wbuf),DMM_WINTALK_SET, cd[n].td[i].string);
-	  check_write(n, wbuf);
+	  dmprintf(n, 0, wbuf.data(), wbuf.size(),DMM_WINTALK_SET, cd[n].td[i].string);
+	  check_write(n, wbuf.data());
 	} else
 	  dmcheck_write(n, DMM_WINTALK_NO);
 	cd[n].st = ST_COMMAND;
@@ -2942,8 +2957,8 @@ void   input_analyze(int n, char *rbuf)
 	if (i<MAX_TALKS){
 	  cd[n].td[i].type = TT_DYING;
 	  cd[n].td[i].string = findstr(rbuf);
-	  dmprintf(n, 0, wbuf, sizeof(wbuf),DMM_LOSETALK_SET, cd[n].td[i].string);
-	  check_write(n, wbuf);
+	  dmprintf(n, 0, wbuf.data(), wbuf.size(),DMM_LOSETALK_SET, cd[n].td[i].string);
+	  check_write(n, wbuf.data());
 	} else
 	  dmcheck_write(n, DMM_LOSETALK_NO);
 	cd[n].st = ST_COMMAND;
@@ -2958,9 +2973,9 @@ void   input_analyze(int n, char *rbuf)
   break;
 	  if (cd[n].md[k - 1 - tn].effect == EF_NONE)
   break;
-	  dmprintf(n, 0, wbuf, sizeof(wbuf),DMM_FORGET_SPELL
+	  dmprintf(n, 0, wbuf.data(), wbuf.size(),DMM_FORGET_SPELL
 		, cd[n].md[k - 1 - tn].spell);
-	  write_companion(n, 0, wbuf, 0);
+	  write_companion(n, 0, wbuf.data(), 0);
 	  forget_magic(n, k - 1 - tn);
 	  tn++;
 	}
@@ -2993,12 +3008,12 @@ void   input_analyze(int n, char *rbuf)
 		|| cd[n].id[i].type == DT_NONE)
 	  continue;
 	j++;
-	snprintf(wbuf, sizeof(wbuf), "[%2i] %s \n", j, cd[n].id[i].name);
-	check_write(n, wbuf);
+	std::snprintf(wbuf.data(), wbuf.size(), "[%2i] %s \n", j, cd[n].id[i].name);
+	check_write(n, wbuf.data());
   }
   j++;
-  snprintf(wbuf, sizeof(wbuf), "[%2i] CANCEL \n", j);
-  check_write(n, wbuf);
+  std::snprintf(wbuf.data(), wbuf.size(), "[%2i] CANCEL \n", j);
+  check_write(n, wbuf.data());
   check_write(n, "#end-list\n");
   dmcheck_write(n, DMM_CREATE_SELECT2);
   cd[n].st = ST_CREATE_;
@@ -3027,12 +3042,12 @@ void   input_analyze(int n, char *rbuf)
   break;
 	  }
 	  if (cd[n].oeq == &(cd[n].id[i])) {  /* niju soubi kinsi */
-  cd[n].oeq = NULL;
+  cd[n].oeq = nullptr;
   cd[n].osep = 0;
   cd[n].at = AT_NONE;
 	  }
 	  if (cd[n].aeq == &(cd[n].id[i])) {
-  cd[n].aeq = NULL;
+  cd[n].aeq = nullptr;
   cd[n].asep = 0;
 	  }
 	  cd[n].weq = &(cd[n].id[i]);
@@ -3058,19 +3073,19 @@ void   input_analyze(int n, char *rbuf)
 	  break;
 	}
 	if (cd[n].oeq == &(cd[n].id[ic])) { /* niju soubi kinsi */
-	  cd[n].oeq = NULL;
+	  cd[n].oeq = nullptr;
 	  cd[n].osep = 0;
 	  cd[n].at = AT_NONE;
 	}
 	if (cd[n].aeq == &(cd[n].id[ic])) {
-	  cd[n].aeq = NULL;
+	  cd[n].aeq = nullptr;
 	  cd[n].asep = 0;
 	}
 	cd[n].weq = &(cd[n].id[ic]);
 	cd[n].wsep = sep_calc(n, cd[n].weq);
 	item_gc(n);
 	set_fn(n);
-	if(cd[n].md[0].spell==NULL){
+	if(cd[n].md[0].spell==nullptr){
 	  dmcheck_write(n, DMM_CHARGESPL_NOSPL);
 	  cd[n].st = ST_COMMAND;
 	  CN_GASIFY(n) = 0;
@@ -3078,15 +3093,15 @@ void   input_analyze(int n, char *rbuf)
 	}
 	check_write(n, "#list\n");
 	for (i = 0, j = 0; i < MAX_MAGICS; i++) {
-	  if (cd[n].md[i].spell == NULL)
+	  if (cd[n].md[i].spell == nullptr)
   break;
 	  j++;
-	  snprintf(wbuf, sizeof(wbuf), "[%2i] %s \n", j, cd[n].md[i].spell);
-	  check_write(n, wbuf);
+	  std::snprintf(wbuf.data(), wbuf.size(), "[%2i] %s \n", j, cd[n].md[i].spell);
+	  check_write(n, wbuf.data());
 	}
 	j++;
-	snprintf(wbuf, sizeof(wbuf), "[%2i] CANCEL \n", j);
-	check_write(n, wbuf);
+	std::snprintf(wbuf.data(), wbuf.size(), "[%2i] CANCEL \n", j);
+	check_write(n, wbuf.data());
 	check_write(n, "#end-list\n");
 	dmcheck_write(n, DMM_CHARGESPL_SELECTSPL);
 	cd[n].st = ST_CHARGE_SPELL_;
@@ -3095,15 +3110,15 @@ void   input_analyze(int n, char *rbuf)
 	break;
   case ST_CHARGE_SPELL_:
 	in = analyze_single_number(rbuf);
-	if(in<=0 || 9<=in || cd[n].md[in-1].spell==NULL){
+	if(in<=0 || 9<=in || cd[n].md[in-1].spell==nullptr){
 	  dmcheck_write(n, DMM_CHARGESPL_STOP);
 	  cd[n].st = ST_COMMAND;
 	  CN_GASIFY(n) = 0;
 	  break;
 	}
-	dmprintf(n, 0, wbuf, sizeof(wbuf),DMM_CHARGESPL,
+	dmprintf(n, 0, wbuf.data(), wbuf.size(),DMM_CHARGESPL,
 	  cd[n].md[in-1].spell);
-	write_companion(n, 0, wbuf, 0);
+	write_companion(n, 0, wbuf.data(), 0);
 	charge_spell(n, in-1);
 	cd[n].st = ST_COMMAND;
 	CN_GASIFY(n) = 0;
@@ -3117,7 +3132,7 @@ void   input_analyze(int n, char *rbuf)
   if (cd[n].id[i].type == DT_NONE)
 	break;
 	  }
-	  memcpy(&(cd[n].id[i]), &(cd[n].id[ic]), sizeof (ItemData));
+	  std::memcpy(&(cd[n].id[i]), &(cd[n].id[ic]), sizeof (ItemData));
 	  dmcheck_write(n, DMM_DUPLICATE);
 	}
 	cd[n].st = ST_COMMAND;
@@ -3131,15 +3146,15 @@ void   input_analyze(int n, char *rbuf)
 	  if((ic=item_count(n, k-tn))< 0) break;
 	  if((cd[n].id[ic].type & IT_MASK) != IT_FOREIGN) {
   if(is_destroy_companion){
-	dmprintf(n, 0, wbuf, sizeof(wbuf),DMM_DESTROY,
+	dmprintf(n, 0, wbuf.data(), wbuf.size(),DMM_DESTROY,
 	  cd[n].id[ic].name);
-	write_companion(n, 0, wbuf, 0);
+	write_companion(n, 0, wbuf.data(), 0);
   }
   delete_item(&(cd[n].id[ic]));
   tn++;
 	  } else {
-  dmprintf(n, 0, wbuf, sizeof(wbuf),DMM_DESTROY_NOBREAK, cd[n].id[ic].name);
-  check_write(n, wbuf);
+  dmprintf(n, 0, wbuf.data(), wbuf.size(),DMM_DESTROY_NOBREAK, cd[n].id[ic].name);
+  check_write(n, wbuf.data());
 	  }
 	}
 	if (tn == 0) {
@@ -3241,41 +3256,44 @@ void   input_analyze(int n, char *rbuf)
 /* added by Qajin 19991021 */
   case ST_BAN:
 	  for(i=0;i<BANNEDIPMAX -1;i++)
-		if (ip_ban[i].ip == NULL || ip_ban[i].time < time(NULL))
+		if (ip_ban[i].ip == nullptr || ip_ban[i].time < time(nullptr))
 		   break;
 	  p = rbuf;
 	  SKIP_SPACE(p);
-	  loadstr(wbuf, &p, ' ',sizeof(wbuf));
+	  loadstr(wbuf.data(), &p, ' ',wbuf.size());
 	  if(*(p-1) == ' ') {
-		ip_ban[i].ip = findstr(wbuf);
+		ip_ban[i].ip = findstr(wbuf.data());
 		SKIP_SPACE(p);
-		ip_ban[i].time = time(NULL) + 60 * atoi(p);
-		dmprintf(n, 0, wbuf,sizeof(wbuf),DMM_BAN_TIME, ip_ban[i].ip,atoi(p));
+		ip_ban[i].time = time(nullptr) + 60 * std::atoi(p);
+		dmprintf(n, 0, wbuf.data(),wbuf.size(),DMM_BAN_TIME, ip_ban[i].ip,std::atoi(p));
 	  } else {
 		p = rbuf;
 		SKIP_SPACE(p);
-		loadstr(wbuf, &p, '\n',sizeof(wbuf));
-		ip_ban[i].ip = findstr(wbuf);
+		loadstr(wbuf.data(), &p, '\n',wbuf.size());
+		ip_ban[i].ip = findstr(wbuf.data());
 		ip_ban[i].time = ULONG_MAX;
-		dmprintf(n, 0, wbuf,sizeof(wbuf),DMM_BAN, ip_ban[i].ip);
+		dmprintf(n, 0, wbuf.data(),wbuf.size(),DMM_BAN, ip_ban[i].ip);
 	  }
 	  if(wildcmp(ip_ban[i].ip ,ip_address_check(n)) || wildcmp(ip_ban[i].ip ,ip_domain_check(n))){
 		dmcheck_write(n,DMM_BAN_SELF);
 	  }
-	  check_write(n, wbuf);
+	  check_write(n, wbuf.data());
 	  cd[n].st = ST_COMMAND;
 	  CN_GASIFY(n) = 0;
 	break;
   case ST_BAN_:
 	  p = rbuf;
 	  SKIP_SPACE(p);
-	  loadstr(wbuf, &p, '\n', sizeof(wbuf));
+	  loadstr(wbuf.data(), &p, '\n', wbuf.size());
 	  for(i=0;i<BANNEDIPMAX;i++)
-		if (ip_ban[i].ip != NULL && wildcmp(wbuf,ip_ban[i].ip)) {
-			ip_ban[i].ip = NULL;
+		if (ip_ban[i].ip != nullptr && wildcmp(wbuf.data(),ip_ban[i].ip)) {
+			ip_ban[i].ip = nullptr;
 			ip_ban[i].time = 0;
 		}
-	  dmprintf(n, 0, rbuf,sizeof(rbuf),DMM_BAN_ALLOW,wbuf);
+	  /* rbuf は main() の buf[1024]。以前は sizeof(rbuf) と書かれて
+	     おり、ポインタの大きさ (8) になって返信が先頭 8 バイトに
+	     切り詰められていた（2026-11-16 修正）。 */
+	  dmprintf(n, 0, rbuf,1024,DMM_BAN_ALLOW,wbuf.data());
 	  check_write(n, rbuf);
 	  cd[n].st = ST_COMMAND;
 	  CN_GASIFY(n) = 0;
@@ -3284,29 +3302,29 @@ void   input_analyze(int n, char *rbuf)
   case ST_WRITE:
 	if (*rbuf == '.' && (*(rbuf + 1) == '!' || *(rbuf + 1) == 0)) {
 	  check_write(n, "#.\n");
-  id2f(n,fid);
-  snprintf(wbuf, sizeof(wbuf), "BoardTMP.%s", fid);
+  id2f(n,fid.data());
+  std::snprintf(wbuf.data(), wbuf.size(), "BoardTMP.%s", fid.data());
 	  switch (*(rbuf + 1)) {
 	  case '!':
   dmcheck_write(n, DMM_WRITE_STOP);
-  if ((fp = fopen(wbuf, "rb")) != NULL) {
+  if ((fp = fopen(wbuf.data(), "rb")) != nullptr) {
 	fclose(fp);
-	unlink(wbuf);
+	unlink(wbuf.data());
   }
   break;
 	  case 0:
-  if ((fp = fopen(wbuf, "rb")) != NULL) {
+  if ((fp = fopen(wbuf.data(), "rb")) != nullptr) {
 	fclose(fp);
-	abstime = time(NULL);
-	snprintf(wbuf, sizeof(wbuf), "BoardTMP.%s", fid);
-	snprintf(wbuf2,sizeof(wbuf2), "phi_docs/B%08lx.%s", abstime, fid);
-	if (!rename(wbuf,wbuf2)) {
+	abstime = time(nullptr);
+	std::snprintf(wbuf.data(), wbuf.size(), "BoardTMP.%s", fid.data());
+	std::snprintf(wbuf2.data(),wbuf2.size(), "phi_docs/B%08lx.%s", abstime, fid.data());
+	if (!rename(wbuf.data(),wbuf2.data())) {
 /*		unlink(wbuf); delete for MINGW32 20050404 */
 	  dmcheck_write(n, DMM_WRITE);
-	  snprintf(wbuf, sizeof(wbuf), "%08lx", abstime);
+	  std::snprintf(wbuf.data(), wbuf.size(), "%08lx", abstime);
 	  save_sd(n, cd[n].x, cd[n].y
 		,(map[cd[n].y][cd[n].x].tip & T_MESSAGE ? 'B' : 'T')
-		,wbuf, 0);
+		,wbuf.data(), 0);
 	} else {
 	  dmcheck_write(n, DMM_WRITE_FAIL);
 	  dmcheck_write(n, DMM_WRITE_MISS);
@@ -3321,7 +3339,7 @@ void   input_analyze(int n, char *rbuf)
 	  append_file(n, "BoardTMP", rbuf);
 	break;
   case ST_SEARCH:
-	p = rbuf + strlen(rbuf) - 1;
+	p = rbuf + std::strlen(rbuf) - 1;
 	if (*p == '\n')
 	  *p = 0;
 	if (!search_board(n, rbuf))
@@ -3340,31 +3358,31 @@ void   input_analyze(int n, char *rbuf)
 	if(n<MAX_NTTYS){
 	  if (*rbuf > '0' && *rbuf <= '9') {
   sscanf(rbuf, "%i", &i);
-  if (1 <= i && i <= MAX_MAGICS && cd[n].md[i - 1].spell != NULL) {
+  if (1 <= i && i <= MAX_MAGICS && cd[n].md[i - 1].spell != nullptr) {
 	CPYSTR(cd[n].str, cd[n].md[i - 1].spell);
 	cd[n].wt = mgstrlen(cd[n].str) * 2 - TCN_HASTE(n);
 	cd[n].wt = cd[n].wt * (10000 - cd[n].lv[LV_WIZARD]) / 10000;
 	if (cd[n].wt < 5)
 	  cd[n].wt = 5;
 	cd[n].st = ST_CAST;
-	dmprintf(n, 0, wbuf, sizeof(wbuf),DMM_CAST_NOW, cd[n].str);
-	check_write(n, wbuf);
+	dmprintf(n, 0, wbuf.data(), wbuf.size(),DMM_CAST_NOW, cd[n].str);
+	check_write(n, wbuf.data());
 	break;
   }
 	  }
 	  if(is_need_cast_time) {
   for(i=0; i<MAX_MAGICS; i++){
-	if(cd[n].md[i].spell == NULL) continue;
-	if(!strcmp(cd[n].md[i].spell, cd[n].str)) break;
+	if(cd[n].md[i].spell == nullptr) continue;
+	if(!std::strcmp(cd[n].md[i].spell, cd[n].str)) break;
   }
   if(i<MAX_MAGICS){
-	cd[n].wt = strlen(cd[n].str) * 2 - TCN_HASTE(n);
+	cd[n].wt = std::strlen(cd[n].str) * 2 - TCN_HASTE(n);
 	cd[n].wt = cd[n].wt * (10000 - cd[n].lv[LV_WIZARD]) / 10000;
 	if (cd[n].wt < 5)
 	  cd[n].wt = 5;
 	cd[n].st = ST_CAST;
-	dmprintf(n, 0, wbuf, sizeof(wbuf),DMM_CAST_NOW, cd[n].str);
-	check_write(n, wbuf);
+	dmprintf(n, 0, wbuf.data(), wbuf.size(),DMM_CAST_NOW, cd[n].str);
+	check_write(n, wbuf.data());
 	break;
   }
 	  }
@@ -3372,11 +3390,11 @@ void   input_analyze(int n, char *rbuf)
 	cd[n].st = ST_COMMAND;
 	check_write(n, "#end-mg\n");
 	if (TCN_SILENCE(n) && (n<MAX_NTTYS || !cd[n].md[0].is_inherence)) {
-	  dmprintf(n, 0, wbuf, sizeof(wbuf),TLK_SPELL, TLK_SILENCE);
-	  write_companion(n, 0, wbuf, 0);
+	  dmprintf(n, 0, wbuf.data(), wbuf.size(),TLK_SPELL, TLK_SILENCE);
+	  write_companion(n, 0, wbuf.data(), 0);
 	} else {
-	  dmprintf(n, 0, wbuf, sizeof(wbuf),TLK_SPELL, cd[n].str);
-	  write_companion(n, 0, wbuf, 0);
+	  dmprintf(n, 0, wbuf.data(), wbuf.size(),TLK_SPELL, cd[n].str);
+	  write_companion(n, 0, wbuf.data(), 0);
 	  spell_analyze(n, cd[n].str);
 	}
 	break;
@@ -3385,27 +3403,27 @@ void   input_analyze(int n, char *rbuf)
 	cd[n].st = ST_COMMAND;
 	check_write(n, "#end-mg\n");
 	if (TCN_SILENCE(n)) {
-	  dmprintf(n, 0, wbuf, sizeof(wbuf),TLK_SPELL, TLK_SILENCE);
-	  write_companion(n, 0, wbuf, 0);
+	  dmprintf(n, 0, wbuf.data(), wbuf.size(),TLK_SPELL, TLK_SILENCE);
+	  write_companion(n, 0, wbuf.data(), 0);
 	} else {
-	  dmprintf(n, 0, wbuf, sizeof(wbuf),TLK_SPELL, cd[n].str);
-	  write_companion(n, 0, wbuf, 0);
+	  dmprintf(n, 0, wbuf.data(), wbuf.size(),TLK_SPELL, cd[n].str);
+	  write_companion(n, 0, wbuf.data(), 0);
 	  spell_analyze(n, cd[n].str);
 	}
 	break;
   case ST_JOIN_ANSWER:
 	i = cd[n].vf;
 	if (*(rbuf+1)=='\0' && (*rbuf == 'Y' || *rbuf == 'y')) {
-		dmprintf(i,n,wbuf,sizeof(wbuf),DMM_JOIN_PARTY);
+		dmprintf(i,n,wbuf.data(),wbuf.size(),DMM_JOIN_PARTY);
 		if (!cd[i].party) {
 			cd[i].party = i;
 		}
 		cd[n].party = cd[i].party;
 		renumber_party(cd[i].party);
-		write_companion(n,i,wbuf,3);
+		write_companion(n,i,wbuf.data(),3);
 	} else {
-		dmprintf(i,n,wbuf,sizeof(wbuf),DMM_JOIN_NO);
-		write_companion(n,i,wbuf,0);
+		dmprintf(i,n,wbuf.data(),wbuf.size(),DMM_JOIN_NO);
+		write_companion(n,i,wbuf.data(),0);
 	}
 	cd[n].st = ST_COMMAND;
 	cd[i].st = ST_COMMAND;
@@ -3415,10 +3433,10 @@ void   input_analyze(int n, char *rbuf)
   case ST_ATTACK:
   case ST_DEFEND: /* add 20010703 */
 	if (TCN_CONFUSE(n) && n < MAX_NTTYS) {
-	  for (i = 0, j = strlen(rbuf); i < j / 2; i++) {
-  *wbuf = *(rbuf + i);
+	  for (i = 0, j = std::strlen(rbuf); i < j / 2; i++) {
+  wbuf[0] = *(rbuf + i);
   *(rbuf + i) = *(rbuf + j - i - 1);
-  *(rbuf + j - i - 1) = *wbuf;
+  *(rbuf + j - i - 1) = wbuf[0];
 	  }
 	  if (*rbuf > '0' && *rbuf <= '9')
   *rbuf = ('9' - *rbuf) + '0';
@@ -3428,32 +3446,32 @@ void   input_analyze(int n, char *rbuf)
   case ST_UNEQUIP:
 	size = analyze_numbers(numbers, MAX_ANALYZE_INPUT_NUMBERS, rbuf);
 	wn = an = on = 0;
-	if(cd[n].weq !=NULL) wn = an = on = 1;
-	if(cd[n].aeq !=NULL) an = on = wn + 1;
-	if(cd[n].oeq !=NULL) on = an + 1;
+	if(cd[n].weq !=nullptr) wn = an = on = 1;
+	if(cd[n].aeq !=nullptr) an = on = wn + 1;
+	if(cd[n].oeq !=nullptr) on = an + 1;
 	for(i=0; i<size;){
 	  if(numbers[i]==-1) k++;
 	  else k=numbers[i++];
 	  if (k >= 4 || k <= 0) break;
 	  if (k == wn) {
-  dmprintf(n, 0, wbuf,sizeof(wbuf),DMM_UNEQUIP_WEAPON);
-  cd[n].weq = NULL;
+  dmprintf(n, 0, wbuf.data(),wbuf.size(),DMM_UNEQUIP_WEAPON);
+  cd[n].weq = nullptr;
   cd[n].wsep = 0;
   set_fn(n);
-  write_companion(n, 0, wbuf, 0);
+  write_companion(n, 0, wbuf.data(), 0);
 	  } else if (k == an) {
-  dmprintf(n, 0, wbuf,sizeof(wbuf),DMM_UNEQUIP_ARMOR);
-  cd[n].aeq = NULL;
+  dmprintf(n, 0, wbuf.data(),wbuf.size(),DMM_UNEQUIP_ARMOR);
+  cd[n].aeq = nullptr;
   cd[n].asep = 0;
   set_fn(n);
-  write_companion(n, 0, wbuf, 0);
+  write_companion(n, 0, wbuf.data(), 0);
 	  } else if (k == on) {
-  dmprintf(n, 0, wbuf,sizeof(wbuf),DMM_UNEQUIP_ACCESSORY);
-  cd[n].oeq = NULL;
+  dmprintf(n, 0, wbuf.data(),wbuf.size(),DMM_UNEQUIP_ACCESSORY);
+  cd[n].oeq = nullptr;
   cd[n].at = AT_NONE;
   cd[n].osep = 0;
   set_fn(n);
-  write_companion(n, 0, wbuf, 0);
+  write_companion(n, 0, wbuf.data(), 0);
 	  }
 	}
 	cd[n].st = ST_COMMAND;
@@ -3473,8 +3491,8 @@ void   input_analyze(int n, char *rbuf)
 	if (*(rbuf+1)=='\0' && *rbuf != 'Y' && *rbuf != 'y') {
 		CPYSTR(cd[n].adr,cd[n].str);
 	} else {
-		snprintf(wbuf, sizeof(wbuf),"/*@NP:%s*/",cd[n].str);
-		CPYSTR(cd[n].adr,wbuf);
+		std::snprintf(wbuf.data(), wbuf.size(),"/*@NP:%s*/",cd[n].str);
+		CPYSTR(cd[n].adr,wbuf.data());
 	}
 	dmcheck_write(n, DMM_ADDRESS);
 	cd[n].st = ST_COMMAND;
@@ -3514,11 +3532,11 @@ void   input_analyze(int n, char *rbuf)
 void   auto_equip(int n)
 {
   int	 i,j;
-  char	 buf[256];
+  std::array<char, 256> buf;
 
-  cd[n].weq = NULL;
-  cd[n].aeq = NULL;
-  cd[n].oeq = NULL;
+  cd[n].weq = nullptr;
+  cd[n].aeq = nullptr;
+  cd[n].oeq = nullptr;
   cd[n].wsep = 0;
   cd[n].asep = 0;
   cd[n].osep = 0;
@@ -3527,21 +3545,21 @@ void   auto_equip(int n)
 	if (cd[n].id[i].type == DT_NONE)
 	  continue;
 	if ((cd[n].id[i].type & IT_MASK) == IT_ACCESSORY) {
-	  if (cd[n].oeq == NULL) {
+	  if (cd[n].oeq == nullptr) {
   cd[n].oeq = &(cd[n].id[i]);
   cd[n].at = cd[n].oeq->AT;
   cd[n].osep = sep_calc(n, cd[n].oeq);
   j |= 4;
 	  }
 	} else if ((cd[n].id[i].type & IT_MASK) == IT_ARMOR) {
-	  if (cd[n].aeq == NULL || cd[n].id[i].DFP + cd[n].id[i].MRP
+	  if (cd[n].aeq == nullptr || cd[n].id[i].DFP + cd[n].id[i].MRP
 	> cd[n].aeq->DFP + cd[n].aeq->MRP) {
   cd[n].aeq = &(cd[n].id[i]);
   cd[n].asep = sep_calc(n, cd[n].aeq);
   j |= 2;
 	  }
 	} else {
-	  if (cd[n].weq == NULL || cd[n].id[i].ATP > cd[n].weq->ATP) {
+	  if (cd[n].weq == nullptr || cd[n].id[i].ATP > cd[n].weq->ATP) {
   cd[n].weq = &(cd[n].id[i]);
   cd[n].wsep = sep_calc(n, cd[n].weq);
   j |= 1;
@@ -3550,41 +3568,42 @@ void   auto_equip(int n)
   }
   switch (j) {
 	case 0: /* nothing */
-	  dmprintf(n,0,buf,sizeof(buf),DMM_EQUIP_NUL);
+	  dmprintf(n,0,buf.data(),buf.size(),DMM_EQUIP_NUL);
 	  break;
 	case 1: /* weapon */
-	  dmprintf(n,0,buf,sizeof(buf),DMM_EQUIP_WPN);
+	  dmprintf(n,0,buf.data(),buf.size(),DMM_EQUIP_WPN);
 	  break;
 	case 2: /* armor */
-	  dmprintf(n,0,buf,sizeof(buf),DMM_EQUIP_NUL_ARM);
+	  dmprintf(n,0,buf.data(),buf.size(),DMM_EQUIP_NUL_ARM);
 	  break;
 	case 3: /* wpn & arm */
-	  dmprintf(n,0,buf,sizeof(buf),DMM_EQUIP_WPN_ARM);
+	  dmprintf(n,0,buf.data(),buf.size(),DMM_EQUIP_WPN_ARM);
 	  break;
 	case 4: /* accessory */
-	  dmprintf(n,0,buf,sizeof(buf),DMM_EQUIP_NUL_ACC);
+	  dmprintf(n,0,buf.data(),buf.size(),DMM_EQUIP_NUL_ACC);
 	  break;
 	case 5: /* wpn & acc */
-	  dmprintf(n,0,buf,sizeof(buf),DMM_EQUIP_WPN_ACC);
+	  dmprintf(n,0,buf.data(),buf.size(),DMM_EQUIP_WPN_ACC);
 	  break;
 	case 6: /* arm & acc */
-	  dmprintf(n,0,buf,sizeof(buf),DMM_EQUIP_NUL_ARM_ACC);
+	  dmprintf(n,0,buf.data(),buf.size(),DMM_EQUIP_NUL_ARM_ACC);
 	  break;
 	case 7: /* all */
-	  dmprintf(n,0,buf,sizeof(buf),DMM_EQUIP_WPN_ARM_ACC);
+	  dmprintf(n,0,buf.data(),buf.size(),DMM_EQUIP_WPN_ARM_ACC);
 	  break;
   }
   set_fn(n);
-  write_companion(n, 0, buf, 0);
+  write_companion(n, 0, buf.data(), 0);
 }
 
 void   itemlist(char *buf, int n, ItemData * id, int j, int siz)
 {
   int	 k, l, m;
+  /* buf2 は CATSTR の宛先のため C 配列のまま */
   char	 buf2[70]; /* bug fix 20000802 */
 
   l = m = 0;
-  for (k = 0; k < (int) strlen(id->name); k++) {
+  for (k = 0; k < (int) std::strlen(id->name); k++) {
 	if (id->name[k] == '/' &&
   id->name[k + 1] == '*') {
 	  m = -1;
@@ -3597,14 +3616,14 @@ void   itemlist(char *buf, int n, ItemData * id, int j, int siz)
 	  m = 0;
 	}
   }
-  l += 31 - strlen(id->name);
-  snprintf(buf, siz-1, "     [/*color=cyan*/%2i/*.*/] %s", j, id->name);
-  m = strlen(buf);
+  l += 31 - std::strlen(id->name);
+  std::snprintf(buf, siz-1, "     [/*color=cyan*/%2i/*.*/] %s", j, id->name);
+  m = std::strlen(buf);
   for (k = 0; k < l; k++) {
 	buf[m++] = ' ';
   }
   buf[m] = '\0';
-  snprintf(buf2, sizeof(buf2),"Wp  : %2d ", id->wp);
+  std::snprintf(buf2, sizeof(buf2),"Wp  : %2d ", id->wp);
   if (id == cd[n].oeq)
 	CATSTR(buf2, "[/*color=blue*/Acr/*.*/] ");
   else if (id == cd[n].aeq)
@@ -3615,7 +3634,7 @@ void   itemlist(char *buf, int n, ItemData * id, int j, int siz)
 	CATSTR(buf2, "      ");
   if (is_need_charge_time
 	  && (id->type & IT_MASK) == IT_CHARGE
-	  && id->active_time > time(NULL))
+	  && id->active_time > time(nullptr))
 	CATSTR(buf2, "(/*color=blue*/charging/*.*/) ");
   CATSTR(buf2, "\n");
 
@@ -3624,20 +3643,22 @@ void   itemlist(char *buf, int n, ItemData * id, int j, int siz)
 
 int    command_analyze(int n, char *com)
 {
+  /* buf は CATSTR の宛先のため C 配列のまま */
   char   buf[256];
   char   buf2[20];
-  char   bufa[32],bufb[256]; /* Add for メールシステム by NEO 2008/05/02 */
-  char   crgr[16]; /* Add for キャラグラ設定 by NEO */
+  std::array<char, 32> bufa;
+  std::array<char, 256> bufb; /* Add for メールシステム by NEO 2008/05/02 */
+  std::array<char, 16> crgr; /* Add for キャラグラ設定 by NEO */
   int    x, y;
   int    i, j, k, l;
   int    tlv;
-  char   homeland[256]; /* 出身地表示 by NEO 20111112 */
+  std::array<char, 256> homeland; /* 出身地表示 by NEO 20111112 */
 
   i = 0;
   if (*com == 0)
 	return (0);
-  if (!strcmp(com, "exit") ||
-	 !strcmp(com, "quit")) {
+  if (!std::strcmp(com, "exit") ||
+	 !std::strcmp(com, "quit")) {
 	for (i = 0; i <= NORMAL_CN; i++)
 	  if (cd[n].cn[i])
   break;
@@ -3648,14 +3669,14 @@ int    command_analyze(int n, char *com)
 	if (is_need_charge_time){
 	  for(i=0; i<MAX_ITEMS; i++)
   if((cd[n].id[i].type & IT_MASK) == IT_CHARGE
-	 && cd[n].id[i].active_time > time(NULL))
+	 && cd[n].id[i].active_time > time(nullptr))
 	break;
 	  if(i < MAX_ITEMS){
   dmcheck_write(n, DMM_EXIT_CHARGING);
   return 0;
 	  }
 	}
-	snprintf(buf, sizeof(buf), "exit     : %s ", cd[n].name);
+	std::snprintf(buf, sizeof(buf), "exit     : %s ", cd[n].name);
 	log_print(buf);
 	dmcheck_write(n, DMM_SAVEDATA);
 	dmcheck_write(n, DMM_SEEYOU);
@@ -3665,15 +3686,15 @@ int    command_analyze(int n, char *com)
 	close_connect(n);
 	write_companion(n, 0, buf, access_dm);
 	return (0);
-  } else if (!strcmp(com, "see")) {
+  } else if (!std::strcmp(com, "see")) {
 	reflesh_last_map[n] = 1;
 	print_map(n, 0);
 	return (0);
-  } else if (!strcmp(com, "look")) {
+  } else if (!std::strcmp(com, "look")) {
 	reflesh_last_map[n] = 1;
 	print_map(n, MD_BOARD | MD_FLOORITEM);
 	return (0);
-  } else if (!strcmp(com, "check")) {
+  } else if (!std::strcmp(com, "check")) {
     dmprintf(n, 0, buf, sizeof(buf),DMM_CHECK_NAME);
     check_write(n, buf);
 /*  位置合わせ追加 20000923  "gp"-"MP"(2)+null分(1)
@@ -3687,10 +3708,10 @@ int    command_analyze(int n, char *com)
 /*  cirunit[0] = buf2[0]; delete by NEO 2008/04/02 */
     check_write(n, buf);
     
-    readhomeland(n, homeland); /*  出身地表示 by NEO 20111112 */
+    readhomeland(n, homeland.data()); /*  出身地表示 by NEO 20111112 */
     
     /* 出身地表示 by NEO 20111112 */
-    snprintf(buf, sizeof(buf),DMM_CHECK_HLAND,homeland);
+    std::snprintf(buf, sizeof(buf),DMM_CHECK_HLAND,homeland.data());
     check_write(n, buf);
     /* ここまで */
     
@@ -3705,7 +3726,7 @@ int    command_analyze(int n, char *com)
         if (tlv > 999) {
       tlv = 999;
     }
-    snprintf(buf, sizeof(buf),DMM_TOTAL_LV,tlv);
+    std::snprintf(buf, sizeof(buf),DMM_TOTAL_LV,tlv);
     check_write(n, buf);
     /* by normal */
     dmprintf(n, 0, buf, sizeof(buf),DMM_CHECK_FLVWLV);
@@ -3722,7 +3743,7 @@ int    command_analyze(int n, char *com)
       check_write(n, buf);
     }
     return (0);
-  } else if (!strcmp(com, "level")) { /* level追加 by NEO 2008/04/05 */
+  } else if (!std::strcmp(com, "level")) { /* level追加 by NEO 2008/04/05 */
 	if (TOTAL_LEVEL > 9999) {  
 	next_level_check(n);
 	} else {
@@ -3730,22 +3751,22 @@ int    command_analyze(int n, char *com)
 	   check_write(n, buf);
 	}
     return (0);
-  } else if (!strcmp(com, "wizlist")) { /* wizlist追加 by NEO 20050316 */
+  } else if (!std::strcmp(com, "wizlist")) { /* wizlist追加 by NEO 20050316 */
     user_lists(n);
     return (0);
-  } else if (!strcmp(com, "wizeye")) { /* wizeye追加 by NEO 20050803 */
+  } else if (!std::strcmp(com, "wizeye")) { /* wizeye追加 by NEO 20050803 */
 	wizard_eye_f(n, 0);
     return (0);
-  } else if(!strncmp(com, "setcg ", 6)) { /* setcg追加 by NEO 20050316 */
+  } else if(!std::strncmp(com, "setcg ", 6)) { /* setcg追加 by NEO 20050316 */
     SKIP_TO_SPACE(com);
     SKIP_SPACE(com);
-    sscanf(com, "%s", crgr);
+    sscanf(com, "%s", crgr.data());
 	if (TOTAL_LEVEL > 1999) {  /* キャラグラ設定条件を変更 cd[n].exp→TOTAL_LEVEL 2008/04/05 */
-		if (twobyte_check(crgr) ==0 || strcmp(crgr,"__") == 0 || strstr(crgr,"\\") != NULL || strstr(crgr,":") != NULL || strstr(crgr,"%") != NULL) {
+		if (twobyte_check(crgr.data()) ==0 || std::strcmp(crgr.data(),"__") == 0 || std::strstr(crgr.data(),"\\") != nullptr || std::strstr(crgr.data(),":") != nullptr || std::strstr(crgr.data(),"%") != nullptr) {
        dmprintf(n, 0, buf, sizeof(buf),DMM_CG_ERR_NOUSE);
 	   check_write(n, buf); }
 	   else {
-	   charagra_set(n,crgr); }
+	   charagra_set(n,crgr.data()); }
 	}
 	else {
     dmprintf(n, 0, buf, sizeof(buf),DMM_ERR_LEVEL);
@@ -3753,12 +3774,12 @@ int    command_analyze(int n, char *com)
 	}
 	return (0);
 /* Add for メールシステム */
-	} else if(!strncmp(com, "sendmail ", 9)) { /* メール書き込みコマンド */
+	} else if(!std::strncmp(com, "sendmail ", 9)) { /* メール書き込みコマンド */
 	SKIP_TO_SPACE(com);
 	SKIP_SPACE(com);
 	sscanf(com, "%s", buf);
 
-	j = strlen(buf);
+	j = std::strlen(buf);
 	
 	if ( j > 128 ) { /* メッセージの長さチェック */
 		dmcheck_write(n, DMM_MAIL_LONG);
@@ -3771,59 +3792,59 @@ int    command_analyze(int n, char *com)
 		return(0);
 	}
 	
-	strncpy(bufa, buf, i ); /* 宛先を抽出 */
+	std::strncpy(bufa.data(), buf, i ); /* 宛先を抽出 */
 	if (i > 0)
     	bufa[i]= '\0';
-	strncpy(bufb, buf + i + 1 , j - i ); /* メッセージを抽出 */
-	if ( save_mail( n, bufa, bufb ) == -1 ) /* メッセージ書き込み＆チェック */
+	std::strncpy(bufb.data(), buf + i + 1 , j - i ); /* メッセージを抽出 */
+	if ( save_mail( n, bufa.data(), bufb.data() ) == -1 ) /* メッセージ書き込み＆チェック */
 		dmcheck_write(n, DMM_MAIL_NULL);
 
 	return (0);
-	} else if (!strcmp(com, "readmail")) { /* メール読み込みコマンド */
+	} else if (!std::strcmp(com, "readmail")) { /* メール読み込みコマンド */
     read_mail(n);
     return (0);
-	} else if (!strcmp(com, "delmail")) { /* メール消去コマンド */
+	} else if (!std::strcmp(com, "delmail")) { /* メール消去コマンド */
     delete_mail(n);
     return (0);
 /* ここまで　by NEO 2008/05/02 */
-  } else if (!strcmp(com, "board send")) {
+  } else if (!std::strcmp(com, "board send")) {
 	cd[n].modef ^= MD_BOARDSEND;
 	dmcheck_write(n,(char*)((cd[n].modef & MD_BOARDSEND)? DMM_SENDBOARD : DMM_SENDBOARD_NO ));
 	return (0);
-  } else if (!strcmp(com, "board")) {
+  } else if (!std::strcmp(com, "board")) {
 	cd[n].modef ^= MD_BOARD;
 	dmcheck_write(n,(char*)((cd[n].modef & MD_BOARD)? DMM_BOARD : DMM_BOARD_NO ));
 	return (0);
-  } else if (!strcmp(com, "floor item")) {
+  } else if (!std::strcmp(com, "floor item")) {
 	cd[n].modef ^= MD_FLOORITEM;
 	dmcheck_write(n,(char*)((cd[n].modef & MD_FLOORITEM)? DMM_FLOORITEM : DMM_FLOORITEM_NO));
 	return 0;
-  } else if (!strcmp(com, "chat")) {
+  } else if (!std::strcmp(com, "chat")) {
 	cd[n].modef ^= MD_CHAT;
 	dmcheck_write(n,(char*)((cd[n].modef & MD_CHAT)? DMM_CHAT : DMM_CHAT_NO));
 	return 0;
-  } else if (!strncmp(com, "mail", 4) && CHKSP(com + 4)) {
+  } else if (!std::strncmp(com, "mail", 4) && CHKSP(com + 4)) {
 	dmcheck_write(n, DMM_MAIL);
 	return (0);
-  } else if (!strcmp(com, "spells")) {
+  } else if (!std::strcmp(com, "spells")) {
 	dmprintf(n, 0, buf, sizeof(buf),DMM_SPELLS_SPELL);
 	check_write(n, buf);
 	for (i = 0, j = 0; i < MAX_MAGICS; i++) {
 	  if (cd[n].md[i].effect == EF_NONE)
   break;
 	  j++;
-	  snprintf(buf, sizeof(buf), "     [/*color=cyan*/%2i/*.*/] %s \n", j, cd[n].md[i].spell);
+	  std::snprintf(buf, sizeof(buf), "     [/*color=cyan*/%2i/*.*/] %s \n", j, cd[n].md[i].spell);
 	  check_write(n, buf);
 	}
 	return (0);
-  } else if (!strcmp(com, "version")) {
+  } else if (!std::strcmp(com, "version")) {
 	dmprintf(n, 0, buf, sizeof(buf),DMM_DISP_VERSION);
 	check_write(n, buf);
 	return (0);
-  } else if (!strcmp(com, "address")) {
-	if (!strncmp(cd[n].adr,"/*@NP:",6)) {
+  } else if (!std::strcmp(com, "address")) {
+	if (!std::strncmp(cd[n].adr,"/*@NP:",6)) {
 		CPYSTR(cd[n].str,cd[n].adr+6);
-		cd[n].str[strlen(cd[n].str)-2] = '\0';
+		cd[n].str[std::strlen(cd[n].str)-2] = '\0';
 	} else {
 		CPYSTR(cd[n].str,cd[n].adr);
 	}
@@ -3833,7 +3854,7 @@ int    command_analyze(int n, char *com)
 	cd[n].st = ST_ADDRESS;
 	CN_GASIFY(n) = 0x10000;
 	return (0);
-  } else if (!strcmp(com, "dmsetupcheck") && (cd[n].exp == 99999999)) { /* DM設定チェックコマンド added by NEO 2011/12/6 */
+  } else if (!std::strcmp(com, "dmsetupcheck") && (cd[n].exp == 99999999)) { /* DM設定チェックコマンド added by NEO 2011/12/6 */
         dmprintf(n, 0, buf, sizeof(buf), DMM_CHECK_DPB, dp_beginner); /* 初心者の加護設定表示 */
         check_write(n, buf);
         if (counter_effect == 0) { /* カウンター効果係数が0だとカウンター処理しない added by NEO 2011/12/10 */
@@ -3867,7 +3888,7 @@ int    command_analyze(int n, char *com)
 	return (0);
 
   CN_GASIFY(n) = 0;
-  if (!strncmp(com, "turn", 4) && CHKSP(com + 4)) {
+  if (!std::strncmp(com, "turn", 4) && CHKSP(com + 4)) {
 	if (TCN_PALSY(n) || cd[n].st == ST_DEFEND) {
 	  dmcheck_write(n, DMM_MOVE_NO);
 	  return (0);
@@ -3912,7 +3933,7 @@ int    command_analyze(int n, char *com)
 	if (map[cd[n].y][cd[n].x].tip & T_SWITCH)
 	  load_switch(n, cd[n].x, cd[n].y, 15);
 	return (0);
-  } else if (!strncmp(com, "go", 2) && CHKSP(com + 2)) {
+  } else if (!std::strncmp(com, "go", 2) && CHKSP(com + 2)) {
 	if (TCN_PALSY(n) || cd[n].st == ST_DEFEND) {
 	  dmcheck_write(n, DMM_MOVE_NO);
 	  return (0);
@@ -3971,7 +3992,7 @@ int    command_analyze(int n, char *com)
 	}
 	move_chr(n, cd[n].x, cd[n].y, x, y, 1);
 	return (0);
-  } else if (!strncmp(com, "pay", 3) && CHKSP(com + 3)) {
+  } else if (!std::strncmp(com, "pay", 3) && CHKSP(com + 3)) {
 	SKIP_TO_SPACE(com);
 	SKIP_SPACE(com);
 	if (*com >= '0' && *com <= '9') {
@@ -4034,7 +4055,7 @@ int    command_analyze(int n, char *com)
 	} else
 	  dmcheck_write(n, DMM_PAY_BAD);
 	return (0);
-  } else if (!strcmp(com, "read")) {
+  } else if (!std::strcmp(com, "read")) {
 	cd[n].vf = 0;
 	cd[n].vf2 = 1;
 	check_write(n, "#list\n");
@@ -4048,7 +4069,7 @@ int    command_analyze(int n, char *com)
 	} else
 	  dmcheck_write(n, DMM_NO_BOARD);
 	return (0);
-  } else if (!strcmp(com, "write")) {
+  } else if (!std::strcmp(com, "write")) {
 	  if (fld[map[cd[n].y][cd[n].x].area].flag & FF_WRITE) {
   dmcheck_write(n, DMM_WRITE_NO);
   return (0);
@@ -4060,7 +4081,7 @@ int    command_analyze(int n, char *com)
 	CN_GASIFY(n) = 0x10000;
 	check_write(n, "#m-edit\n");
 	return (0);
-  } else if (!strcmp(com, "erase")) {
+  } else if (!std::strcmp(com, "erase")) {
 	cd[n].vf = 0;
 	cd[n].vf2 = 1;
 	check_write(n, "#list\n");
@@ -4072,7 +4093,7 @@ int    command_analyze(int n, char *com)
   cd[n].st = ST_ERASE;
   CN_GASIFY(n) = 0x10000;
   check_write(n, "#s-edit\n");
-	  } else if (save_sd(n, cd[n].x, cd[n].y, 'T', NULL, 1)<0) {
+	  } else if (save_sd(n, cd[n].x, cd[n].y, 'T', nullptr, 1)<0) {
   dmprintf(n, 0, buf, sizeof(buf),DMM_ERASE_ALL);
   write_companion(n, 0, buf, 0);
 	  } else
@@ -4080,7 +4101,7 @@ int    command_analyze(int n, char *com)
 	} else
 	  dmcheck_write(n, DMM_NO_BOARD);
 	return (0);
-  } else if (!strcmp(com, "title")) {
+  } else if (!std::strcmp(com, "title")) {
 	cd[n].vf = 0;
 	cd[n].vf2 = 1;
 	check_write(n, "#list\n");
@@ -4097,7 +4118,7 @@ int    command_analyze(int n, char *com)
 	} else
 	  dmcheck_write(n, DMM_NO_BOARD);
 	return (0);
-  } else if (!strncmp(com, "get", 3) && CHKSP(com + 3)) {
+  } else if (!std::strncmp(com, "get", 3) && CHKSP(com + 3)) {
 	for (i = 0; i < MAX_ITEMS; i++)
 	  if (cd[n].id[i].type == DT_NONE)
   break;
@@ -4144,7 +4165,7 @@ int    command_analyze(int n, char *com)
   dmcheck_write(n, DMM_NO_ITEM_HERE);
 	}
 	return (0);
-  } else if (!strncmp(com, "put", 3) && CHKSP(com + 3)) {
+  } else if (!std::strncmp(com, "put", 3) && CHKSP(com + 3)) {
 	for (i = 0; i < MAX_ITEMS; i++)
 	  if (cd[n].id[i].type != DT_NONE)
   break;
@@ -4159,7 +4180,7 @@ int    command_analyze(int n, char *com)
 	  for (i = 0; i < MAX_ITEMS; i++) {
   if (cd[n].id[i].type == DT_NONE)
 	continue;
-  if (!strcmp(cd[n].id[i].name, com))
+  if (!std::strcmp(cd[n].id[i].name, com))
 	break;
 	  }
 	  if (i >= MAX_ITEMS)
@@ -4183,7 +4204,7 @@ int    command_analyze(int n, char *com)
 	  CN_GASIFY(n) = 0x10000;
 	}
 	return (0);
-  } else if (!strncmp(com, "use", 3) && CHKSP(com + 3)) {
+  } else if (!std::strncmp(com, "use", 3) && CHKSP(com + 3)) {
 	for (i = 0; i < MAX_ITEMS; i++)
 	  if (cd[n].id[i].type != DT_NONE)
   break;
@@ -4198,7 +4219,7 @@ int    command_analyze(int n, char *com)
 	  for (i = 0; i < MAX_ITEMS; i++) {
   if (cd[n].id[i].type == DT_NONE)
 	continue;
-  if (!strcmp(cd[n].id[i].name, com))
+  if (!std::strcmp(cd[n].id[i].name, com))
 	break;
 	  }
 	  if (i >= MAX_ITEMS)
@@ -4220,8 +4241,8 @@ int    command_analyze(int n, char *com)
   if (cd[n].id[i].type == DT_NONE)
 	continue;
   j++;
-  snprintf(buf, sizeof(buf), "[%2i] %-31s ", j, cd[n].id[i].name);
-  if(is_need_charge_time && cd[n].id[i].active_time > time(NULL))
+  std::snprintf(buf, sizeof(buf), "[%2i] %-31s ", j, cd[n].id[i].name);
+  if(is_need_charge_time && cd[n].id[i].active_time > time(nullptr))
 	CATSTR(buf, "(charging) ");
   CATSTR(buf,"\n");
   check_write(n, buf);
@@ -4233,7 +4254,7 @@ int    command_analyze(int n, char *com)
 	  check_write(n, "#s-edit\n");
 	}
 	return (0);
-  } else if (!strncmp(com, "equip", 5) && CHKSP(com + 5)) {
+  } else if (!std::strncmp(com, "equip", 5) && CHKSP(com + 5)) {
 	SKIP_TO_SPACE(com);
 	SKIP_SPACE(com);
 	if (*com) {
@@ -4241,7 +4262,7 @@ int    command_analyze(int n, char *com)
 	  for (i = 0; i < MAX_ITEMS; i++) {
   if (cd[n].id[i].type == DT_NONE)
 	continue;
-  if (!strcmp(cd[n].id[i].name, com)) {
+  if (!std::strcmp(cd[n].id[i].name, com)) {
 	if (cd[n].weq == &(cd[n].id[i])
 		|| cd[n].aeq == &(cd[n].id[i])
 		|| cd[n].oeq == &(cd[n].id[i]))
@@ -4269,13 +4290,13 @@ int    command_analyze(int n, char *com)
 	  auto_equip(n);
 	}
 	return (0);
-  } else if (!strcmp(com, "unequip")) {
+  } else if (!std::strcmp(com, "unequip")) {
 	j = 0;
-	if (cd[n].weq != NULL)
+	if (cd[n].weq != nullptr)
 	  j++;
-	if (cd[n].aeq != NULL)
+	if (cd[n].aeq != nullptr)
 	  j++;
-	if (cd[n].oeq != NULL)
+	if (cd[n].oeq != nullptr)
 	  j++;
 	if (j == 0) {
 	  dmcheck_write(n, DMM_UNEQUIP_NO);
@@ -4283,17 +4304,17 @@ int    command_analyze(int n, char *com)
 	}
 	check_write(n, "#list\n");
 	j = 0;
-	if (cd[n].weq != NULL) {
+	if (cd[n].weq != nullptr) {
 	  j++;
 	  itemlist(buf, n, cd[n].weq, j, sizeof(buf));
 	  check_write(n, buf);
 	}
-	if (cd[n].aeq != NULL) {
+	if (cd[n].aeq != nullptr) {
 	  j++;
 	  itemlist(buf, n, cd[n].aeq, j, sizeof(buf));
 	  check_write(n, buf);
 	}
-	if (cd[n].oeq != NULL) {
+	if (cd[n].oeq != nullptr) {
 	  j++;
 	  itemlist(buf, n, cd[n].oeq, j, sizeof(buf));
 	  check_write(n, buf);
@@ -4304,10 +4325,10 @@ int    command_analyze(int n, char *com)
 	CN_GASIFY(n) = 0x10000;
 	check_write(n, "#s-edit\n");
 	return (0);
-  } else if (!strcmp(com, "sort")) {
+  } else if (!std::strcmp(com, "sort")) {
 	item_gc(n);
 	i = 0;
-	if (cd[n].weq != NULL) {
+	if (cd[n].weq != nullptr) {
 	  for (j = i + 1; j < MAX_ITEMS; j++) {
   if (cd[n].weq == &(cd[n].id[j])) {
 	swap_item(&(cd[n].id[i]), &(cd[n].id[j]));
@@ -4321,7 +4342,7 @@ int    command_analyze(int n, char *com)
 	  }
 	  i++;
 	}
-	if (cd[n].aeq != NULL) {
+	if (cd[n].aeq != nullptr) {
 	  for (j = i + 1; j < MAX_ITEMS; j++) {
   if (cd[n].aeq == &(cd[n].id[j])) {
 	swap_item(&(cd[n].id[i]), &(cd[n].id[j]));
@@ -4335,7 +4356,7 @@ int    command_analyze(int n, char *com)
 	  }
 	  i++;
 	}
-	if (cd[n].oeq != NULL) {
+	if (cd[n].oeq != nullptr) {
 	  for (j = i; j < MAX_ITEMS; j++) {
   if (cd[n].oeq == &(cd[n].id[j])) {
 	swap_item(&(cd[n].id[i]), &(cd[n].id[j]));
@@ -4362,7 +4383,7 @@ int    command_analyze(int n, char *com)
 	dmprintf(n, 0, buf, sizeof(buf),DMM_SORT);
 	write_companion(n, 0, buf, 0);
 	return (0);
-  } else if (!strcmp(com, "cast")) {
+  } else if (!std::strcmp(com, "cast")) {
 	if (CN_REFLEX(n) & 0xffff) {
 	  dmcheck_write(n, DMM_CAST_NO_REFREX);
 	  return (0);
@@ -4374,10 +4395,10 @@ int    command_analyze(int n, char *com)
 	write_companion(n, 0, buf, 0);
 	check_write(n, "#list\n");
 	for (i = 0, j = 0; i < MAX_MAGICS; i++) {
-	  if (cd[n].md[i].spell == NULL)
+	  if (cd[n].md[i].spell == nullptr)
   break;
 	  j++;
-	  snprintf(buf, sizeof(buf), "[%2i] %s \n", j, cd[n].md[i].spell);
+	  std::snprintf(buf, sizeof(buf), "[%2i] %s \n", j, cd[n].md[i].spell);
 	  check_write(n, buf);
 	}
 	check_write(n, "#end-list\n");
@@ -4389,7 +4410,7 @@ int    command_analyze(int n, char *com)
 	check_write(n, "#magic\n");
 	check_write(n, "#s-edit\n");
 	return (0);
-  } else if (!strcmp(com, "hit")) {
+  } else if (!std::strcmp(com, "hit")) {
 	if (TCN_PALSY(n)) {
 	  dmcheck_write(n, DMM_MOVE_NO);
 	  return (0);
@@ -4398,7 +4419,7 @@ int    command_analyze(int n, char *com)
   dmcheck_write(n, DMM_ATTACK_NO);
   return (0);
 	  }
-	if (cd[n].weq != NULL) {
+	if (cd[n].weq != nullptr) {
 	  if (((cd[n].weq->type & IT_MASK) == IT_CHARGE)
 	&& (cd[n].weq->SE == SE_HITISUSE)) {
 
@@ -4422,29 +4443,29 @@ int    command_analyze(int n, char *com)
 /* add area psychogram 20010614 */
 int    talk_analyze(int n, char *com)
 {
-  char buf[256];
+  std::array<char, 256> buf;
   int  i;
 
-  if (!strncmp(com, "action", 6) && CHKSP(com + 6)) {  /* from psp12*/
+  if (!std::strncmp(com, "action", 6) && CHKSP(com + 6)) {  /* from psp12*/
 	SKIP_TO_SPACE(com);
 	SKIP_SPACE(com);
-	dmprintf(n, 0, buf, sizeof(buf),DMM_ACTION, com);
-	write_companion(n, 0, buf, 0);
+	dmprintf(n, 0, buf.data(), buf.size(),DMM_ACTION, com);
+	write_companion(n, 0, buf.data(), 0);
 	return(0);
-  } else if (!strncmp(com, "fakeaction", 10) && CHKSP(com + 10)) {  /* fakeaction added by NEO 20060408*/
+  } else if (!std::strncmp(com, "fakeaction", 10) && CHKSP(com + 10)) {  /* fakeaction added by NEO 20060408*/
 	SKIP_TO_SPACE(com);
 	SKIP_SPACE(com);
-	dmprintf(n, 0, buf, sizeof(buf),DMM_FACTION, com);
-	write_companion(n, 0, buf, 0);
+	dmprintf(n, 0, buf.data(), buf.size(),DMM_FACTION, com);
+	write_companion(n, 0, buf.data(), 0);
 	return(0);
-	} else if (!strncmp(com, "gfakeaction", 11) && CHKSP(com + 11) && (cd[n].exp == 99999999)) {  
+	} else if (!std::strncmp(com, "gfakeaction", 11) && CHKSP(com + 11) && (cd[n].exp == 99999999)) {  
 	/* grobalfakeaction added by NEO 20060408*/
 	SKIP_TO_SPACE(com);
 	SKIP_SPACE(com);
-	dmprintf(n, 0, buf, sizeof(buf),DMM_FACTION, com);
-	write_companion(n, 0, buf, 1);
+	dmprintf(n, 0, buf.data(), buf.size(),DMM_FACTION, com);
+	write_companion(n, 0, buf.data(), 1);
 	return(0);
-  } else if (!strncmp(com, "priv", 4) && CHKSP(com + 4)) {
+  } else if (!std::strncmp(com, "priv", 4) && CHKSP(com + 4)) {
 	SKIP_TO_SPACE(com);
 	SKIP_SPACE(com);
 	if('0' <= *com && *com <= '9') {
@@ -4455,18 +4476,18 @@ int    talk_analyze(int n, char *com)
 	} else {
 	  /* change for name include space 20010813 */
 	  for(i=1; i<MAX_NTTYS; i++)
-  if(cd[i].type && !strncmp(com,cd[i].name, strlen(cd[i].name))) {
-	  com += strlen(cd[i].name);
+  if(cd[i].type && !std::strncmp(com,cd[i].name, std::strlen(cd[i].name))) {
+	  com += std::strlen(cd[i].name);
 	  break;
 	  }
 	}
 	while (*com == ' ') com++;
 	if (*com) {
 	  if(0<i && i<MAX_NTTYS && cd[i].type!=CT_NOEXIST) {
-  dmprintf(n, 0, buf, sizeof(buf),TLK_PRIV, com);
-  check_write(i, buf);
-  dmprintf(n, i, buf, sizeof(buf),DMM_PRIV);
-  check_write(n, buf);
+  dmprintf(n, 0, buf.data(), buf.size(),TLK_PRIV, com);
+  check_write(i, buf.data());
+  dmprintf(n, i, buf.data(), buf.size(),DMM_PRIV);
+  check_write(n, buf.data());
 	  } else {
   dmcheck_write(n, DMM_PRIV_BAD);
 	  }
@@ -4476,18 +4497,18 @@ int    talk_analyze(int n, char *com)
 	return (0);
   } else {
 	if (*com == '*')
-	  dmprintf(n, 0, buf, sizeof(buf),TLK_PSYCHO
+	  dmprintf(n, 0, buf.data(), buf.size(),TLK_PSYCHO
 		, (TCN_SILENCE(n) ? TLK_SILENCE : com + 1));
 	else if (*com == '&')
-	  dmprintf(n, 0, buf, sizeof(buf),TLK_AREA
+	  dmprintf(n, 0, buf.data(), buf.size(),TLK_AREA
 		, (TCN_SILENCE(n) ? TLK_SILENCE : com + 1));
 	else if (*com == '+')
-	  dmprintf(n, 0, buf, sizeof(buf),TLK_PARTY
+	  dmprintf(n, 0, buf.data(), buf.size(),TLK_PARTY
 		, (TCN_SILENCE(n) ? TLK_SILENCE : com + 1));
 	else
-	  dmprintf(n, 0, buf, sizeof(buf),TLK_NORMAL
+	  dmprintf(n, 0, buf.data(), buf.size(),TLK_NORMAL
 		, (TCN_SILENCE(n) ? TLK_SILENCE : com));
-	  write_companion(n, 0, buf, (*com == '*' ? 1 : (*com == '&' ? 2 : (*com == '+' ? 3 : 0))));
+	  write_companion(n, 0, buf.data(), (*com == '*' ? 1 : (*com == '&' ? 2 : (*com == '+' ? 3 : 0))));
 	  CPYSTR(cd[n].str, com);
 	  if (map[cd[n].y + py[cd[n].d]][cd[n].x + px[cd[n].d]].tip & T_SWITCH)
   load_switch(n, cd[n].x + px[cd[n].d], cd[n].y + py[cd[n].d], 3);
@@ -4501,28 +4522,28 @@ int    talk_analyze(int n, char *com)
 void   adduser(int n, char *rbuf)
 {
   int	 i, k;
-  char	 wbuf[256];
+  std::array<char, 256> wbuf;
   char *p;
 
   /* add for refuse co-addusers 20000706 */
-  if (limit_addusers && !strcmp(cd[n].str,pre_adduser_ip)) {
-	snprintf(wbuf, sizeof(wbuf), "adduser refused: (%i:%i) = %s",
+  if (limit_addusers && !std::strcmp(cd[n].str,pre_adduser_ip)) {
+	std::snprintf(wbuf.data(), wbuf.size(), "adduser refused: (%i:%i) = %s",
 			n, fd_check(n), ip_domain_check(n));
-	log_print(wbuf);
+	log_print(wbuf.data());
 	write_line(n, "#x\n", 3, 0);
 	nfflush(n, 100);
 	nclose(n);
 	return;
   }
-  if (!strcmp(rbuf, "exit")) {
+  if (!std::strcmp(rbuf, "exit")) {
 	dmcheck_write(n, DMM_SEEYOU);
 	check_write(n, "#close\n");
 	nfflush(n, 1000);		/* 送信バッファーフラッシュ bugfix 2011/11/26 */
 	close_connect(n);
 	return;
   }
-  snprintf(wbuf,sizeof(wbuf),"You > %s\n",rbuf);
-  check_write(n, wbuf);
+  std::snprintf(wbuf.data(),wbuf.size(),"You > %s\n",rbuf);
+  check_write(n, wbuf.data());
   /* add for reject unsurport character 20000627 */
   for(i = 0, p=rbuf; i < 256 && *p != '\0' && !(*p & 0x80); i++, p++);
   if (*p != '\0') {
@@ -4541,27 +4562,27 @@ void   adduser(int n, char *rbuf)
 	  p++;
 	}
 	*p = '\0';
-	if (strlen(rbuf) <= 2) {
+	if (std::strlen(rbuf) <= 2) {
 	  check_write(n, "DM > Please use longer password.\n");
 	  check_write(n, "DM > Please re-enter your password (within 6 letters):\n");
 	  break;
 	}
-	if (strlen(rbuf) >= 7) {
+	if (std::strlen(rbuf) >= 7) {
 	  check_write(n, "DM > Please use shorter password.\n");
 	  check_write(n, "DM > Please re-enter your password (within 6 letters):\n");
 	  break;
 	}
-	snprintf(cd[n].uid,sizeof(cd[n].uid),"%s%05ld%s",addw,s_id,rbuf);
+	std::snprintf(cd[n].uid,sizeof(cd[n].uid),"%s%05ld%s",addw,s_id,rbuf);
 	check_write(n, "DM > Plese enter your E-Mail address:\n");
 	cd[n].st = ST_USERAD;
 	break;
   case ST_USERNM:
-	if (strlen(rbuf) <= 1) {
+	if (std::strlen(rbuf) <= 1) {
 	  dmcheck_write(n, DMM_RENAME_NOLONGER);
 	  check_write(n, "DM > Please re-enter your name (within 31 letters):\n");
 	  break;
 	}
-	if (strlen(rbuf) >= 32) {
+	if (std::strlen(rbuf) >= 32) {
 	  dmcheck_write(n, DMM_RENAME_NOSHORTER);
 	  check_write(n, "DM > Please re-enter your name (within 31 letters):\n");
 	  break;
@@ -4583,7 +4604,7 @@ void   adduser(int n, char *rbuf)
 	  p++;
 	}
 	*p = '\0';
-	if (!k || (47 < (int) strlen(rbuf))) {
+	if (!k || (47 < (int) std::strlen(rbuf))) {
 	  check_write(n, "DM > Plese enter your E-Mail address:\n");
 	  break;
 	}
@@ -4593,8 +4614,8 @@ void   adduser(int n, char *rbuf)
 	if (init_graph_n > 0) {
 		check_write(n, "#list");
 		for(i=0;i<init_graph_n;i++) {
-			snprintf(wbuf, sizeof(wbuf), "[%02d] %s\n", i, init_graphic[i]);
-			check_write(n, wbuf);
+			std::snprintf(wbuf.data(), wbuf.size(), "[%02d] %s\n", i, init_graphic[i]);
+			check_write(n, wbuf.data());
 		}
 		check_write(n, "#end-list");
 		check_write(n, "DM > Please select initial charactor graphic:\n");
@@ -4617,15 +4638,15 @@ void   adduser(int n, char *rbuf)
 			cd[n].ocg = findstr(init_graphic[0]);
 		}
 	}
-	snprintf(wbuf, sizeof(wbuf), "     ID    : %s\n", cd[n].uid);
-	check_write(n, wbuf);
-	snprintf(wbuf, sizeof(wbuf), "     Name  : %s\n", cd[n].str);
-	check_write(n, wbuf);
-	snprintf(wbuf, sizeof(wbuf), "     E-mail: %s\n", cd[n].adr);
-	check_write(n, wbuf);
+	std::snprintf(wbuf.data(), wbuf.size(), "     ID    : %s\n", cd[n].uid);
+	check_write(n, wbuf.data());
+	std::snprintf(wbuf.data(), wbuf.size(), "     Name  : %s\n", cd[n].str);
+	check_write(n, wbuf.data());
+	std::snprintf(wbuf.data(), wbuf.size(), "     E-mail: %s\n", cd[n].adr);
+	check_write(n, wbuf.data());
 	if (init_graph_n > 0) {
-		snprintf(wbuf, sizeof(wbuf), "     figure: %s\n", cd[n].ocg);
-		check_write(n, wbuf);
+		std::snprintf(wbuf.data(), wbuf.size(), "     figure: %s\n", cd[n].ocg);
+		check_write(n, wbuf.data());
 	}
 	if (*rbuf != 'y' && *rbuf != 'Y') {
 		check_write(n, "DM > OK ? [y/n]\n");
@@ -4658,22 +4679,22 @@ void   adduser(int n, char *rbuf)
 	  break;
 	}
 	ex_notice(n,1); /* add for SD51 */
-	dmprintf(n, 0, wbuf, sizeof(wbuf),DMM_ACCESS_NEW);
-	write_companion(n, 0, wbuf, 1);
-	dmprintf(n, 0, wbuf, sizeof(wbuf),DMM_DISP_VERSION);
-	check_write(n, wbuf);
+	dmprintf(n, 0, wbuf.data(), wbuf.size(),DMM_ACCESS_NEW);
+	write_companion(n, 0, wbuf.data(), 1);
+	dmprintf(n, 0, wbuf.data(), wbuf.size(),DMM_DISP_VERSION);
+	check_write(n, wbuf.data());
 
 	if (dp_limitter == 1) /* デスペナリミット設定 added by NEO 2011/12/04 */
-	dmprintf(n, 0, wbuf, sizeof(wbuf),DMM_DISP_PENARTY_LMT, penalty_rate); /* デスペナリミット付きの場合 */
+	dmprintf(n, 0, wbuf.data(), wbuf.size(),DMM_DISP_PENARTY_LMT, penalty_rate); /* デスペナリミット付きの場合 */
 	else
-	dmprintf(n, 0, wbuf, sizeof(wbuf),DMM_DISP_PENARTY, penalty_rate); /* デスペナ設定表示　added by NEO 2008/04/01 */
-	check_write(n, wbuf);
+	dmprintf(n, 0, wbuf.data(), wbuf.size(),DMM_DISP_PENARTY, penalty_rate); /* デスペナ設定表示　added by NEO 2008/04/01 */
+	check_write(n, wbuf.data());
 
 	if (counter_effect == 0) /* カウンター効果設定 added by NEO 2011/12/10 */
-	dmprintf(n, 0, wbuf, sizeof(wbuf),DMM_DISP_COUNTER_OFF); /* カウンター効果なしの場合 */
+	dmprintf(n, 0, wbuf.data(), wbuf.size(),DMM_DISP_COUNTER_OFF); /* カウンター効果なしの場合 */
 	else
-	dmprintf(n, 0, wbuf, sizeof(wbuf),DMM_DISP_COUNTER_ON); /* カウンター効果ありの場合 */
-	check_write(n, wbuf);
+	dmprintf(n, 0, wbuf.data(), wbuf.size(),DMM_DISP_COUNTER_ON); /* カウンター効果ありの場合 */
+	check_write(n, wbuf.data());
 
 	bulletin_board(n, "phi.bb");
 	bulletin_board(n, "phi.inf");
@@ -4695,10 +4716,11 @@ void   adduser(int n, char *rbuf)
 int new_user(int n)
 {
 	int i;
+  /* wbuf は CPYSTR の宛先のため C 配列のまま */
 	char wbuf[256];
 
 	cd[n].name = findstr(cd[n].str);
-	cd[n].cg = NULL /*findstr("human")*/;
+	cd[n].cg = nullptr /*findstr("human")*/;
 	for (i = 0; i < MAX_LEVEL; i++)
 	  cd[n].lv[i] = 0;
 	cd[n].bx = cd[n].by = -1; /* bug? fix 20000629 */
@@ -4709,23 +4731,23 @@ int new_user(int n)
 	cd[n].iy = cd[n].y = addy;
 	cd[n].last = abstime;
 	cd[n].eye = 1;
-	if (cd[n].auth != NULL) {			/* bug fix 20000320 */
-	  if (cd[n].auth->territory != NULL)
+	if (cd[n].auth != nullptr) {			/* bug fix 20000320 */
+	  if (cd[n].auth->territory != nullptr)
 		free(cd[n].auth->territory);
 	  free(cd[n].auth);
 	}
-	cd[n].auth = NULL;					/* ここまで */
+	cd[n].auth = nullptr;					/* ここまで */
 	for (i = 0; i < MAX_ITEMS; i++)
 	  delete_item(&(cd[n].id[i]));
 	for (i = 0; i < MAX_MAGICS; i++){
-	  cd[n].md[i].spell = NULL;
+	  cd[n].md[i].spell = nullptr;
 	  cd[n].md[i].effect = EF_NONE;
 	  cd[n].md[i].fn = FN_NONE;
-	cd[n].md[i].extension = NULL;	  /* bug fix 20000320 */
+	cd[n].md[i].extension = nullptr;	  /* bug fix 20000320 */
 	}
 	for (i = 0; i < MAX_TALKS; i++){
 	  cd[n].td[i].type = TT_NONE;
-	  cd[n].td[i].string = NULL;
+	  cd[n].td[i].string = nullptr;
 	}
 	cd[n].gp = cirate * 10;
 	/* tax -= 0; */
@@ -4745,10 +4767,10 @@ int new_user(int n)
 	cd[n].type = CT_NORMAL;
 	cd[n].md[0].spell = findstr("Cure");
 	cd[n].md[0].effect = EF_HEAL;
-	snprintf(wbuf, sizeof(wbuf), "new user : %s\n", cd[n].name);
+	std::snprintf(wbuf, sizeof(wbuf), "new user : %s\n", cd[n].name);
 	log_print(wbuf);
 	CPYSTR(pre_adduser_ip,ip_address_check(n)); /* add for refuse co-addusers 20000706 */
-	snprintf(wbuf, sizeof(wbuf), "#set-user-id %s\n", cd[n].uid);
+	std::snprintf(wbuf, sizeof(wbuf), "#set-user-id %s\n", cd[n].uid);
 	check_write(n, wbuf);
 	s_id++;
 	set_chr(n);
@@ -4757,7 +4779,7 @@ int new_user(int n)
 
 
 char *errnum_to_msg(int errnum){
-  static char msg[30];
+  static std::array<char, 30> msg;
 
   switch(errnum){
   case CONNECT_TIMEOUT:    return "time out";
@@ -4807,23 +4829,23 @@ char *errnum_to_msg(int errnum){
   case EHOSTUNREACH: return "no route to host";
 #endif
   default:
-	snprintf(msg, sizeof(msg),"fault No.%i", errnum);
-	return msg;
+	std::snprintf(msg.data(), msg.size(),"fault No.%i", errnum);
+	return msg.data();
   }
 }
 
 void	connection_error_process(int n, int errnum)
 {
   int i,cn;
-  char buf[256];
-  char fid[16];
+  std::array<char, 256> buf;
+  std::array<char, 16> fid;
 
   switch(cd[n].st){
   case ST_CONNECTSERVER:
-	snprintf(buf, sizeof(buf), "trs-err  : dead gate : %s (%s)",
+	std::snprintf(buf.data(), buf.size(), "trs-err  : dead gate : %s (%s)",
 		cd[n].name, errnum_to_msg(errnum));
-	log_print(buf);
-	if(!strcmp(cd[i=cd[n].vf].uid, cd[n].uid)){
+	log_print(buf.data());
+	if(!std::strcmp(cd[i=cd[n].vf].uid, cd[n].uid)){
 	  cd[i].type = CT_NORMAL;
 	  cd[i].st = ST_COMMAND;
 	  cd[i].wt = 0;
@@ -4833,23 +4855,23 @@ void	connection_error_process(int n, int errnum)
 	  print_map(i, 0);
 	  dmcheck_write(i, DMM_TRANS_NO_MISS_DEST);
   /* add for dead gate delete 20000523 */
-  if (gatedata[cn=cd[n].vf2] != NULL && gatedata[cn][0].di == 'G') { /* 隠しゲートは閉じない bug fix 20000724 */
+  if (gatedata[cn=cd[n].vf2] != nullptr && gatedata[cn][0].di == 'G') { /* 隠しゲートは閉じない bug fix 20000724 */
 	 if (!(gatedata[cn][7].dl)) {	   /* エラー回数 -> 経過時間に変更 change 20020830 */
-	 	gatedata[cn][7].dl = time(NULL);
-	 } else if (time(NULL)-gatedata[cn][7].dl > 60*60) { /* ゲート削除経過時間を１時間に変更　by NEO 20061014 old 60*60*24*30 */
+	 	gatedata[cn][7].dl = time(nullptr);
+	 } else if (time(nullptr)-gatedata[cn][7].dl > 60*60) { /* ゲート削除経過時間を１時間に変更　by NEO 20061014 old 60*60*24*30 */
 		/* cd[n].name には 世界名、.strにはIPとportがプロトコルと共に入っている */
-		snprintf(buf, sizeof(buf)," %03i %03i %03i %03i %-31s  %s \n",
+		std::snprintf(buf.data(), buf.size()," %03i %03i %03i %03i %-31s  %s \n",
 			  gatedata[cn][1].di,gatedata[cn][2].di,gatedata[cn][3].di,gatedata[cn][4].di,
 			  cd[n].name,cd[n].str+8);
 		/* get_gateはcd[].strにIPが入っている必要が有る */
 		for(i=8;i<40 && cd[n].str[i] != ' ' && cd[n].str[i] != '\0' &&
 				cd[n].str[i] != '\n'; cd[n].str[i-8] = cd[n].str[i],i++);
 		cd[n].str[i-8] = '\0';
-		get_gate(buf, 1, n);			   /* phi.td からも消す */
-		snprintf(buf, sizeof(buf), "g-delete : %s", cd[n].name);
-		log_print(buf);
-		dmprintf(n, 0, buf,sizeof(buf),DMM_GATE_DELETE,cd[n].name);
-		write_companion(0, 0, buf, 1);
+		get_gate(buf.data(), 1, n);			   /* phi.td からも消す */
+		std::snprintf(buf.data(), buf.size(), "g-delete : %s", cd[n].name);
+		log_print(buf.data());
+		dmprintf(n, 0, buf.data(),buf.size(),DMM_GATE_DELETE,cd[n].name);
+		write_companion(0, 0, buf.data(), 1);
 		clear_gate_and_switch_on_map();
 		remap_gate_and_switch();
 	 }
@@ -4859,49 +4881,49 @@ void	connection_error_process(int n, int errnum)
 	break;
   case ST_CONNECTSERVER_:
   case ST_SENDCHR: /* add for checking abnomal process sequence 20000725 */
-	snprintf(buf, sizeof(buf), "trs-err  : %s (%s)", cd[n].name, errnum_to_msg(errnum));
-	log_print(buf);
+	std::snprintf(buf.data(), buf.size(), "trs-err  : %s (%s)", cd[n].name, errnum_to_msg(errnum));
+	log_print(buf.data());
 	/* クライアントが接続手続きに入ってしまっているため、*/
 	/* ST_TRANSFER 状態から解放できない。クライアントから情報待ち */
 	close_connect(n);
 	break;
   case ST_RESERVE:
-	snprintf(buf, sizeof(buf), "rsv-err  : (%d:%d) (%s)",
+	std::snprintf(buf.data(), buf.size(), "rsv-err  : (%d:%d) (%s)",
 		n, cd[n].fd, errnum_to_msg(errnum));
-	log_print(buf);
+	log_print(buf.data());
 	close_connect(n);
 	break;
   case ST_TRANSFER:
   case ST_TRYRESERVE:
   case ST_TRANSFAILE:
-	snprintf(buf, sizeof(buf), "trs-err  : (%d:%d) %s (%s)",
+	std::snprintf(buf.data(), buf.size(), "trs-err  : (%d:%d) %s (%s)",
 		n, cd[n].fd, cd[n].name, errnum_to_msg(errnum));
-	log_print(buf);
-	dmprintf(n, 0, buf, sizeof(buf),DMM_EXIT_WITH_ERR
+	log_print(buf.data());
+	dmprintf(n, 0, buf.data(), buf.size(),DMM_EXIT_WITH_ERR
 		, errnum_to_msg(errnum));
 	close_connect(n);
-	write_companion(n, 0, buf, access_dm);
+	write_companion(n, 0, buf.data(), access_dm);
 	break;
   case ST_WRITE: /* ディスク圧迫攻撃対策 20010215 */
-	id2f(n,fid);
-	snprintf(buf, sizeof(buf), "BoardTMP.%s", fid);
-	unlink(buf);
+	id2f(n,fid.data());
+	std::snprintf(buf.data(), buf.size(), "BoardTMP.%s", fid.data());
+	unlink(buf.data());
   case ST_RECEIVECOMPLETE: /* 転送は完了しているので通常と同じ扱い */
   default:
 	if(cd[n].type == CT_NOEXIST){
-	  snprintf(buf, sizeof(buf), "cli-err  : (%i:%i) (%s)",
+	  std::snprintf(buf.data(), buf.size(), "cli-err  : (%i:%i) (%s)",
 		  n, cd[n].fd, errnum_to_msg(errnum));
-	  log_print(buf);
+	  log_print(buf.data());
 	  close_connect(n);
 	  break;
 	} else {
-	  snprintf(buf, sizeof(buf), "cli-err  : (%d:%d) %s (%s)",
+	  std::snprintf(buf.data(), buf.size(), "cli-err  : (%d:%d) %s (%s)",
 		  n, cd[n].fd, cd[n].name, errnum_to_msg(errnum));
-	  log_print(buf);
-	  dmprintf(n, 0, buf, sizeof(buf),DMM_EXIT_WITH_ERR,
+	  log_print(buf.data());
+	  dmprintf(n, 0, buf.data(), buf.size(),DMM_EXIT_WITH_ERR,
 		  errnum_to_msg(errnum));
 	  close_connect(n);
-	  write_companion(n, 0, buf, access_dm);
+	  write_companion(n, 0, buf.data(), access_dm);
 	  break;
 	}
   }
@@ -4909,24 +4931,24 @@ void	connection_error_process(int n, int errnum)
 
 void   charagra_set(int n, char *crgr) /*キャラグラセット用　by NEO 20050620 */
 {
-    char buf[256];
+    std::array<char, 256> buf;
 
     if (cd[n].type == CT_NORMAL && n <= MAX_NTTYS) { 
-	  if (strlen(crgr) < 17) {
+	  if (std::strlen(crgr) < 17) {
         cd[n].cg = cd[n].ocg = findstr(crgr);
         if (!(cd[n].modef & MD_M57)) {
 	        if (cd[n].cv >= 5090152) {
-    	      snprintf(buf,sizeof(buf),"#name %s\n",cd[n].cg);
-			  check_write(n,buf);
+    	      std::snprintf(buf.data(),buf.size(),"#name %s\n",cd[n].cg);
+			  check_write(n,buf.data());
 	        } else if (cd[n].cv >= 5085910)
     	      check_write(n,"#name __\n");
             }
-          dmprintf(n, 0, buf, sizeof(buf),DMM_CG_CHANGE, cd[n].cg);
-          check_write(n, buf);
+          dmprintf(n, 0, buf.data(), buf.size(),DMM_CG_CHANGE, cd[n].cg);
+          check_write(n, buf.data());
 	    }
 	  else {
-      dmprintf(n, 0, buf, sizeof(buf),DMM_CG_ERR_LONG);
-      check_write(n, buf);
+      dmprintf(n, 0, buf.data(), buf.size(),DMM_CG_ERR_LONG);
+      check_write(n, buf.data());
 	  }
 	}
 
@@ -4935,10 +4957,13 @@ return;
 
 int twobyte_check(char *crgr) /* 文字チェック by NEO 20050316 */
 {
-	int   i,l,m;
+	/* m は 0 で初期化する。空文字列だとループが回らず、以前は
+	   未初期化のまま返っていた（2026-11-16 修正）。0 は「有効な
+	   文字が無い＝不合格」で、呼び出し側の判定とも矛盾しない。 */
+	int   i,l,m = 0;
     char  c;
 
-	l = strlen(crgr);
+	l = std::strlen(crgr);
 	for(i = 0;i < l ;i++) {
       c = crgr[i];
 	  if (c >= 0x30 && c <= 0x39 || c >= 0x41 && c <= 0x5A || c >= 0x61 && c <= 0x7A || c == 0x21 || c == 0x2D || c == 0x5F)
@@ -4954,30 +4979,30 @@ int twobyte_check(char *crgr) /* 文字チェック by NEO 20050316 */
 int   next_level_check(int n) /* レベルチェック表示用　by NEO 2008/04/05 */
 {
 	int  nlv;
-    char buf[256];
+    std::array<char, 256> buf;
 
   	nlv = ( TOTAL_LEVEL / 2000 + 1 ) * 20000
   	 - ((cd[n].lv[LV_FIGHTER] + cd[n].lv[LV_WIZARD] + cd[n].lv[LV_MERCHANT] + cd[n].lv[LV_CREATER]) *10 + cd[n].exp) ;
-	dmprintf(n, 0, buf, sizeof(buf),DMM_NEXT_LV, cd[n].name , nlv / 10 , nlv );
-  	check_write(n, buf);
+	dmprintf(n, 0, buf.data(), buf.size(),DMM_NEXT_LV, cd[n].name , nlv / 10 , nlv );
+  	check_write(n, buf.data());
 	return 0;
 }
 
 int   level_up_print(int n) /* レベルアップ表示用　by NEO 2008/04/29 */
 {
 	int    i;
-	char   buf[256];
+	std::array<char, 256> buf;
 
 	for (i = 1; i < 999; i++) {
   		if ( TOTAL_LEVEL == ( 2000 * i ) ) {
-		dmprintf(n, 0, buf, sizeof(buf),DMM_LV_UP, cd[n].name , i );
-  		write_companion(n, 0, buf, 1);
+		dmprintf(n, 0, buf.data(), buf.size(),DMM_LV_UP, cd[n].name , i );
+  		write_companion(n, 0, buf.data(), 1);
 			if ( i == 1 ) {  /* レベル１ Setcg 説明 by NEO 2008/04/05 */
-			dmprintf(n, 0, buf, sizeof(buf),DMM_SET_CG);
-  			check_write(n, buf);
+			dmprintf(n, 0, buf.data(), buf.size(),DMM_SET_CG);
+  			check_write(n, buf.data());
   			} else if ( i == 5 ) {  /* レベル５ level 説明 by NEO 2008/04/05 */
-			dmprintf(n, 0, buf, sizeof(buf),DMM_LEVEL_COM);
-  			check_write(n, buf);
+			dmprintf(n, 0, buf.data(), buf.size(),DMM_LEVEL_COM);
+  			check_write(n, buf.data());
   			}
   		break;
   		}
@@ -4988,24 +5013,25 @@ int   level_up_print(int n) /* レベルアップ表示用　by NEO 2008/04/29 *
 int save_mail(int n, char *mailto, char *msg) /* Add for メールシステム:メールの保存 by NEO 2008/05/02 */
 {
 	FILE *fp;
-	char buf[256],nbuf[32];
+	std::array<char, 256> buf;
+	std::array<char, 32> nbuf;
 	int i,j;
-	char sp[32];
+	std::array<char, 32> sp;
 
-	snprintf(buf,sizeof(buf),"phi_mail/%s.md", mailto); /* ファイル準備 */
-	if ((fp = efopen(buf, "ab")) == NULL) {
+	std::snprintf(buf.data(),buf.size(),"phi_mail/%s.md", mailto); /* ファイル準備 */
+	if ((fp = efopen(buf.data(), "ab")) == nullptr) {
 		log_print("DM > Can not write item data file [phi_mail/].\n");
 		return (-1);
 	}
 
-	j = cmtstrcpy(nbuf,sizeof(nbuf),cd[n].name,20);
-	nstr(sp,' ',20-j);
-	snprintf(buf,sizeof(buf),DMM_MAIL_WRITE, nbuf, sp, msg );
-	fputs(buf,fp); /* メール書き込み */
+	j = cmtstrcpy(nbuf.data(),nbuf.size(),cd[n].name,20);
+	nstr(sp.data(),' ',20-j);
+	std::snprintf(buf.data(),buf.size(),DMM_MAIL_WRITE, nbuf.data(), sp.data(), msg );
+	fputs(buf.data(),fp); /* メール書き込み */
 
 	efclose(fp);
-	dmprintf(n, 0, buf, sizeof(buf),DMM_MAIL_SEND, mailto);
-	check_write(n, buf);
+	dmprintf(n, 0, buf.data(), buf.size(),DMM_MAIL_SEND, mailto);
+	check_write(n, buf.data());
 	return (0);
 }
 
@@ -5013,21 +5039,22 @@ int save_mail(int n, char *mailto, char *msg) /* Add for メールシステム:�
 int read_mail(int n) /* Add for メールシステム:メールの読み込み by NEO 2008/05/02 */
 {
     FILE *fp;
-    char rbuf[256],wbuf[256];
+    std::array<char, 256> rbuf;
+    std::array<char, 256> wbuf;
     int i;
 
-    snprintf(rbuf,sizeof(rbuf),"phi_mail/%s.md",cd[n].name); /* メール検索 */
-    if ((fp = efopen(rbuf, "rb")) == NULL) {
+    std::snprintf(rbuf.data(),rbuf.size(),"phi_mail/%s.md",cd[n].name); /* メール検索 */
+    if ((fp = efopen(rbuf.data(), "rb")) == nullptr) {
 		dmcheck_write(n, DMM_MAIL_NO);
 		return (0);
 	}
 	dmcheck_write(n, DMM_MAIL_LIST);
 	for(i = 0;;) { /* i はメッセージ番号 */
-		if (efgets(rbuf, sizeof(rbuf), fp) == NULL) 
+		if (efgets(rbuf.data(), rbuf.size(), fp) == nullptr) 
 		break;
 		i++;
-		snprintf(wbuf, sizeof(wbuf),"[%2i] %s", i , rbuf); /* メール表示 */
-		check_write(n, wbuf);
+		std::snprintf(wbuf.data(), wbuf.size(),"[%2i] %s", i , rbuf.data()); /* メール表示 */
+		check_write(n, wbuf.data());
 	}
 	efclose(fp);
 	return (0);
@@ -5037,17 +5064,17 @@ int read_mail(int n) /* Add for メールシステム:メールの読み込み b
 int delete_mail(int n) /* Add for メールシステム:メールの消去 by NEO 2008/05/02 */
 {
     FILE *fp;
-    char buf[256];
+    std::array<char, 256> buf;
     int i;
 
-    snprintf(buf,sizeof(buf),"phi_mail/%s.md",cd[n].name); /* メール検索 */
-    if ((fp = efopen(buf, "rb")) == NULL) {
+    std::snprintf(buf.data(),buf.size(),"phi_mail/%s.md",cd[n].name); /* メール検索 */
+    if ((fp = efopen(buf.data(), "rb")) == nullptr) {
 		dmcheck_write(n, DMM_MAIL_NO);
 		return (0);
 	}
 	efclose(fp);
 	dmcheck_write(n, DMM_MAIL_DEL);
-	unlink(buf); /* メール全消去 */
+	unlink(buf.data()); /* メール全消去 */
 	return (0);
 }
 
@@ -5055,21 +5082,21 @@ int delete_mail(int n) /* Add for メールシステム:メールの消去 by NE
 int check_mail(int n) /* Add for メールシステム:メールのチェック by NEO 2008/05/02 */
 {
     FILE *fp;
-    char buf[256];
+    std::array<char, 256> buf;
     int i;
 
-    snprintf(buf,sizeof(buf),"phi_mail/%s.md",cd[n].name); /* メール検索 */
-    if ((fp = efopen(buf, "rb")) == NULL)
+    std::snprintf(buf.data(),buf.size(),"phi_mail/%s.md",cd[n].name); /* メール検索 */
+    if ((fp = efopen(buf.data(), "rb")) == nullptr)
 		return (0);
 
 	for(i = 0;;) { /* i はメッセージ番号 */
-		if (efgets(buf, sizeof(buf), fp) == NULL) 
+		if (efgets(buf.data(), buf.size(), fp) == nullptr) 
 		break;
 		i++;
 	}
 	efclose(fp);
-	snprintf(buf, sizeof(buf),DMM_MAIL_CHECK, i ); /* メール件数表示 */
-	check_write(n, buf);
+	std::snprintf(buf.data(), buf.size(),DMM_MAIL_CHECK, i ); /* メール件数表示 */
+	check_write(n, buf.data());
 	return (0);
 }
 
@@ -5090,20 +5117,22 @@ int strindex( char *ln, char *s ) /* 文字列から特定の文字を探しそ�
 /* 出身地表示 by NEO 20111112 */
 void readhomeland(int n, char *homeland) {
   FILE *rfp;
-  char buf[256], wid[8], *p;
+  std::array<char, 256> buf;
+  std::array<char, 8> wid;
+  char *p;
 
-  snprintf(homeland, 255, "Unknown");
+  std::snprintf(homeland, 255, "Unknown");
 
-  if ((rfp = efopen("worldname.txt", "rb")) == NULL) return;
+  if ((rfp = efopen("worldname.txt", "rb")) == nullptr) return;
 
   while(1) {
-    if (efgets(buf, 255, rfp) == NULL) break;
+    if (efgets(buf.data(), 255, rfp) == nullptr) break;
 
-    p = buf;
+    p = buf.data();
 
-    loadstr(wid, &p, ' ', 5);
-    if (!strncmp(wid, cd[n].uid, 4)) {
-      snprintf(homeland, 255, "%s", p);
+    loadstr(wid.data(), &p, ' ', 5);
+    if (!std::strncmp(wid.data(), cd[n].uid, 4)) {
+      std::snprintf(homeland, 255, "%s", p);
       for (p=homeland;((*p != '\n')&&(*p != '\0'));p++) {
         if ((*p == '\r') || (*p == '\n')) {
           *p = '\0';

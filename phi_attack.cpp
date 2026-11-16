@@ -1,21 +1,28 @@
 
 /*  Phantasmal Island ( Dungeon Master )  1994-5(C)b-Yak-38 */
 
-#include  <stdio.h>
-#include  <string.h>
-#include  <ctype.h>
-#include  <math.h>
-#ifndef Mips
-#include  <stdlib.h>
-#endif
+/* 物理攻撃まわり。attack_other() が武器の攻撃方向にいる相手全員へ
+   attack_to() を呼び、attack_to() が命中・ダメージ・装備の劣化・
+   追加効果・殺害までを処理する。guard_self() は防御の構え、
+   spat_check() はコマンド列からの技の判定、degrade() と
+   speed_degrade() は装備の劣化。
+   第9段階で C++ らしく書き換えたが、計算式・乱数の消費順序・
+   癖はすべて従来どおりに保ってある。
+   詳細は docs/cxx-port-notes.md の第9段階を参照。 */
 
-#include  "phi_dm.h"
-#include  "phi_attack.h"
-#include  "phi_calc.h"
-#include  "phi_data.h"
-#include  "phi_enemy.h"
-#include  "phi_use.h"
-#include  "phi_str.h"
+#include <array>
+#include <cmath>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+
+#include "phi_dm.h"
+#include "phi_attack.h"
+#include "phi_calc.h"
+#include "phi_data.h"
+#include "phi_enemy.h"
+#include "phi_use.h"
+#include "phi_str.h"
 
 #ifdef DEBUG
 char debug_buf[256];
@@ -24,7 +31,17 @@ char debug_buf[256];
 extern int px[];
 extern int py[];
 
-static int friend_attack; /* add for party attack 20020917 */
+namespace {
+
+/* パーティ攻撃の印 (add for party attack 20020917)。
+   attack_other() が「前方セルに同じパーティのメンバーがいる」場合に
+   1 にし、attack_to() がダメージ 1/3 とクリティカル率の割算に使う。
+   前方セルしか見ないため、横・後ろだけを攻撃する武器でも、味方が
+   前に立っていれば立つ。attack_to() の呼び出しは attack_other()
+   だけなので、常にここで設定した直後の値が読まれる。 */
+int friend_attack;
+
+} // namespace
 
 void   attack_other(int n)
 {
@@ -36,7 +53,7 @@ void   attack_other(int n)
 
   asf = 0;      /* 攻撃成功？ */
 
-  if (cd[n].weq == NULL)
+  if (cd[n].weq == nullptr)
     tp = 0x0000;
   else {
     tp = ((cd[n].weq->type) & WD_MASK);
@@ -51,7 +68,7 @@ void   attack_other(int n)
 
 #ifndef OLDWEAPON
   /* add for long range spear 20000518 */
-  spear = ((cd[n].weq != NULL && (cd[n].weq->type & WT_MASK) == WT_SPEAR)? 1 : 0);
+  spear = ((cd[n].weq != nullptr && (cd[n].weq->type & WT_MASK) == WT_SPEAR)? 1 : 0);
 #endif
 
   if (cd[n].st == ST_ATTACK && cd[n].wt > 0) {
@@ -87,6 +104,9 @@ void   attack_other(int n)
     }
   }
   
+  /* 4方向のブロックは座標式が違うだけで同形。槍の2セル先は、
+     バリア判定が「1セル先」の tip を見る点も含め、元の形の
+     まま残してある (phi_m57.cpp のオブジェ走査と同じ判断)。 */
   if (tp & WD_FORE) {
 	pmap = &(map[y+w][x+v]);
     for (i = 0; i < MAX_CHRS_INONE; i++) {
@@ -176,7 +196,7 @@ void   attack_other(int n)
 #endif
   }
   if (asf) {
-    if (cd[n].weq != NULL) {
+    if (cd[n].weq != nullptr) {
 	  /* re-sequence for bug fix 20030529 */
       if ((cd[n].weq->type & IT_MASK) == IT_WEAPON) {
         skillup(n,SKL_DETECT_IT,IT_WEAPON,99,50,1);
@@ -204,7 +224,7 @@ void   attack_other(int n)
 
 void attack_to(int as, int ds)
 {
-  char   buf[256];
+  std::array<char, 256> buf;
   int    special;
   int    hr, avr;
   int    atp;
@@ -222,7 +242,7 @@ void attack_to(int as, int ds)
 
   angry_check(as,ds);
 
-  if (cd[as].weq == NULL) {
+  if (cd[as].weq == nullptr) {
     cd[as].wt = 0;    /*- TCN_HASTE(as);*/
     atp = TCN_COAT(as);
     otp = tp = DT_NONE & WT_MASK;
@@ -243,7 +263,7 @@ void attack_to(int as, int ds)
     {
         if ( bs > 50 )	/* バーサクによる攻撃力アップは */
         bs = 50;	/* 最大で 1.5 倍まで */
-        atp = (int)floor( (double)atp * ( (double)( 100 + bs ) / 100. ) );
+        atp = (int)std::floor( (double)atp * ( (double)( 100 + bs ) / 100. ) );
     }
 /* ここまで by NEO 20120206 */
 #ifndef OLDWEAPON
@@ -251,6 +271,9 @@ void attack_to(int as, int ds)
   counter = 0;
   if (counter_effect != 0) { /* カウンター効果係数が0だとカウンター処理しない added by NEO 2011/12/10 */
   	if (cd[ds].st == ST_ATTACK && !TCN_BERSERK(as) && (as < MAX_NTTYS || cd[as].at == AT_COUNTER)) {
+  	  /* com の中で最初に 'A' が出る位置でカウンター係数が決まる。
+  	     switch は字下げに反してループの外にある (ループ本体は
+  	     if の break だけ)。防御側が PC のときは添字 1 から探す。 */
   	  for (i=(ds<MAX_NTTYS?1:0);i<10;i++) /* balance change 20001013 */
   	    if (cd[ds].com[i] == 'A')
   	      break;
@@ -280,7 +303,7 @@ void attack_to(int as, int ds)
     if (counter > 0) { /* カウンターでない場合も素手だと属性が変化していた bugfix by NEO 20120212 */
   	  if (otp == WT_FIST) { /* 素手の場合カウンター係数が２倍 */
   	    counter *= 2;
-  	    if (cd[ds].weq == NULL) {
+  	    if (cd[ds].weq == nullptr) {
   	      tp = DT_NONE & WT_MASK;
   	    /*  ae = 0; */
   	    } else {
@@ -289,10 +312,10 @@ void attack_to(int as, int ds)
   	    }
   	  }
 /*  if (counter > 0) {   delete for bugfix by NEO 20120212 */
-  	    dmprintf(as,ds,buf,sizeof(buf),DMM_COUNTER_ATTACK);
-  	    write_companion(as,ds,buf,0);
+  	    dmprintf(as,ds, buf.data(), buf.size(),DMM_COUNTER_ATTACK);
+  	    write_companion(as,ds, buf.data(), 0);
 /*      atp = atp + ((cd[ds].weq != NULL ? cd[ds].weq->ATP : 1) + TCN_COAT(ds)) * counter / 2;  カウンター効果演算 old */
-  	    atp = atp + ((cd[ds].weq != NULL ? cd[ds].weq->ATP : 1) + TCN_COAT(ds)) * counter / (2 * counter_effect); /* カウンター効果係数　changed by NEO 2011/12/6 */
+  	    atp = atp + ((cd[ds].weq != nullptr ? cd[ds].weq->ATP : 1) + TCN_COAT(ds)) * counter / (2 * counter_effect); /* カウンター効果係数　changed by NEO 2011/12/6 */
   	  }
   	}
   }
@@ -314,7 +337,7 @@ void attack_to(int as, int ds)
   if (cd[as].wt < 5)
     cd[as].wt = 5;
   cd[as].st = ST_ATTACK;
-  check_write(as, "#attack\n");
+  check_write(as, (char *)"#attack\n");
   if (atp < 1)
     atp = 1;
 #ifdef NO_SKILL
@@ -323,11 +346,11 @@ void attack_to(int as, int ds)
   special = (as < MAX_NTTYS ? spat_check(cd[as].com, otp / WT_PLACE, cd[as].str, sizeof(cd[as].str),skill_o) : 0);
 #endif
   if (special) {
-    dmprintf(as,ds,buf,sizeof(buf), DMM_SPECIAL_ATTACK, cd[as].str);
-    write_companion(ds, as, buf, 0);
+    dmprintf(as,ds, buf.data(), buf.size(), DMM_SPECIAL_ATTACK, cd[as].str);
+    write_companion(ds, as, buf.data(), 0);
   }
   avr = 50;
-  if (cd[ds].aeq != NULL)
+  if (cd[ds].aeq != nullptr)
     avr = avr * (100 - cd[ds].aeq->wp) / 100;
   if (TCN_HASTE(ds) < 0)
     avr = avr * (100 + TCN_HASTE(ds)) / 100;
@@ -341,7 +364,7 @@ void attack_to(int as, int ds)
   if (tp != WT_STINGER && tp != WT_SPEAR)
     dmg = frand(atp * 5 + 1) + (atp * 5 + 1); /* STINGER と SPEAR以外のダメージ設定 */
   else
-    dmg = (abs(frand(24) - 9) + 1) * atp; /* STINGER と SPEAR の場合 */
+    dmg = (std::abs(frand(24) - 9) + 1) * atp; /* STINGER と SPEAR の場合 */
   /* change for technical sword 20000518 */
 #ifdef OLDWEAPON
   dmg = dmg * (100 + special) / 100;
@@ -377,7 +400,7 @@ if (attack_effect == 1) { /* 新攻撃効果設定 added by NEO 2011/12/6 */
   }
   if (friend_attack)
     dmg = dmg / 3; /* Party の場合はダメージを1/3に */
-  if (cd[as].weq != NULL) {
+  if (cd[as].weq != nullptr) {
     /* change for weapon skill 20020501 */
 #ifdef NO_SKILL
     if (PER_DICE < cd[as].weq->wp / 10 + 1 && PER_DICE >= cd[as].lv[LV_FIGHTER] / 100
@@ -387,14 +410,14 @@ if (attack_effect == 1) { /* 新攻撃効果設定 added by NEO 2011/12/6 */
   && otp != WT_FIST && otp != WT_FANG
   && cd[as].type == CT_NORMAL &&
   (cd[as].weq->type & MT_MASK) != MT_NOBREAK) {
-      dmprintf(as, ds, buf, sizeof(buf),DMM_FUMBLE);
-      write_companion(as, ds, buf, 0);
+      dmprintf(as, ds, buf.data(), buf.size(),DMM_FUMBLE);
+      write_companion(as, ds, buf.data(), 0);
       for (i = 0; i < MAX_ITEMS; i++)
   if (&(cd[as].id[i]) == cd[as].weq)
     break;
       if (degrade(cd[as].weq)==2) {
-  dmprintf(as, ds, buf, sizeof(buf),DMM_BROKEN_WPN);
-  write_companion(as, ds, buf, 0);
+  dmprintf(as, ds, buf.data(), buf.size(),DMM_BROKEN_WPN);
+  write_companion(as, ds, buf.data(), 0);
       } else if (i < MAX_ITEMS)
   save_id(as, i, 1);
       item_gc(as);
@@ -404,31 +427,31 @@ if (attack_effect == 1) { /* 新攻撃効果設定 added by NEO 2011/12/6 */
     }
   }
   if (CN_FORCE(as) & 0xffff) {
-    dmprintf(as, ds, buf, sizeof(buf),DMM_ATTACK_WITH_FORCE);
-    check_write(as, buf);
+    dmprintf(as, ds, buf.data(), buf.size(),DMM_ATTACK_WITH_FORCE);
+    check_write(as, buf.data());
     return;
   }
   if (CN_GASIFY(ds) >= 60 || (ds < MAX_NTTYS && CN_ALAG(ds))) {
-    dmprintf(as,ds,buf,sizeof(buf),DMM_INVALID_ANY_ATTACK);
-    check_write(as, buf);
+    dmprintf(as,ds, buf.data(), buf.size(),DMM_INVALID_ANY_ATTACK);
+    check_write(as, buf.data());
     return;
   }
   /* add for deny PK 20020204 */
   if (deny_pk && as < MAX_NTTYS && ds < MAX_NTTYS) {
-    dmprintf(as,ds,buf,sizeof(buf),DMM_DENY_PK);
-    check_write(as, buf);
+    dmprintf(as,ds, buf.data(), buf.size(),DMM_DENY_PK);
+    check_write(as, buf.data());
 	return;
   }
   if (ae == AE_MENTAL || ae == AE_ENERGY) {
     if (CN_REFLEX(ds)) {
-      dmprintf(as,ds,buf,sizeof(buf),DMM_INVALID_ENG_ATTACK);
-      check_write(as, buf);
+      dmprintf(as,ds, buf.data(), buf.size(),DMM_INVALID_ENG_ATTACK);
+      check_write(as, buf.data());
       return;
     }
   } else {
     if (CN_FORCE(ds)) {
-      dmprintf(as,ds,buf,sizeof(buf),DMM_INVALID_PHY_ATTACK);
-      check_write(as, buf);
+      dmprintf(as,ds, buf.data(), buf.size(),DMM_INVALID_PHY_ATTACK);
+      check_write(as, buf.data());
       return;
     }
   }
@@ -447,8 +470,8 @@ if (attack_effect == 1) { /* 新攻撃効果設定 added by NEO 2011/12/6 */
 
 #endif
   {
-    dmprintf(as,ds,buf, sizeof(buf),DMM_CRITICAL);
-    write_companion(ds, as, buf, 0);
+    dmprintf(as,ds, buf.data(), buf.size(),DMM_CRITICAL);
+    write_companion(ds, as, buf.data(), 0);
 #ifndef OLDWEAPON
     /* add for blade weak point 20000519 */
     if (otp == WT_BLADE) {
@@ -459,7 +482,7 @@ if (attack_effect == 1) { /* 新攻撃効果設定 added by NEO 2011/12/6 */
     }     
 #endif
   } else {
-    if (cd[as].weq == NULL) {
+    if (cd[as].weq == nullptr) {
       hr = hr * (100 / (tp == WT_WHIP ? 1 : 2)) / 100;
     } else {
       hr = hr * (100 - cd[as].weq->wp / (tp == WT_WHIP ? 1 : 2)) / 100;
@@ -472,18 +495,18 @@ if (attack_effect == 1) { /* 新攻撃効果設定 added by NEO 2011/12/6 */
     if (hr + lv_dice((cd[as].lv[LV_FIGHTER]+skill_w)/2) < avr + lv_dice((cd[ds].lv[LV_FIGHTER])+skill_ds)/2)
 #endif
     {
-      dmprintf(as,ds,buf, sizeof(buf),DMM_MISS_ATTACK);
-      write_companion(ds, as, buf, 0);
+      dmprintf(as,ds, buf.data(), buf.size(),DMM_MISS_ATTACK);
+      write_companion(ds, as, buf.data(), 0);
       return;
     }
     if (cd[ds].wt == 0 || cd[ds].st == ST_DEFEND)
-      if ((cd[ds].weq == NULL) || ((cd[ds].weq->type & WT_MASK) == WT_FIST))
+      if ((cd[ds].weq == nullptr) || ((cd[ds].weq->type & WT_MASK) == WT_FIST))
   if (tp != WT_STRIKER && tp != WT_WHIP
       && tp != WT_STINGER && tp != WT_SPEAR
       && tp != WT_FANG){
     fwd = (4 + cd[as].d - cd[ds].d) % 4;
-    if ((cd[ds].weq == NULL && fwd == 2)
-        || (cd[ds].weq != NULL &&
+    if ((cd[ds].weq == nullptr && fwd == 2)
+        || (cd[ds].weq != nullptr &&
         ((fwd == 2 && (cd[ds].weq->type ^ 0x8000) & WD_FORE)
          || (fwd == 3 && (cd[ds].weq->type ^ 0x8000) & WD_RIGHT)
          || (fwd == 0 && (cd[ds].weq->type ^ 0x8000) & WD_BACK)
@@ -494,8 +517,8 @@ if (attack_effect == 1) { /* 新攻撃効果設定 added by NEO 2011/12/6 */
 
       if (PER_DICE < ((cd[ds].lv[LV_FIGHTER] < 2000 ? cd[ds].lv[LV_FIGHTER] / 100 : 20)
           *(cd[ds].st == ST_DEFEND ? 3 : 2) / 2)) {
-        dmprintf(as,ds,buf, sizeof(buf),DMM_CATCH_ATTACK);
-        write_companion(ds, as, buf, 0);
+        dmprintf(as,ds, buf.data(), buf.size(),DMM_CATCH_ATTACK);
+        write_companion(ds, as, buf.data(), 0);
         return;
       }
   }
@@ -546,7 +569,7 @@ if (attack_effect == 1) { /* 新攻撃効果設定 added by NEO 2011/12/6 */
   dmg = dmg / 2; /* xxxx killer系以外の武器ではダメージ半減 */
     } else if (hr & IA_RICK) {
       if ((ae < AE_RICK) || (ae > AE_SAGA4)) {
-  if (cd[as].weq == NULL)
+  if (cd[as].weq == nullptr)
     dmg = 0; /* ライカンスロープ,SAGA4に武器を持たない場合はダメージ0 */
   else
     switch ((cd[as].weq->type) & MT_MASK) {
@@ -566,7 +589,7 @@ if (attack_effect == 1) { /* 新攻撃効果設定 added by NEO 2011/12/6 */
 #ifndef OLDWEAPON
   /* add for spear knock back 20000601 */
   if (tp == WT_SPEAR) {
-    if (abs(cd[as].x-cd[ds].x) < 2 && abs(cd[as].y-cd[ds].y) < 2 &&
+    if (std::abs(cd[as].x-cd[ds].x) < 2 && std::abs(cd[as].y-cd[ds].y) < 2 &&
 
 #ifdef NO_SKILL
         PER_DICE < 15 + cd[as].lv[LV_FIGHTER] / 500 + weight / 5)
@@ -578,7 +601,7 @@ if (attack_effect == 1) { /* 新攻撃効果設定 added by NEO 2011/12/6 */
              cd[ds].x * 2 - cd[as].x,
              cd[ds].y * 2 - cd[as].y, 0);
       /* bug(?) fix 20020531 */
-      if (abs(cd[as].x-cd[ds].x) > 1 || abs(cd[as].y-cd[ds].y) > 1)
+      if (std::abs(cd[as].x-cd[ds].x) > 1 || std::abs(cd[as].y-cd[ds].y) > 1)
         return;
     }
   }
@@ -589,61 +612,61 @@ if (attack_effect == 1) { /* 新攻撃効果設定 added by NEO 2011/12/6 */
   if (wtp == IT_WEAPON && ae == AE_MENTAL) {
     /* change for sheil cheat 20000522 */
     if (cd[ds].mmp == 0 && (cd[ds].exp == 99999999 || ds >= MAX_NTTYS)) {
-      dmprintf(as, ds, buf,sizeof(buf),DMM_INVALID_ANIMATED);
-      check_write(as,buf);
+      dmprintf(as, ds, buf.data(), buf.size(),DMM_INVALID_ANIMATED);
+      check_write(as, buf.data());
       return;
     }
     if (cd[ds].at == AT_ABSORB && fn(cd[as].afn,cd[ds].dfn,100) == 25) {
-      dmprintf(as,ds,buf, sizeof(buf),DMM_ABS_FROM_ATTACK,dmg);
-      write_companion(ds, as, buf, 0);
+      dmprintf(as,ds, buf.data(), buf.size(),DMM_ABS_FROM_ATTACK,dmg);
+      write_companion(ds, as, buf.data(), 0);
       i = hp_dmg(ds, dmg, 1);
-      dmprintf(ds,as,buf, sizeof(buf),DMM_LEFT_HP);
+      dmprintf(ds,as, buf.data(), buf.size(),DMM_LEFT_HP);
     } else {
-      dmprintf(as,ds,buf, sizeof(buf),DMM_ATTACK_MP,dmg);
-      write_companion(ds, as, buf, 0);
+      dmprintf(as,ds, buf.data(), buf.size(),DMM_ATTACK_MP,dmg);
+      write_companion(ds, as, buf.data(), 0);
       i = mp_dmg(ds, -dmg, 1);
-      dmprintf(ds,as,buf, sizeof(buf),DMM_LEFT_MP);
+      dmprintf(ds,as, buf.data(), buf.size(),DMM_LEFT_MP);
     }
   } else {
     /* change for sheil cheat 20000522 */
     if (cd[ds].mhp == 0 && (cd[ds].exp == 99999999 || ds >= MAX_NTTYS)) {
-      dmprintf(as, ds, buf, sizeof(buf), DMM_INVALID_ASTRAL);
-      check_write(as, buf);
+      dmprintf(as, ds, buf.data(), buf.size(), DMM_INVALID_ASTRAL);
+      check_write(as, buf.data());
       return;
     }
     if (cd[ds].at == AT_ABSORB && fn(cd[as].afn,cd[ds].dfn,100) == 25) {
-      dmprintf(as,ds,buf, sizeof(buf),DMM_ABS_FROM_ATTACK,dmg);
-      write_companion(ds, as, buf, 0);
+      dmprintf(as,ds, buf.data(), buf.size(),DMM_ABS_FROM_ATTACK,dmg);
+      write_companion(ds, as, buf.data(), 0);
       i = hp_dmg(ds, dmg, 1);
     } else {
-      dmprintf(as,ds,buf, sizeof(buf),DMM_ATTACK_HP,dmg);
-      write_companion(ds, as, buf, 0);
+      dmprintf(as,ds, buf.data(), buf.size(),DMM_ATTACK_HP,dmg);
+      write_companion(ds, as, buf.data(), 0);
       i = hp_dmg(ds, -dmg, 1);
     }
-    dmprintf(ds,as,buf, sizeof(buf),DMM_LEFT_HP);
+    dmprintf(ds,as, buf.data(), buf.size(),DMM_LEFT_HP);
   }
-  check_write(ds, buf);
-  if (cd[as].weq != NULL) {
+  check_write(ds, buf.data());
+  if (cd[as].weq != nullptr) {
     atp = cd[as].weq->ATP + OCN_COAT(as); /* bug fix 20010429 */
     atp = (atp == 0 ? 1 : atp);
 	if (PER_DICE < (magic_anti_degrade ? (10 * cd[as].weq->ATP / atp) : 10))
     if (degrade(cd[as].weq)==2) {
-      dmprintf(as, ds, buf, sizeof(buf),DMM_BROKEN_WEAPON);
-      write_companion(as, ds, buf, 0);
+      dmprintf(as, ds, buf.data(), buf.size(),DMM_BROKEN_WEAPON);
+      write_companion(as, ds, buf.data(), 0);
       cd[as].afn = FN_NONE;
-      cd[as].weq = NULL;
+      cd[as].weq = nullptr;
       cd[as].wsep = 0; /* bug fix 20000525 */
       item_gc(as);
       wtp = DT_NONE & 0xf;
     }
   }
-  if (cd[ds].aeq != NULL) {
+  if (cd[ds].aeq != nullptr) {
     skillup(ds,SKL_DETECT_IT,IT_ARMOR,0,50,1);
     if (PER_DICE < (magic_anti_degrade ? 10 * (100 - OCN_PROTECT(ds)) / 100 : 10))
     if (degrade(cd[ds].aeq)==2) {
-      dmprintf(ds, as, buf, sizeof(buf),DMM_BROKEN_ARMOR);
-      write_companion(ds, as, buf, 0);
-      cd[ds].aeq = NULL;
+      dmprintf(ds, as, buf.data(), buf.size(),DMM_BROKEN_ARMOR);
+      write_companion(ds, as, buf.data(), 0);
+      cd[ds].aeq = nullptr;
       cd[ds].asep = 0;
       if (ds >= MAX_NTTYS)
   select_armor(ds);
@@ -651,13 +674,13 @@ if (attack_effect == 1) { /* 新攻撃効果設定 added by NEO 2011/12/6 */
       set_fn(ds);
     }
   }
-  if (cd[ds].oeq != NULL) {
+  if (cd[ds].oeq != nullptr) {
     skillup(ds,SKL_DETECT_IT,IT_ACCESSORY,0,50,1);
     if (PER_DICE < (magic_anti_degrade ? 10 * (100 - OCN_SHELL(ds)) / 100 : 10))
     if (degrade(cd[ds].oeq)==2) {
-      dmprintf(ds, as, buf, sizeof(buf),DMM_BROKEN_ACCESORY);
-      write_companion(ds, as, buf, 0);
-      cd[ds].oeq = NULL;
+      dmprintf(ds, as, buf.data(), buf.size(),DMM_BROKEN_ACCESORY);
+      write_companion(ds, as, buf.data(), 0);
+      cd[ds].oeq = nullptr;
       cd[ds].at = AT_NONE;
       cd[ds].osep = 0;
       if (ds >= MAX_NTTYS) {
@@ -685,19 +708,19 @@ if (attack_effect == 1) { /* 新攻撃効果設定 added by NEO 2011/12/6 */
 #else
         CN_COAT(ds) -= (frand(weight / 2 + 1) + weight / 2 + 1) / 5 * ((5000+skill_w)/5000.0);
 #endif
-        dmprintf(as,ds,buf, sizeof(buf),DMM_HAMMER_ATPDOWN);
-        write_companion(ds, as, buf, 0);
+        dmprintf(as,ds, buf.data(), buf.size(),DMM_HAMMER_ATPDOWN);
+        write_companion(ds, as, buf.data(), 0);
     }
 #ifdef NO_SKILL
-    if (cd[ds].weq != NULL && PER_DICE < (10 + special/10) * weight / 32)
+    if (cd[ds].weq != nullptr && PER_DICE < (10 + special/10) * weight / 32)
 #else
-    if (cd[ds].weq != NULL && PER_DICE < (10 + special/10) * weight * ((5000+skill_w)/5000.0) / 32 /(friend_attack+1))
+    if (cd[ds].weq != nullptr && PER_DICE < (10 + special/10) * weight * ((5000+skill_w)/5000.0) / 32 /(friend_attack+1))
 #endif
     {
       if (degrade(cd[ds].weq)==2) {
-        dmprintf(ds, as, buf, sizeof(buf),DMM_BROKEN_WEAPON);
-        write_companion(ds, as, buf, 0);
-        cd[ds].weq = NULL;
+        dmprintf(ds, as, buf.data(), buf.size(),DMM_BROKEN_WEAPON);
+        write_companion(ds, as, buf.data(), 0);
+        cd[ds].weq = nullptr;
         cd[ds].wsep = 0;
         item_gc(ds);
         set_fn(ds);
@@ -717,8 +740,8 @@ if (attack_effect == 1) { /* 新攻撃効果設定 added by NEO 2011/12/6 */
 #else
         CN_HASTE(ds) -= (frand(weight / 2 + 1) + weight / 2 + 1) / 3 * ((5000+skill_w)/5000.0) ;
 #endif
-        dmprintf(as,ds,buf, sizeof(buf),DMM_HAMMER_SLOW);
-        write_companion(ds, as, buf, 0);
+        dmprintf(as,ds, buf.data(), buf.size(),DMM_HAMMER_SLOW);
+        write_companion(ds, as, buf.data(), 0);
     }
     /* add Confuse 20000526 */
 #ifdef NO_SKILL
@@ -732,8 +755,8 @@ if (attack_effect == 1) { /* 新攻撃効果設定 added by NEO 2011/12/6 */
 #else
         CN_CONFUSE(ds) = (frand(weight / 2 + 1) + weight / 2 + 1) / 8 * (5000+skill_w)/5000.0 ;
 #endif
-        dmprintf(as,ds,buf, sizeof(buf),DMM_HAMMER_CONFUSE);
-        write_companion(ds, as, buf, 0);
+        dmprintf(as,ds, buf.data(), buf.size(),DMM_HAMMER_CONFUSE);
+        write_companion(ds, as, buf.data(), 0);
     }
   }
 #endif
@@ -816,26 +839,26 @@ if (attack_effect == 1) { /* 新攻撃効果設定 added by NEO 2011/12/6 */
 #endif
 
 #endif
-    dmprintf(as,ds,buf, sizeof(buf),DMM_WHIP_PALSY);
-    write_companion(ds, as, buf, 0);
+    dmprintf(as,ds, buf.data(), buf.size(),DMM_WHIP_PALSY);
+    write_companion(ds, as, buf.data(), 0);
   }
 #ifndef OLDWEAPON
   /* add for strike back 20000601 */
-  if (tp == WT_STINGER && cd[ds].weq != NULL && (cd[ds].weq->type & MT_MASK) != MT_NOBREAK) {
+  if (tp == WT_STINGER && cd[ds].weq != nullptr && (cd[ds].weq->type & MT_MASK) != MT_NOBREAK) {
 #ifdef NO_SKILL
     if (PER_DICE < (cd[as].lv[LV_FIGHTER] / 500) * (1 + special / 20))
 #else
     if (PER_DICE < ((cd[as].lv[LV_FIGHTER] + skill_w) / 1000) * (1 + special / 20)/(friend_attack+1))
 #endif
     {
-      dmprintf(ds, as, buf, sizeof(buf),DMM_RAPIER_DROP);
-      write_companion(ds, as, buf, 0);
+      dmprintf(ds, as, buf.data(), buf.size(),DMM_RAPIER_DROP);
+      write_companion(ds, as, buf.data(), 0);
       for (i = 0; i < MAX_ITEMS; i++)
   if (&(cd[ds].id[i]) == cd[ds].weq)
     break;
       if (degrade(cd[ds].weq)==2) {
-  dmprintf(ds, as, buf, sizeof(buf),DMM_BROKEN_WPN);
-  write_companion(ds, as, buf, 0);
+  dmprintf(ds, as, buf.data(), buf.size(),DMM_BROKEN_WPN);
+  write_companion(ds, as, buf.data(), 0);
       } else if (i < MAX_ITEMS)
   save_id(ds, i, 1);
       item_gc(ds);
@@ -843,6 +866,9 @@ if (attack_effect == 1) { /* 新攻撃効果設定 added by NEO 2011/12/6 */
     }
   }
 #endif
+  /* ここの i は本来ダメージの結果だが、直前のスティンガー処理が
+     アイテム探しの添字に i を使い回すため、tp == WT_STINGER の
+     ときは中身がそちらに差し替わっている (元のまま)。 */
   if (!i && wtp == IT_WEAPON && cd[ds].type < CT_MAGICAL
       && 10 + lv_dice(cd[ds].lv[LV_FIGHTER]) < PER_DICE + lv_dice(cd[as].lv[LV_FIGHTER])) {
     dmg = frand(cd[as].weq->ATP / 2 + 1) + (cd[as].weq->ATP / 2 + 1);
@@ -869,7 +895,7 @@ if (attack_effect == 1) { /* 新攻撃効果設定 added by NEO 2011/12/6 */
 		il = TCN_ILLUSION(ds);
 		if(il!=0){
 			mrr = 50;
-			if (cd[ds].aeq != NULL)
+			if (cd[ds].aeq != nullptr)
 				mrr = (100 - (100 - mrr) * (100 - cd[ds].aeq->MRP) / 100);
 			if (il < 0)
 				mrr = mrr * (100 + il) / 100;
@@ -878,8 +904,8 @@ if (attack_effect == 1) { /* 新攻撃効果設定 added by NEO 2011/12/6 */
 			if (PER_DICE + lv_dice(cd[as].lv[LV_WIZARD])
 				< mrr + lv_dice(cd[ds].lv[LV_WIZARD])) {
 				ae = AE_NONE;
-				dmprintf(as,ds,buf, sizeof(buf),DMM_ILLUSION_EFFECT);
-				write_companion(ds, as, buf, 0);
+				dmprintf(as,ds, buf.data(), buf.size(),DMM_ILLUSION_EFFECT);
+				write_companion(ds, as, buf.data(), 0);
 			}
 		}
 		break;
@@ -892,9 +918,9 @@ if (attack_effect == 1) { /* 新攻撃効果設定 added by NEO 2011/12/6 */
       if (cd[ds].at == AT_POISONPROOF || cd[ds].at == AT_IMMORTAL)
   break;
       CN_POISON(ds) = dmg;
-      dmprintf(as,ds,buf, sizeof(buf),DMM_POISON_BY_ATTACK
+      dmprintf(as,ds, buf.data(), buf.size(),DMM_POISON_BY_ATTACK
         , CN_POISON(ds));
-      write_companion(ds, as, buf, 0);
+      write_companion(ds, as, buf.data(), 0);
       break;
     case AE_PALSY:
       dmg = dmg / 5 + 1;
@@ -902,19 +928,19 @@ if (attack_effect == 1) { /* 新攻撃効果設定 added by NEO 2011/12/6 */
   break;
       if (!CN_PALSY(ds)) {
   CN_PALSY(ds) = dmg;
-  dmprintf(as,ds,buf, sizeof(buf),DMM_PALSY_BY_ATTACK
+  dmprintf(as,ds, buf.data(), buf.size(),DMM_PALSY_BY_ATTACK
     , CN_PALSY(ds));
       } else
-  dmprintf(as,ds,buf, sizeof(buf),DMM_PALSY_ALREADY);
-      write_companion(ds, as, buf, 0);
+  dmprintf(as,ds, buf.data(), buf.size(),DMM_PALSY_ALREADY);
+      write_companion(ds, as, buf.data(), 0);
       break;
     case AE_PANIC:
       if (cd[ds].at == AT_MEPROOF || cd[ds].at == AT_IMMORTAL)
   break;
       CN_PANIC(ds) = dmg;
-      dmprintf(as,ds,buf, sizeof(buf),DMM_PANIC_BY_ATTACK
+      dmprintf(as,ds, buf.data(), buf.size(),DMM_PANIC_BY_ATTACK
         , CN_PANIC(ds));
-      write_companion(ds, as, buf, 0);
+      write_companion(ds, as, buf.data(), 0);
       break;
     case AE_CONFUSE:
       dmg = dmg / 5 + 1;
@@ -922,11 +948,11 @@ if (attack_effect == 1) { /* 新攻撃効果設定 added by NEO 2011/12/6 */
   break;
       if (!CN_CONFUSE(ds)) {
   CN_CONFUSE(ds) = dmg;
-  dmprintf(as,ds,buf, sizeof(buf),DMM_CONFUSE_BY_ATTACK
+  dmprintf(as,ds, buf.data(), buf.size(),DMM_CONFUSE_BY_ATTACK
     , CN_CONFUSE(ds));
       } else
-  dmprintf(as,ds,buf, sizeof(buf),DMM_CONFUSE_ALREADY);
-      write_companion(ds, as, buf, 0);
+  dmprintf(as,ds, buf.data(), buf.size(),DMM_CONFUSE_ALREADY);
+      write_companion(ds, as, buf.data(), 0);
       break;
     case AE_BERSERK:
       dmg = dmg / 5 + 1;
@@ -934,11 +960,11 @@ if (attack_effect == 1) { /* 新攻撃効果設定 added by NEO 2011/12/6 */
   break;
       if (!CN_BERSERK(ds)) {
   CN_BERSERK(ds) = dmg;
-  dmprintf(as,ds,buf, sizeof(buf),DMM_BERSERK_BY_ATTACK
+  dmprintf(as,ds, buf.data(), buf.size(),DMM_BERSERK_BY_ATTACK
     , CN_BERSERK(ds));
       } else
-  dmprintf(as,ds,buf, sizeof(buf),DMM_BERSERK_ALREADY);
-      write_companion(ds, as, buf, 0);
+  dmprintf(as,ds, buf.data(), buf.size(),DMM_BERSERK_ALREADY);
+      write_companion(ds, as, buf.data(), 0);
       break;
     case AE_SILENCE:
       dmg = dmg / 5 + 1;
@@ -946,11 +972,11 @@ if (attack_effect == 1) { /* 新攻撃効果設定 added by NEO 2011/12/6 */
   break;
       if (!CN_SILENCE(ds)) {
   CN_SILENCE(ds) = dmg;
-  dmprintf(as,ds,buf, sizeof(buf),DMM_SILENCE_BY_ATTACK
+  dmprintf(as,ds, buf.data(), buf.size(),DMM_SILENCE_BY_ATTACK
     , CN_SILENCE(ds));
       } else
-  dmprintf(as,ds,buf, sizeof(buf),DMM_SILENCE_ALREADY);
-      write_companion(ds, as, buf, 0);
+  dmprintf(as,ds, buf.data(), buf.size(),DMM_SILENCE_ALREADY);
+      write_companion(ds, as, buf.data(), 0);
       break;
     case AE_DRAIN:
       if (cd[ds].at == AT_DRAINPROOF)
@@ -962,8 +988,8 @@ if (attack_effect == 1) { /* 新攻撃効果設定 added by NEO 2011/12/6 */
   dmg = cd[ds].lv[i];
       cd[ds].lv[i] -= dmg;
       (void) mp_dmg(as, dmg, 0);
-      dmprintf(as,ds,buf, sizeof(buf),DMM_LEVEL_DRAIN,dmg);
-      write_companion(ds, as, buf, 0);
+      dmprintf(as,ds, buf.data(), buf.size(),DMM_LEVEL_DRAIN,dmg);
+      write_companion(ds, as, buf.data(), 0);
       break;
     case AE_THIEF:
       if (cd[ds].at == AT_THEFTGUARD)
@@ -978,25 +1004,25 @@ if (attack_effect == 1) { /* 新攻撃効果設定 added by NEO 2011/12/6 */
   tax+=(cd[as].gp-9999);
   cd[as].gp = 9999;
       }
-      dmprintf(as,ds,buf, sizeof(buf),DMM_ROBERY_MONEY,dmg);
-      write_companion(ds, as, buf, 0);
+      dmprintf(as,ds, buf.data(), buf.size(),DMM_ROBERY_MONEY,dmg);
+      write_companion(ds, as, buf.data(), 0);
       break;
     case AE_BLIND:
       dmg = dmg / 5 + 3;
       if (CN_BLIND(ds) < 0) {
-  dmprintf(as,ds,buf, sizeof(buf),DMM_BLIND_ALREADY);
+  dmprintf(as,ds, buf.data(), buf.size(),DMM_BLIND_ALREADY);
       } else {
   CN_BLIND(ds) = -dmg;
-  dmprintf(as,ds,buf, sizeof(buf),DMM_BLIND_BY_ATTACK
+  dmprintf(as,ds, buf.data(), buf.size(),DMM_BLIND_BY_ATTACK
     , dmg);
       }
-      write_companion(ds, as, buf, 0);
+      write_companion(ds, as, buf.data(), 0);
       break;
     case AE_KNOCKBACK:
       if (cd[ds].st == ST_DEFEND)
         break;
-      dmprintf(as,ds,buf, sizeof(buf),DMM_KNOCK_BACK);
-      write_companion(ds, as, buf, 0);
+      dmprintf(as,ds, buf.data(), buf.size(),DMM_KNOCK_BACK);
+      write_companion(ds, as, buf.data(), 0);
       move_chr(ds, cd[ds].x, cd[ds].y,
          /* change for spear */
          cd[ds].x + fsign(cd[ds].x - cd[as].x),
@@ -1006,63 +1032,63 @@ if (attack_effect == 1) { /* 新攻撃効果設定 added by NEO 2011/12/6 */
       if (cd[ds].at != AT_POISONPROOF
     && cd[ds].at != AT_IMMORTAL) {
   CN_POISON(ds) = dmg;
-  dmprintf(as,ds,buf, sizeof(buf),DMM_POISON_BY_ATTACK
+  dmprintf(as,ds, buf.data(), buf.size(),DMM_POISON_BY_ATTACK
     , CN_POISON(ds));
-  write_companion(ds, as, buf, 0);
+  write_companion(ds, as, buf.data(), 0);
       }
       if (cd[ds].at != AT_PALSYPROOF
     && cd[ds].at != AT_IMMORTAL) {
   if (!CN_PALSY(ds)) {
     CN_PALSY(ds) = (int) (dmg / 5);
-    dmprintf(as,ds,buf, sizeof(buf),DMM_PALSY_BY_ATTACK
+    dmprintf(as,ds, buf.data(), buf.size(),DMM_PALSY_BY_ATTACK
       , CN_PALSY(ds));
-  write_companion(ds, as, buf, 0);
+  write_companion(ds, as, buf.data(), 0);
   }
       }
       if (cd[ds].at != AT_MEPROOF
     && cd[ds].at != AT_IMMORTAL) {
   CN_PANIC(ds) = dmg;
-  dmprintf(as,ds,buf, sizeof(buf),DMM_PANIC_BY_ATTACK
+  dmprintf(as,ds, buf.data(), buf.size(),DMM_PANIC_BY_ATTACK
     , CN_PANIC(ds));
-  write_companion(ds, as, buf, 0);
+  write_companion(ds, as, buf.data(), 0);
       }
       if (cd[ds].at != AT_MEPROOF
     && cd[ds].at != AT_IMMORTAL) {
   if (!CN_CONFUSE(ds)) {
     CN_CONFUSE(ds) = (int) (dmg / 5) + 1;
-    dmprintf(as,ds,buf, sizeof(buf),DMM_CONFUSE_BY_ATTACK
+    dmprintf(as,ds, buf.data(), buf.size(),DMM_CONFUSE_BY_ATTACK
       , CN_CONFUSE(ds));
-  write_companion(ds, as, buf, 0);
+  write_companion(ds, as, buf.data(), 0);
   }
       }
       if (cd[ds].at != AT_MEPROOF
     && cd[ds].at != AT_IMMORTAL) {
   if (!CN_BERSERK(ds)) {
     CN_BERSERK(ds) = (int) (dmg / 5) + 1;
-    dmprintf(as,ds,buf, sizeof(buf),DMM_BERSERK_BY_ATTACK
+    dmprintf(as,ds, buf.data(), buf.size(),DMM_BERSERK_BY_ATTACK
       , CN_BERSERK(ds));
-  write_companion(ds, as, buf, 0);
+  write_companion(ds, as, buf.data(), 0);
   }
       }
       if (cd[ds].at != AT_IMMORTAL) {
   if (!CN_SILENCE(ds)) {
     CN_SILENCE(ds) = dmg;
-    dmprintf(as,ds,buf, sizeof(buf),DMM_SILENCE_BY_ATTACK
+    dmprintf(as,ds, buf.data(), buf.size(),DMM_SILENCE_BY_ATTACK
       , CN_SILENCE(ds));
-  write_companion(ds, as, buf, 0);
+  write_companion(ds, as, buf.data(), 0);
   }
       }
       if (CN_BLIND(ds) > 0) {
   CN_BLIND(ds) = ((int) (dmg / 5) + 3) * (-1);
-  dmprintf(as,ds,buf, sizeof(buf),DMM_BLIND_BY_ATTACK
+  dmprintf(as,ds, buf.data(), buf.size(),DMM_BLIND_BY_ATTACK
     , dmg);
-      write_companion(ds, as, buf, 0);
+      write_companion(ds, as, buf.data(), 0);
       }
       break;
     }
   }
   if (ds < MAX_NTTYS) {
-    check_write(ds, "#lag\n");
+    check_write(ds, (char *)"#lag\n");
     if (CN_LAG(ds) < 0) {
       CN_ALAG(ds) = 2;
     } else {
@@ -1075,7 +1101,7 @@ if (attack_effect == 1) { /* 新攻撃効果設定 added by NEO 2011/12/6 */
 /* add 20010703 */
 void   guard_self(int n)
 {
-  if (cd[n].weq == NULL) {
+  if (cd[n].weq == nullptr) {
     cd[n].wt = 0;    /*- TCN_HASTE(n);*/
   } else {
     cd[n].wt = cd[n].weq->wp - TCN_HASTE(n);
@@ -1084,11 +1110,13 @@ void   guard_self(int n)
   if (cd[n].wt < 5)
     cd[n].wt = 5;
   if (cd[n].st == ST_ATTACK)
-    check_write(n,"#end-at\n");
+    check_write(n, (char *)"#end-at\n");
   cd[n].st = ST_DEFEND;
-  check_write(n, "#guard\n");
+  check_write(n, (char *)"#guard\n");
 }
 
+/* 技のコマンドパターン。ext_skills.cpp が extern 宣言して
+   参照するため、型 (char * の配列) は変えない。 */
 char *special_com[16][13] =
 {
   {"AFBLRRL", "AFBRLLR", "AFBFB", "AFB", "AF", "", "", "", "", "", "", "", ""},
@@ -1109,8 +1137,11 @@ char *special_com[16][13] =
   {"", "", "", "", "", "", "", "", "", "", "", "", ""}
 };
 
-static char *special_at[16][13] =
-{
+namespace {
+
+/* 技の表示名。special_com と同じ並びで、spat_check() が使う。 */
+constexpr std::array<std::array<const char *, 13>, 16> kSpecialAt =
+{{
   /* Knocle */
   {"Illusion flush", "Illusion flush", "Double Impact smash", "Impact smash", "Straight smash", "", "", "", "", "", ""},
   /* Sword */
@@ -1143,16 +1174,20 @@ static char *special_at[16][13] =
   {"", "", "", "", "", "", "", "", "", "", "", "", ""},
   {"", "", "", "", "", "", "", "", "", "", "", "", ""},
   {"", "", "", "", "", "", "", "", "", "", "", "", ""}
-};
+}};
+
+} // namespace
 
 int spat_check(char *com, int tp, char *str, int len, int skill)
 {
   int    dr;
-  char   buf[16];
+  std::array<char, 16> buf;
   char  *p;
   int    i,j;
 
-  for (i = 0, p = buf; i < 10; i++)
+  /* com の先頭10文字を buf へ写す。'\0' では止まらず飛ばす
+     ため、途中に空きがあっても詰めてコピーされる。 */
+  for (i = 0, p = buf.data(); i < 10; i++)
     if (com[i])
       *(p++) = com[i];
   *p = 0;
@@ -1161,21 +1196,31 @@ int spat_check(char *com, int tp, char *str, int len, int skill)
   skill /= 100;
   skill = fisqrt(skill+1);
 #endif
+  /* 空文字列のパターンは strncmp の長さ 0 で常に一致するため、
+     実パターンが無ければ末尾の空欄で break する。その場合 dr は
+     0 のままで、技名だけが str へ写る (呼び出し側は special が
+     0 のとき使わない)。 */
   for (i = 0; i < 13; i++)
 #ifdef NO_SKILL
-    if (!strncmp(buf, special_com[tp][i], strlen(special_com[tp][i])))
+    if (!std::strncmp(buf.data(), special_com[tp][i], std::strlen(special_com[tp][i])))
 #else
-    if (!strncmp(buf, special_com[tp][i], (j=strlen(special_com[tp][i]))) && j<=skill)
+    if (!std::strncmp(buf.data(), special_com[tp][i], (j=std::strlen(special_com[tp][i]))) && j<=skill)
 #endif
     {
-      strlcpy(str, special_at[tp][i],len);
-      dr = strlen(special_com[tp][i]) * 10;
+      strlcpy(str, kSpecialAt[tp][i],len);
+      dr = std::strlen(special_com[tp][i]) * 10;
       break;
     }
   return (dr);
 }
 
-static int degrade_rate[16] = {10, 10, 8, 5, 5, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 0};
+namespace {
+
+/* 素材ごとの劣化率 (%)。添字は (type & MT_MASK) / MT_PLACE で 0..15。 */
+constexpr std::array<int, 16> kDegradeRate =
+{10, 10, 8, 5, 5, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 0};
+
+} // namespace
 
 /* 返却値: 劣化が起こらなかったときは           0 */
 /*         劣化が起こったがまだ残っているときは 1 */
@@ -1184,7 +1229,7 @@ int degrade(ItemData *id)
 {
   if(is_speed_degrade)
     return(speed_degrade(id));
-  if (PER_DICE >= degrade_rate[(id->type & MT_MASK) / MT_PLACE])
+  if (PER_DICE >= kDegradeRate[(id->type & MT_MASK) / MT_PLACE])
     return 0;
   switch (id->type & IT_MASK) {
   default:
@@ -1288,7 +1333,7 @@ int degrade(ItemData *id)
     id->AE = AE_NONE;
     id->SE = SE_NONE;
     id->active_time = 0;
-    id->extension = NULL; /* bug fix 20000204 */
+    id->extension = nullptr; /* bug fix 20000204 */
     return 2;
   }
   return 1;
@@ -1296,7 +1341,7 @@ int degrade(ItemData *id)
 
 int speed_degrade(ItemData *id)
 {
-  if (PER_DICE >= degrade_rate[(id->type & MT_MASK) / MT_PLACE] * 4)
+  if (PER_DICE >= kDegradeRate[(id->type & MT_MASK) / MT_PLACE] * 4)
     return 0;
   switch (id->type & IT_MASK) {
   default:
@@ -1344,6 +1389,9 @@ int speed_degrade(ItemData *id)
     } else if (id->VALUE > 99) {
       id->VALUE = 99;
     }
+    break; /* 2026-11-16 修正：以前は break が無く IT_JEWEL へ
+              落ちていた。degrade() 側は 20010220 の修正で break が
+              入っており、こちらも合わせた。 */
   case IT_JEWEL:
     id->wp--;
     if (id->ATP > 0)
@@ -1399,7 +1447,7 @@ int speed_degrade(ItemData *id)
     id->AE = AE_NONE;
     id->SE = SE_NONE;
     id->active_time = 0;
-    id->extension = NULL; /* bug fix 20000204 */
+    id->extension = nullptr; /* bug fix 20000204 */
     return 2;
   }
   return 1;

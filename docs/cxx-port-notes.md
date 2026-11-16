@@ -839,3 +839,1113 @@ C++ らしく書き換えました。公開 API と `phi_dm.h` のグローバ�
 
 `ext_skills.cpp` と進みます。`load_dd()` の `memcpy`
 重なりは `phi_data.cpp` の段階で対応します。
+
+## 第8段階：ext_skills.cpp の書き換え（2026-11-16）
+
+`ext_skills.cpp`（スキル表示・習得・劣化・保存/読込）を
+C++ らしく書き換えました。公開 API（`ext_skills.h`）と
+`phi_dm.h` のグローバル構造は変更していません。
+文字列リテラルの多重集合（92 個）・文字リテラルの
+多重集合（22 個）を機械的に照合し、書き換え前後で
+一致することを確認済みです。
+
+### ext_skills.cpp
+
+- インクルードを `<array>` `<cmath>` `<cstdio>`
+  `<cstdlib>` `<cstring>` にしました。
+- ファイルローカルの表を無名名前空間の
+  `constexpr std::array` にし、名前を k 前置にしました：
+  `skl_max` → `kSkillMax`（`SKL_SPECIAL` の上限 0 を
+  含む 14 要素）、`skl_id` → `kSkillId`、
+  `skl_mgc_regions` → `kSkillMagicRegions`、
+  `skl_mgc_cmnspl` → `kSkillMagicCommonSpells`。
+  要素が `const char*` になったため `-Wwrite-strings`
+  の大半が消えました。
+- `skill_init` の 2 つの malloc + 埋めループ
+  （PC は -1 埋め、敵は共有 `npc_skill` を 5000 埋め）を
+  無名名前空間のヘルパー `alloc_skill_row(int**, int)`
+  にまとめました。確保は `malloc` のままです
+  （`skill_crt_check` の範囲外読みがヒープ配置に
+  依存するため、配置を変えないことが重要です）。
+  確保失敗時の部分状態も元のままです。
+- `skill_clear` / `load_skills` / `save_skills_cd` /
+  `put_skills` の `char buf[256]` を
+  `std::array<char, 256>` にし、`sizeof(buf)` で
+  渡すサイズ（256 / 231）は従来と同一にしました。
+- 未使用の `extern int enmax;` を削除しました
+  （`phi_data.h` で宣言済みで、このファイルでは
+  未使用）。`lcnt` / `pfname` / `special_com` は
+  どのヘッダにも宣言が無いため extern 宣言を
+  残しました。
+- `status_skills` の `buf` / `buf2` は C 配列のまま
+  です（`CPYSTR` / `CATSTR` が `sizeof(d)` に
+  依存するため）。
+- `NULL` は `nullptr` に、`snprintf` / `strlen` /
+  `strcmp` / `log10` / `malloc` 等は `std::` 版に
+  しました。`strlcpy` / `strlcat` は無修飾のままです。
+- `skillup` 系・`skill_down` 系・`skill_mg_calc`・
+  `skill_crt_check`・`check_lvup_pc` のロジックは
+  逐語維持です（改名と癖のコメントのみ）。
+  `save_skl_type` の `char bs` も元のままです。
+
+### 見つけた癖（すべて維持、コメントに記録）
+
+- `skill_crt_check` はヒープ範囲外読みをします
+  （潜在バグ、直していません）。武器種・素材種の
+  添字が `id->type & WT_MASK`（最大 0xf0）/
+  `& MT_MASK`（最大 0xf00）で、`WT_PLACE` /
+  `MT_PLACE` で割っていませんが、配列は 16 要素
+  しかありません。読み値は後段で割られます。
+  `skillup_create` は正しく割っており、非対称です。
+  式と確保方法を逐語維持し、s2 プローブで
+  type 0x1234 のアイテムを使って動的にも
+  踏みました（生成・コスト・表示が前後一致）。
+- `PER_DICE` は評価のたびに振り直されます。
+  `skillup` は 1 回の判定で 3 回評価するため、
+  変数への巻き上げは厳禁です。
+- `save_skl_type` の `char bs` は残りサイズの
+  下位 8 ビットしか保持しません（256 → 0、
+  128〜255 は負値 → `strlcpy` には巨大な
+  `size_t`）。到達可能な範囲では無害で、逐語維持
+  しました。
+- 保存書式 `":%.0i"` は 0 を空文字で書きます
+  （裸の `:`）。読込側は `:` の後の非数字を 0 と
+  読むため往復が成立します。
+- `put_skills` の `"#chr-D %-15s VX"` ヘッダは
+  常に `cd[0].uid` を使い、`cd[n].uid` では
+  ありません。本文は `buf+25` から書きます。
+- `load_skills` は `load_skl_type` の非 0 戻り
+  （1 = スキル未確保。`SKL_SPECIAL` は上限 0 で
+  保存先が無いため `:Ssp` 行も常に該当。-1 =
+  書式エラー）でも走査を打ち切らず、末尾まで
+  読んで「no parameter」ログ + 戻り -1 に
+  なります。エラー行も途中まで読み込まれます。
+- `load_skl_type` の早期終了：`:` が無く
+  `\n` / `\0` なら残りを 0 埋めして 0、他の
+  文字なら -1。`:` の後が非数字なら進めずに
+  その値を 0 とします。
+- `status_skills` の引数解析：先行空白は読み
+  飛ばし、単独の `s` も読み飛ばします
+  （`skills` は全表示）。それ以外は戻り 1 で、
+  裸の `skill` は発言として扱われます
+  （`new_command.cpp` のフォールスルー仕様）。
+- `status_skills` の整形：`k` は EF1/EF2/EF3 の
+  ループをまたいで累積し（4 件ごとのフラッシュ）、
+  `use_effect` のオフセット +11 / +46 / +61 は
+  EF の範囲に対応します。FN 部は `i%3==0` で
+  フラッシュするため最初の 1 件が単独行に
+  なります。detect / create の小見出しは最初の
+  フラッシュ時にだけ遅延表示されます。
+- `skill_init`：全ての敵が 1 つの `npc_skill`
+  配列（全値 5000）を共有します。
+- `skillup_magic` の `m==0` は「相手なし」
+  （詠唱のみ・空撃ち）の規約で、`check_lvup_pc`
+  を飛ばし上限 10 です。`m>0` は PC 対 PC の
+  制限を受けます。
+- `skillup_magic_one` の `j = 100 / NCN_COAT(n)`
+  は `NCN_COAT` が double のため浮動小数点除算
+  してから int 化されます。`type >= SKL_MAGIC_FN`
+  は短絡でダイスを振りません。SAVELIFE 分岐
+  （術者死亡時：上限 99 / 確率 90 / 経験 20、
+  それ以外：98 / 50 / 1）も元のままです。
+- `skill_mg_calc` と `skillup_magic` の非対称：
+  `EF_NONE` は前者が 0 を返しますが、後者は
+  AT スキル 2 / 0 を振ります
+  （`rgn=(0-1)%4+3=2`、`dmg=(0-1)/4=0`）。
+  リテラルのオフセット 3 / 7 / 2 は
+  `SKL_MGAT_LINE` / `ROOF` / `HEAL` です。
+- `skillup`：`exp>=100 && lv>=limit` なら
+  `exp=99`、それ以外は `lv*100+exp` の繰り
+  上がりでレベルアップし、9999 で切り詰めます。
+  `i=(int)(log10(exp+10.0)*10.0)`、
+  戻り 0 は `n>=MAX_NTTYS` のときだけです。
+- `skillup_weapon`：上限は `10+sp`、
+  `WT_WIDE` / `WT_AROUND` は 50、
+  `strlen(special_com[type][0])==sp/10` なら 99。
+  反撃側のスキルアップは敵では無操作です
+  （`skillup` の `m>=MAX_NTTYS` ガード）。
+- `skill_down_dead`：-10 し、[90,100) は 100
+  （習得した lv-1 は下がらない）、負は 0。
+  `skill_down_idle`：`PER_DICE<lv` で -1、
+  `==99` は 100、負は 0。
+- `skillup_create` の非対称：`SKL_DETECT_MT`
+  だけ確率 70 / 増分 `5+l` で、他は 50 / `2+l`。
+- `skillup_magic` の振り分け：`ef<=EF_HEALS`
+  または 40〜45 は攻撃/回復系、11〜39 は EF1、
+  46〜60 は EF2、61〜93 は EF3。Pierce /
+  Explode は Line も鍛えます。`ef>=EF_TRAPHP`
+  または `chrg` は戻り 0。
+- `check_lvup_pc`：`death_penalty` か、どちらかの
+  `exp==99999999` で 0（`is_kill_master` の短絡が
+  `cd[].exp` の読みを守ります）。同一 IP は
+  `pc=2`、`(lv_up_between_pc&3)<=pc` で 0。
+
+### 検証
+
+- ビルド：`g++ -std=c++17` で `make` が通り、
+  `-fcommon` は不要です。単一ファイルの警告は
+  53 → 22 になりました（`-Wwrite-strings` が
+  44 → 13。残りはリテラル接尾辞 1 件・符号比較
+  1 件・ヘッダ由来の未使用変数 7 件で従来通り、
+  新規の警告はありません）。
+- 新規プローブ `probe_skills.py`（+ `run_skills.sh`
+  / `compare_skills.py`）を作り、書き換え前
+  2 回・後 1〜2 回実行しました。
+  - base（スナップショットの phi.cd）：全スキル
+    9999 の master と全 0 の guest の 2 セッション。
+    正規化トランスクリプト 412 行・保存 `:S`
+    14 行・phi.log 10 行が前後完全一致しました。
+    （`[DM負荷: ...]` 行の数字はサーバ負荷の
+    タイミングゆらぎで、書き換え前同士でも
+    揺れるため比較時に潰しています。）
+  - s1（端ケースの `:S` 行：空値・短い行・
+    大きな値・`:Ssp`・書式エラー 2 種）：guest の
+    読込と再保存を検証しました。トランスクリプト
+    429 行・保存 `:S` 19 行・phi.log 13 行
+    （`no parameter.(load_skills)` 3 行を含む）が
+    前後完全一致し、保存内容も `%.0i` の 0 空文字
+    化・末尾 0 の切り捨て・部分読込の通りに
+    なっていることを確認しました。
+  - s2（Create 呪文の実演：鑑定スキル 500/600/700
+    と type 0x1234 の素材アイテム）：生成フロー・
+    MP/GP コスト・スキル表示は前後一致しました。
+    差分は書き換え前同士でも出る 3 種のゆらぎに
+    限られます：生成物の系統名（Air / Light /
+    Spirit claw と実行ごとに変化）、
+    `skillup_create` のダイス成否による保存
+    `:S` の差、接続スロット番号（C0001/C0002）と
+    それに付随する行・phi.log の行数です。
+- 回帰プローブ：
+  - 単独セッション（`probe_single.py`）：差分は
+    NPC の Cat（C0043）の徘徊フレームのみで、
+    Cat を含む `#m57` フレームを除くと前後
+    完全一致しました（書き換え前同士でも同じ
+    種類の差が出ます）。
+  - `#m57` プローブ：敵なし variant n は地図
+    バイトとテキスト 115 行が前後完全一致
+    しました。
+  - アイテム使用（`probe_use.py`）：変種 a は
+    全文 182 行と断定が一致し、phi.log の差は
+    第7段階で記録済みの終了時系列のタイミング
+    由来（`cli-err` 行と
+    `data files are back up...` 行の順序）でした。
+    変種 b は全文 119 行・構造値・phi.log 9 行
+    まで全て一致しました。
+  - 戦闘（`probe_calc.py`）：スクリプト応答は
+    一致し、残る差は敵の徘徊・戦闘チャットと
+    派生する HP / 経験値のみでした（第6段階と
+    同じ切り分け）。`skill` 表示ブロックは一致し、
+    ゲストの死亡（`skill_down_dead` 経路）も
+    前後とも発生しました。
+  - パーティ（`probe_party.py`）：要約 JSON が
+    一致し、正規化 transcripts（A 78 行・
+    B 79 行）も前後完全一致しました。
+- 動的カバレッジの限界（逐語維持＋差分レビューで
+  担保）：`skill_down_idle` の長時間放置による
+  劣化（周期処理のため決定的に踏めない）、
+  `skillup_weapon` の WT_WIDE/AROUND と
+  special_com 上限 99 の分岐、`skillup_magic` の
+  PC 対 PC 制限（m>0）と SAVELIFE の術者死亡時
+  分岐、高位エフェクト呪文の実キャストによる
+  EF2/EF3 スキルアップは、決定的なプローブが
+  作れないため動的には未カバーです。
+- 実サーバ 2 台（20017/20018）には触れていません。
+  テストサーバ（20019）は各実行後に PID で
+  停止済みです。
+
+### 次のモジュール
+
+`phi_attack.cpp` と進みます。`load_dd()` の
+`memcpy` 重なりは `phi_data.cpp` の段階で
+対応します。
+
+## 第9段階：phi_attack.cpp（戦闘）
+
+対象：`phi_attack.cpp`（書き換え前 1406 行 → 書き換え後 1452 行）。物理攻撃の
+中核で、`attack_other()`（攻撃コマンドの入口：4方向の対象走査と武器種別
+ごとの処理）、`attack_to()`（攻撃1回の解決：命中・ダメージ・劣化・反撃・
+特殊攻撃・吸収）、`spat_check()`（com のコマンド列と登録パターンの照合）、
+劣化計算の `degrade()` / `speed_degrade()`、`escape()`（NPC の逃走）、
+`catch_monster()`（捕獲）などからなる。`attack_to()` は `phi_magic.cpp` /
+`phi_use.cpp` からも呼ばれ、`degrade()` / `speed_degrade()` は
+`phi_data.cpp` / `phi_dm.cpp` / `phi_magic.cpp` / `phi_use.cpp` からも
+呼ばれる（宣言は `phi_attack.h` のまま不変）。
+
+### 書き換え内容
+
+- ヘッダを C++ 化：`<stdio.h>` `<stdlib.h>` `<string.h>` `<math.h>` →
+  `<cstdio>` `<cstdlib>` `<cstring>` `<cmath>`、`<array>` を追加。
+  未使用の `<ctype.h>` と、機種別に `<math.h>` を切り替える
+  `#ifndef Mips` ガードを削除。
+- 特殊攻撃名テーブル `special_at[16][13]` をファイル内限定の
+  `constexpr std::array<std::array<const char *, 13>, 16>` に変更。
+  行ごとの要素数の違い（0 行目は 11 個、残りは nullptr 埋め）もそのまま再現。
+- ただし `special_com[16][13]` は `char *` のまま据え置き。
+  `ext_skills.cpp` が `extern char *special_com[16][13]` として参照する
+  モジュール間インターフェースのため、型を変えると宣言が食い違う。
+  コード内コメントで明記。
+- 劣化率テーブル `degrade_rate[16]` を `constexpr std::array<int, 16>` に変更。
+- ファイル内限定だった `friend_attack` フラグを無名名前空間へ移動
+  （理由は「見つけた癖」3 参照）。
+- `attack_to()` の作業バッファ `char buf[256]` を `std::array<char, 256>`
+  にし、利用箇所は `.data()` / `.size()` を渡す。`spat_check()` の
+  `char buf[16]` も同様。
+- NULL → nullptr（27 か所。コメント内の 1 件は旧コードの引用のため
+  NULL のまま残置）。
+- 標準関数の限定：`std::strlen`（3 か所）、`std::strncmp`（2 か所）、
+  `std::floor`（1 か所）、`std::abs`（5 か所）。`strlcpy` は従来どおり
+  無修飾（glibc/bsd 由来。第8段階と同じ扱い）。
+- `check_write()` へ渡す文字列リテラル 4 件（`#attack\n` など）に
+  `(char *)` キャストを付け、書き換え可能な文字列へのポインタを渡す
+  旧来の形を明示。
+- コメントや文字列を除いたトークン列の前後比較で、上記以外の差分が
+  ないことを確認。警告は 477 件 → 267 件（`-Wwrite-strings` が
+  475 件 → 265 件。残りの大半は `special_com` の文字列リテラル 208 件で、
+  型がインターフェースのため据え置き）。
+
+### 見つけた癖（すべて存置）
+
+1. **`speed_degrade()` の `IT_FOOD` に `break` がなく `IT_JEWEL` へ
+   フォールスルーする**。`degrade()` 側は 20010220 の修正で `break` が
+   入ったが、こちらは直っていない。食べ物は宝石の処理（耐久 -1、
+   ATP の 15/16 倍、VALUE の半減）まで受ける。
+2. 反撃判定の `switch (i)` は字下げに反して `for` ループの外にある
+   （ループ本体は defender の com から `'A'` を探す `if` 文だけ）。
+   GCC の `-Wmisleading-indentation` が正確にここを指す。PC の defender は
+   index 1 から、NPC は 0 から探し、`'A'` がなければ i == 10 で default。
+3. `friend_attack` はファイル static の状態で、`attack_other()` が
+   「正面セルにパーティメンバーがいるか」だけで決め、`attack_to()` が
+   消費する。実際の攻撃方向とは無関係に正面だけを見る。`attack_to()` の
+   呼び出しは `attack_other()` 経由に限られるため、値は常に直前に
+   セットされたものが使われる。
+4. 槍の2セル攻撃で `T_SPEARBARRIER` を判定するのは対象セルではなく
+   手前セルのチップ（共有ポインタ `pmap` が手前を指したまま）。
+5. `attack_to()` の結果変数 `i` は `WT_STINGER` のときアイテム探索
+   ループに使い回され、後段の AE 判定 `if (!i && ...)` の意味が変わる。
+   `AE_DRAIN` も `i` をレベルとして再利用する。
+6. `spat_check()` の com コピーは NUL バイトを飛ばして詰める（終端で
+   止まらない）。空パターン `""` は常時マッチし、その場合だけ dr が 0 の
+   まま名前をコピーする（呼び出し側は dr == 0 を使わない）。照合は
+   `j <= skill`（skill は装備武器のスキルから `fisqrt(skill/100 + 1)`）で
+   制限されるため、低スキルでは長いパターンにマッチしない。
+7. ファンブル時はアイテム探索に失敗しても（i == MAX_ITEMS）
+   `degrade()` を呼ぶ。ダメージ後の武器劣化には、ファンブル側にある
+   `save_id` の else 節がない（非対称）。
+8. `attack_other()` の4方向ブロックは座標式だけが違う同型の繰り返し。
+   統合せず形を維持（`phi_m57.cpp` の方針と同じ）。
+
+### 検証
+
+
+- 文字列・文字リテラルの多重集合が前後で完全一致（文字列 425 件・
+  文字 1 件）。
+- コメントと文字列を除いたトークン列の前後比較で、意図した書き換え
+  以外の差分なし。
+- 回帰プローブ（テストワールド、ポート 20019）：
+  - `probe_single.py`：正規化後一致（差分は Cat の徘徊位置の
+    `#m57 O` 行のみ）。
+  - `probe_m57.py` 敵なし変種 n：地図バイト・テキスト 115 行とも完全一致。
+  - `probe_party.py`：サマリ JSON・両トランスクリプトとも完全一致。
+  - `probe_calc.py`：スクリプト応答部分は一致。残る差分は NPC 同士の
+    戦闘チャットのみで、before 同士の差分（42 行）より before/after の
+    差分（28 行）の方が小さい。
+- 戦闘専用プローブを新設した（`~/workspace/phi-cpp-verify/probe_attack.py`）。
+  地図（MapEvent）を見て最寄りの敵を追い、隣接したら向きを合わせて
+  `hit` する追跡型で、`guard` と後退も混ぜる。装備データは
+  `gen_cd_attack.py` が生成する `phi_cd_attack_a.txt`（guest:
+  Sword/Hammer/Whip/毒剣/槍/Armor/Charm、master: Sword/Hammer/Fang）、
+  実行は `run_attack.sh`、パターン比較は `compare_attack.py`。
+  guest と master の2セッションを before×2 / after×2 実行：
+  - スクリプト部分（ログイン〜装備〜序盤）は正規化後 243 行まで完全一致。
+  - 以後は敵の徘徊で経路が分岐するため、メッセージのパターン種別と
+    主要イベント回数で比較した。4ランとも攻撃行 8〜11 件（うち
+    プレイヤー発 3〜4 件）・殺害 5〜6 件。カウンター・暴発・破損・
+    クリティカル・痺れ・MP ダメージ等の低頻度イベントは before/after の
+    区別なくランごとに散らばって出現し、種別の差はすべて「誰が誰を
+    何で攻撃したか」の組み合わせと NPC の台詞の違いだった。
+    プレイヤーによる殺害（Dog は Guest に殺された）も after ランで発生。
+
+### 次のモジュール
+
+`phi_enemy.cpp`（敵 AI、約2700行）。
+
+- 戦闘まわりの検証には今回作った追跡型プローブ
+  `~/workspace/phi-cpp-verify/probe_attack.py` が使える。地図を見て敵を
+  追って殴るので、命中・反撃・劣化・殺害まで自動で踏める。装備データは
+  `gen_cd_attack.py` が生成する `phi_cd_attack_a.txt`、実行は
+  `run_attack.sh`、比較は `compare_attack.py`。
+- `phi_attack.h` の宣言（`attack_other` / `attack_to` / `degrade` /
+  `speed_degrade` / `spat_check`）は他モジュールから参照される。
+  `phi_enemy.cpp` の書き換えで変えないこと。
+
+## 第10段階：phi_enemy.cpp（敵 AI）
+
+対象：`phi_enemy.cpp`（書き換え前 2733 行 → 書き換え後 2732 行）。敵 NPC の
+思考ルーチン全体で、`auto_action()`（think 状態ごとの行動決定：会話・購入・
+回復・逃走・追跡）、4種の歩行評価 `try_to_attackstep()` /
+`try_to_wizardstep()` / `try_to_tracestep()` / `try_to_runstep()`（評価表を
+作って最大値からサイコロで選ぶ。乱数と判定順序がそのまま敵の動きになる）、
+`attack_check()` / `magic_check()`（武器・魔法の選択）、`angry_check()` /
+`cooldown_check()`（怒りとクールダウン）などからなる。`phi_attack.h` の
+共有宣言と `special_com` には触れていない。
+
+### 書き換え内容
+
+- ヘッダを C++ 化：`<stdio.h>` `<string.h>` `<ctype.h>` `<math.h>` →
+  `<cstdio>` `<cstring>` `<cmath>`、機種別ガード付きの `<stdlib.h>` →
+  `<cstdlib>`、`<time.h>` `<limits.h>` → `<ctime>` `<climits>`、`<array>`
+  を追加。未使用の `<ctype.h>` を削除（`ftolower` はプロジェクト側の関数）。
+- `phi_enemy.h` と重複していた `MC_*` / `STEP_*` の define（同値）を
+  .cpp 側から削除し、ヘッダ側に一本化。
+- ファイル内限定テーブルを無名名前空間の `constexpr std::array` 化：
+  `go_com[7]` → `kGoCom`、`sx[25]` / `sy[25]` → `kSx` / `kSy`（視界 5x5 の
+  走査順）。`input_analyze()` の引数が `char *`（`phi_dm.h` のモジュール間
+  インターフェース）のため、`kGoCom` の利用箇所 4 件で `const_cast`。
+- `use_charged_item_check()` の `char buf[40]` を `std::array<char, 40>`
+  にし、利用箇所は `.data()` / `.size()` を渡す。一方
+  `auto_action()` / `random_walk()` / `npc_talk()` の `buf` は
+  `CPYSTR` / `CATSTR`（`sizeof(d)` を使うマクロ）で使うため C 配列のまま
+  （コード内コメントで明記。第4・第8段階と同じ理由）。
+- NULL → nullptr（33 か所、`time(nullptr)` の 6 件を含む）。
+- 標準関数の限定：`std::snprintf`（33）、`std::memcpy`（3）、
+  `std::strlen`（1）、`std::strchr`（1）、`std::abs`（6）、
+  `std::log`（3、`accept_master()` の対数によるレベル比較）。
+- `input_analyze()` / `str_search()` へ渡す文字列リテラルと `NTK_*`
+  マクロに `(char *)` キャスト（32 件。このファイルでは三項演算子の
+  `NTK_*` に元々 `(char*)` キャストがあり、その流儀に合わせた）。
+  `dmprintf()` の書式マクロ `DMM_DESTRUCT_MONEY` / `DMM_DESTRUCT` は
+  第7段階（phi_use）と同様に無修飾のまま。
+- 警告は単体で 54 件 → 15 件（残りは dmprintf 書式マクロ由来の
+  write-strings 2 件、符号混じり比較 6 件、字下げ 4 件、代入のみの
+  変数 2 件、`phi_dm.h` 由来の literal-suffix 1 件）。全体では
+  1509 件 → 1470 件。
+
+### 見つけた癖（すべて存置）
+
+1. **`attack_enemy()` の魔法選択条件が `cd[n].wd == TH_NONE`**。
+   `wd`（武器の攻撃方向マスク）と比べる定数が think 用の `TH_NONE`。
+   `TH_NONE` も `WD_NONE` も 0 なので同値で動くが、`attack_angry()` 側は
+   `WD_NONE` を使っており非対称。コード内コメント付き。
+2. **`use_charged_item_check()` の未設定判定は `!ff`**。
+   `magic_check()` の `ff == -1` と非対称で、添字 0 の候補が選ばれると
+   未設定扱いのままになり、後続の候補が PER_DICE なしで上書きする。
+   コード内コメント付き。
+3. `is_effective_effect()` の `EF_HEALS` は `(f & 0x40)` で判定する。
+   0x40 は `ED_*` の名前付きフラグのどれでもないビットで、
+   `direction_check()` は立てない。`ED_NORESTRICT`（0x7f）を渡したとき
+   だけ立つため、実質「制限なし」の判定になっている。
+4. PER_DICE は評価のたびに振り直される（第8段階と同じ性質）。
+   `angry_check()` の召喚獣の早期リターン条件は moral / align /
+   cooldown の 3 回を別々に振り、`accept_master()` は三項演算子の
+   枝ごとに振って `log()` の浮動小数点で比べる。
+5. `random_walk()` の `pdx` / `pdy` は代入のみで未使用
+   （`-Wunused-but-set-variable` が指摘）。「go で進めたか」の判定は
+   `xx` / `yy` だけを見る。
+6. 符号混じり比較 6 件：`cd[n].id[i].active_time <= time(nullptr)`。
+   `active_time` は unsigned long（番兵は `ULONG_MAX`）、`time()` は
+   time_t（signed long）で、比較では time_t 側が unsigned 化される。
+   現実の時刻は正なので実害はない。形を維持。
+7. 字下げと制御構造の不一致 4 件（`-Wmisleading-indentation` が指摘）：
+   `run_walk()` の二重ループ内の continue / return、`auto_action()` の
+   CT_ERASER の塊、`attack_enemy()` の魔法探索ループ、
+   `temptation_to_attack()` のループ。また `attack_check()` 冒頭の
+   FF_ATTACK チェックは、字下げでは `enemy_check` の内側に見えるが
+   独立した文（無条件の早期リターン）。
+8. `enemy_check()` の switch は `CT_NORMAL` の固有チェックの後に
+   break がなく、`CT_BEAST` の同名チェックへフォールスルーする
+   （NORMAL にも同種判定を効かせる意図と見える）。`move_check()` の
+   switch は `default` が `case CT_ASTRAL` より前に置かれている。
+9. `auto_action()` の購入処理（food / weapon / armor / accessory /
+   charge）は、空きスロット探索で得た添字 `i` を、get でそのスロットに
+   入ったアイテムの添字として使い回し、支払額もその前提で計算する。
+10. `DEBUG_ANGRY` のログが使う `debug_buf` の定義は `#ifdef DEBUG` の
+    ときだけ（第6段階の `phi_calc.cpp` と同じ構造）。`-DDEBUG_ANGRY`
+    単独では前後とも同じ 3 か所でコンパイルエラーになる。
+
+### 検証
+
+- 文字列・文字リテラルの多重集合が前後で完全一致（文字列 88 件・
+  文字 6 件）。
+- プリプロセッサ行とコメントを除いたトークン列に、意図した変換の
+  逆変換（`std::` 限定の除去、改名の復元、nullptr → NULL、キャストの
+  除去、`std::array` 宣言と `buf.data()` / `.size()` の復元、
+  namespace の除去）を適用すると前後完全一致（24,032 トークン）。
+- `-DDEBUG -DDEBUG_ANGRY` ビルドが通ること、`-DDEBUG_ANGRY` 単独では
+  前後とも同じエラー（`debug_buf` 未定義 3 件）になることを確認。
+- 回帰プローブ（テストワールド、ポート 20019。attack のみ
+  before×2 / after×2、他は各 1 回）：
+  - `probe_m57.py` 敵なし変種 n：地図バイト・テキスト 115 行とも
+    完全一致。
+  - `probe_single.py`：正規化後一致（差分は Cat の徘徊位置の
+    `#m57 O` 行 1 件のみ）。
+  - `probe_party.py`：サマリ JSON・両トランスクリプトとも完全一致。
+  - `probe_calc.py`：スクリプト応答は種別・件数とも一致。差分は
+    NPC 同士の戦闘チャットと台詞、数値の桁変わりによる表示位置の
+    違いのみ。
+  - 戦闘プローブ `probe_attack.py`（追跡型）：スクリプト部分の共通
+    接頭辞は before/after 間で 237 行（before 同士の 219 行より長い）。
+    以後は敵の徘徊で経路が分岐するため種別と回数で比較した。
+    4 ランとも殺害 6〜7 件・痺れ 2〜4 件・NPC 台詞 4〜10 件で、
+    詠唱・回復は before / after の両側に出現し、プレイヤーによる
+    殺害（Dog は Guest に殺された）も after の 2 ランとも発生した。
+    種別の差はすべて「誰が誰を何で攻撃したか」の組み合わせ違い。
+
+### 次のモジュール
+
+`phi_magic.cpp`（魔法、5768 行）。
+
+- `mgstrlen()` の宣言（`phi_magic.h`）は `phi_enemy.cpp` が多用する
+  インターフェース。`phi_magic.cpp` の書き換えで変えないこと。
+  同じく `phi_enemy.h` の宣言（`select_magic` / `magic_check` 等）は
+  `phi_magic.cpp` からも呼ばれる。
+- 敵 AI が絡む検証には追跡型プローブ
+  `~/workspace/phi-cpp-verify/probe_attack.py` が使える。装備データは
+  `gen_cd_attack.py` が生成する `phi_cd_attack_a.txt`、実行は
+  `run_attack.sh`、比較は `compare_attack.py` と種別カウント。
+
+## 第11段階：phi_magic.cpp（魔法）
+
+対象：`phi_magic.cpp`（書き換え前 5768 行 → 書き換え後 5779 行）。呪文の
+解析と実行全体で、`spell_analyze()` が呪文名から各実装へ振り分け、
+回復・攻撃（line / sphere / area）・探知・生成・チャージ・各種リスト
+表示などを担う。申し送りどおり `phi_magic.h` の `mgstrlen()` 宣言、
+`phi_enemy.h` の宣言（`select_magic` / `magic_check` 等）、
+`phi_attack.h` の共有宣言と `special_com` には触れていない。
+
+### 書き換え内容
+
+- ヘッダを C++ 化：`<stdio.h>` → `<cstdio>`、`<string.h>` →
+  `<cstring>`、`<signal.h>`（重複あり）→ `<csignal>`、`<math.h>` →
+  `<cmath>`、`<time.h>` → `<ctime>`、機種別ガード付きの `<stdlib.h>`
+  → `<cstdlib>`、`<limits.h>` → `<climits>`、`<array>` を追加。
+  未使用の `<ctype.h>`（ctype 関数は未使用）、`<memory.h>`
+  （`memcpy` は `<cstring>` で足りる）、`<sys/time.h>`（timeval 系は
+  未使用）、`<sys/types.h>` を削除。`phi_attack.h` の重複 include
+  （2 回現れた）も 1 回に整理。
+- ファイル内限定テーブルを無名名前空間の `constexpr std::array` 化：
+  `create_item()` の素材係数 `mt_atp[16]` / `mt_dfp[2][16]` /
+  `mt_mrp[2][16]` / `mt_er[16]` → `kMtAtp` / `kMtDfp` / `kMtMrp` /
+  `kMtEr`（すべて読み取り専用）。2 次元テーブルは `std::array` の
+  集約初期化に合わせ、初期化ブロック全体をもう一段波括弧で包んだ
+  （行・値は不変。元の `{行},{行}` 形式のままだと「too many
+  initializers」になる）。shutdown の隠し呪文文字列 `cthulhu` も
+  無名名前空間の `constexpr char kCthulhu[]` にした。
+  `friend_magic`（パーティ攻撃用フラグ）は第9段階の `friend_attack`
+  と同じく無名名前空間へ移した。
+- バッファ 24 個を `std::array<char, N>` 化し、利用箇所は
+  `.data()` / `.size()` を渡す：`user_lists` / `master_lists` /
+  `wizard_light` の `buf` + `sp`、`wizard_eye_f` の `buf` / `nbuf` /
+  `sp1` / `sp2` / `psbuf`、`create_item` / `detect_fn` /
+  `detect_magic` / `effect_analyze` / `mg_heal` 系 5 つ /
+  `mg_erase` / `mg_encourage` / `mg_effect` / `mg_line_attack` /
+  `mg_sphere_attack` / `mg_area_attack` / `mg_attack_to` /
+  `list_inv` / `mg_save_life` / `charge_spell` の `buf`。
+  1 行に複数書かれていた宣言（`buf,sp` や `sp1,sp2,psbuf`）は
+  1 行 1 変数に分割した。`mg_effect` の `buf[0]` 参照・代入は
+  `operator[]` のまま成立する。
+- C 配列のまま残したバッファ（理由をコード内コメントで明記）：
+  `spell_analyze` の `buf`（CPYSTR / CATSTR で使う上、`buf + 2`
+  などのポインタ演算と末尾の書換えでも使う）、`create_item` の
+  `name`、`detect_item` の `buf`、`ident_to` の `buf`。いずれも
+  CPYSTR / CATSTR（`sizeof(d)` を使うマクロ）で使うため。
+  `debug_buf`（`#ifdef DEBUG` のグローバル）は従来どおり。
+- NULL → nullptr（80 か所、`time(nullptr)` の 5 件を含む。`time`
+  自体は第10段階と同様に無修飾のまま）。
+- 標準関数の限定：`std::snprintf`（170）、`std::strcmp`（59）、
+  `std::strncmp`（16）、`std::strlen`（4）、`std::memcpy`（2）、
+  `std::abs`（35。`frand` は整数マクロで、他の引数も座標差などの
+  整数）、`std::atoi`（9）、`std::log10`（17）。`fprintf` /
+  `fopen` / `fclose` と `strlcpy` / `strlcat` は無修飾のまま。
+- `dmprintf()` / `dmcheck_write()` へ渡す DMM_* 書式マクロは
+  第7段階と同様に無修飾（`(char *)` キャストなし）。`check_write()`
+  の文字列リテラル 59 件も従来どおり無修飾。
+- 警告は単体で 391 件 → 391 件（内訳まで完全一致：write-strings
+  379 件、符号混じり比較 4 件、未使用変数 `j` 2 件、
+  format-security 2 件、字下げ 2 件、代入のみの変数 `d` 1 件、
+  `phi_dm.h` 由来の literal-suffix 1 件）。全体でも 1470 件 →
+  1470 件。write-strings の大半は DMM_* マクロ経由であり、
+  この段階では減らさない方針のため不変。
+
+### 見つけた癖（すべて存置）
+
+1. **`mg_attack_to()` の `FN_PRISM` ケースに break が無く、
+   `default` へ落ちる**（コード内コメント付き）。`tfn = dfn + 1`
+   （上限なら `FN_EARTH`）の計算結果は、`default` 側の
+   `tfn = m->fn` で上書きされて捨てられる。潜在バグ。
+2. **`charge_spell()` の extension 連結が `cd[n].md[n]` を読む**
+   （コード内コメント付き）。添字はキャラ番号 `n` で、本来は
+   呪文番号 `m` と思われる。他人の呪文の extension が混ざる。
+   潜在バグ。
+3. 「Book of the Yog=Sothoth」の保存で `fprintf(fp, buf)` の
+   書式なし出力が 2 件（format-security 警告）。`buf` は
+   `save_item()` が生成した自前文字列。
+4. 符号混じり比較 4 件（`ip_ban` の時刻比較 2 件、`active_time`
+   2 件）。第10段階の癖 6 と同種。
+5. `user_lists` / `master_lists` の変数 `j` は宣言のみで未使用。
+   `mg_heal` の `d` は `d = cd[n].d;` の代入のみで使われない。
+6. 字下げが誤解を招く箇所 2 件（`mg_heal_friend_one` の `for`、
+   `display_single_magic` の `if`）。制御構造は字下げと違う。
+7. `Appear` の ebuf / ebuf2 シャッフルで、コメント「存在している
+   シャッフル」「存在していないシャッフル」と中身が逆になっている。
+8. `Disappear` はループ変数 `i` にコントローラ添字
+   （`cd[j].vf2`）を代入して使い回し、ループ後の `i == 0` で
+   出すメッセージを選ぶ。
+9. 「Book of the Yog=Sothoth」の `buf[strlen(buf)-1] = '\0'` は、
+   `save_item()` が空文字列を返した場合に `buf[-1]` へ書く。
+   現在の呼び出し経路では起きていない。
+10. `detect_fn()` の引数 `fmt`（`phi_magic.h` の `char *`
+    インターフェース）に文字列リテラルを渡す呼び出しがあり、
+    write-strings 警告の一因になっている。インターフェース側の
+    話として存置。
+
+### 検証
+
+- 文字列・文字リテラルの多重集合が前後で完全一致（556 件）。
+- プリプロセッサ行とコメントを除いたトークン列に、意図した変換の
+  逆変換（`std::` 限定の除去、改名の復元、nullptr → NULL、
+  `std::array` 宣言と `.data()` / `.size()` の復元、namespace の
+  除去、2 次元テーブルの波括弧の復元、複合宣言の分割の復元）を
+  適用すると前後完全一致（53,883 トークン）。
+- バイナリの `strings` 比較（8 文字以上）：差分は無名名前空間化に
+  伴うシンボル名（`_ZL...` → `_ZN12_GLOBAL__N_1...`）と配置差
+  のみで、メッセージ文字列は不変。
+- 回帰プローブ（テストワールド、ポート 20019）：
+  - `probe_m57.py` 敵なし変種 n：地図バイト・テキスト 115 行とも
+    完全一致（master の `cast` → Eagle eye を含む）。
+  - `probe_single.py`：正規化後一致（`spells` 表示・各種 master
+    コマンドを含む）。
+  - `probe_party.py`：サマリ JSON はバイト一致、両トランスクリプト
+    は正規化後一致。
+  - `probe_calc.py`：書き換え前同士の差分行数（418）が前後差分
+    （373）より大きく、差分は NPC 同士の戦闘・詠唱のサイコロ
+    結果のみ。`cast` の応答も両側で確認。
+  - `probe_skills.py` base / s1 / s2：s1 はトランスクリプトが
+    全ラン一致。phi.cd の `:S` 行・レコードの順序と phi.log の
+    cli-err 行は接続スロット確定のタイミングで揺れ、同バイナリ
+    同士でも反転することを確認した（base の差分は書き換え前
+    同士で同一差分を再現。s1 は before1 と after2 の組で
+    完全一致）。s2 の生成アイテム名（Fire claw / Light claw）の
+    違いは `create_item` のサイコロによる fn 選択。
+  - `probe_use.py` a / b / c1〜c5 / d / e / disc の 10 変種：
+    すべて正規化後全文一致＋断定 OK（チャージアイテムの使用など
+    魔法経路を含む）。
+  - `probe_attack.py`（before×2 / after×2）：パターン件数比較で
+    同バイナリ同士の対照と区別がつかない。NPC の詠唱（Cure /
+    Harm）と回復・攻撃の解決は before / after の両側に出現した。
+- 動的に踏めていない経路：shutdown の隠し呪文（`kCthulhu` 照合）
+  や Book 系の保存など、プローブの脚本に無い呪文はトークン照合と
+  書式・引数の照合で確認した。`MAX_OBJECTS == 0` や `NO_SKILL`
+  定義時のビルドは従来どおり未確認だが、プリプロセッサの構造は
+  そのまま保ってある。
+
+### 次のモジュール
+
+`phi_dm.cpp`（メインループ・コマンド振り分け、約5100 行）。
+その次が最終の `phi_data.cpp`。
+
+- `phi_magic.h` の宣言は今回も変更していない（`mgstrlen()` 等）。
+  `phi_dm.cpp` からの呼び出しインターフェースはそのまま使える。
+- 今回記録した潜在バグ 2 件（`mg_attack_to` の FN_PRISM
+  フォールスルー、`charge_spell` の `md[n]`）は `phi_magic.cpp`
+  内の話で、修正するかどうかは従来分（`OP_REVERSE` のクラッシュ、
+  `skill_crt_check` の範囲外読み、`speed_degrade` の
+  フォールスルー）と合わせてユーザー判断待ち。
+- 検証ハーネスは今回のものが流用できる。なお `run_attack.sh`
+  には実行権限が無いため `sh run_attack.sh ...` で実行すること。
+
+## 第12段階：phi_dm.cpp（サーバ中核）
+
+対象：`phi_dm.cpp`（書き換え前 5119 行 → 書き換え後 5140 行）。
+メインループ、コマンド解釈（`command_analyze` / `input_analyze` /
+`func_analyze`）、接続管理（`close_connect` /
+`connection_error_process`）、地図・状態表示、メール、リスト表示
+などを担うサーバ中核。申し送りどおり `phi_magic.h` / `phi_enemy.h`
+/ `phi_attack.h` の宣言、`special_com`、`mgstrlen()` には触れて
+いない。`px[4]` / `py[4]` は他モジュールが `extern int px[]` で
+参照し `phi_dm.h` のマクロも使う共有インターフェースのため、
+C 配列のまま残した。
+
+### 書き換え内容
+
+- ヘッダを C++ 化：`<stdio.h>` → `<cstdio>`、`<string.h>` →
+  `<cstring>`、`<signal.h>` → `<csignal>`、`<time.h>` → `<ctime>`、
+  機種別ガード付きの `<stdlib.h>` → `<cstdlib>`、`<errno.h>` →
+  `<cerrno>`、`<limits.h>` → `<climits>`、`<array>` を追加。
+  未使用の `<ctype.h>`（ctype 関数は未使用）、`<math.h>`
+  （数学関数は未使用）、`<sys/time.h>`、`<sys/types.h>` を削除。
+  `<unistd.h>`、AIX の `<sys/select.h>`、Cygwin の `<process.h>`、
+  Mips の `<sys/timeb.h>` は従来どおり残した。
+- ファイル内限定テーブルを無名名前空間の `constexpr std::array`
+  化：コマンド表 `parsecom` → `kParsecom`
+  （`std::array<const char*, 10>`、元の位置に配置）。
+  `print_map` の関数内 `static char dc[4]` / `rdc[4]` もその場で
+  `static constexpr std::array<char, 4>` の `kDc` / `kRdc` にした。
+- バッファ 28 個を `std::array<char, N>` 化し、利用箇所は
+  `.data()` / `.size()` を渡す：`main` の `errmsg` / `nm`、
+  `print_status` / `print_lists` / `set_chr` / `auto_equip` /
+  `talk_analyze` / `connection_error_process` / `charagra_set` /
+  `next_level_check` / `level_up_print` / `delete_mail` /
+  `check_mail` の `buf`、`func_analyze` の `wbuf`、
+  `input_analyze` の `wbuf` / `wbuf2` / `fid`、`command_analyze`
+  の `bufa` / `bufb` / `crgr` / `homeland`、`adduser` の `wbuf`、
+  `errnum_to_msg` の `static msg`（戻り値は `msg.data()`）、
+  `connection_error_process` の `fid`、`save_mail` の `buf` /
+  `nbuf` / `sp`、`read_mail` の `rbuf` / `wbuf`、`readhomeland`
+  の `buf` / `wid`（`p = buf.data()` の形に書き換え）。
+  1 行に複数書かれていた宣言は 1 行 1 変数に分割した。
+- C 配列のまま残したバッファ（理由をコード内コメントで明記）：
+  `main` の `buf[1024]`（CPYSTR の宛先かつポインタ演算）、
+  `signal_trap` の `buf` / `buf2`（CPYSTR の宛先）、
+  `check_write` の `buf`（CPYSTR の宛先）、`print_map` の `buf`
+  （`buf + 18` や `*(buf + 118)` のポインタ演算）と
+  `last_npc` / `last_board_title`（CPYSTR の宛先・sizeof 依存）、
+  `print_status` の `last_status` / `last_cond`（CPYSTR の宛先）、
+  `itemlist` の `buf2`（CATSTR の宛先）、`command_analyze` の
+  `buf`（"use" 分岐で CATSTR の宛先）、`new_user` の `wbuf`
+  （CPYSTR の宛先）、グローバル `pre_adduser_ip`（CPYSTR の
+  宛先）、`px` / `py`（共有インターフェース）。`log_print` の
+  `tstr` は `#ifdef SPLITLOG` 内（既定構成では未コンパイル）
+  のため手付かず。
+- NULL → nullptr（119 か所、`time(nullptr)` を含む。`time`
+  自体は従来どおり無修飾）。
+- 標準関数の限定：`std::snprintf`（122）、`std::strcmp`（63）、
+  `std::strncmp`（38）、`std::strlen`（24）、`std::strncpy`（2）、
+  `std::memcpy`（3）、`std::memcmp`（1）、`std::atoi`（9）、
+  `std::abs`（2。引数はいずれも整数）、`std::strchr`（3）、
+  `std::strstr`（3）。`sscanf` は第11段階の前例どおり無修飾。
+  `strlcpy` / `strlcat`、`time` / `localtime` / `asctime` /
+  `strftime`、`signal`、`fopen` / `fclose` / `fprintf` /
+  `fputs`、`exit` / `free` / `system`、`rename` / `unlink` も
+  無修飾のまま。
+- 警告は単体で 438 件 → 428 件。write-strings が 421 件 → 411 件
+  （`kParsecom` のリテラル 10 件が `const char*` になり消滅）
+  で、それ以外の内訳は完全一致（符号混じり比較 5 件、未使用変数
+  3 件、parentheses 2 件、字下げ 2 件、format-truncation 2 件、
+  unused-result 1 件、代入のみの変数 1 件、`phi_dm.h` 由来の
+  literal-suffix 1 件）。
+
+### 見つけた癖（すべて存置）
+
+1. **`input_analyze` の `ST_BAN_` 処理は
+   `dmprintf(n, 0, rbuf, sizeof(rbuf), ...)` と書かれており、
+   `rbuf` は `char *` 引数なので `sizeof` はポインタサイズ（8）
+   になる**（コード内コメント付き）。書式化した返信は入力
+   バッファ `rbuf` の先頭 8 バイトに切り詰めて書かれ、それが
+   `check_write` で送られる。潜在バグ。
+2. `main` の `#chr-D` 処理で `get_cd` の戻り値 `case -2:` /
+   `case -1:` に break が無く、`case 1:` の `continue` へ
+   落ちる。接続を閉じた後に switch 下の成功パスへ進まない
+   ための、荷重のかかったフォールスルー（コード内コメント
+   付き）。
+3. 意図的なフォールスルーは他にも多い：`move_chr` の
+   `T_FLOWER` → `T_PLANT`、`connection_error_process` の
+   `ST_WRITE` → `ST_RECEIVECOMPLETE` / `default`、`adduser` の
+   `ST_USERAD` → `ST_USERGRP` → `ST_USERCF`、`input_analyze`
+   の `ST_R_GET` → `ST_GET` / `ST_R_PUT` → `ST_PUT`、
+   `command_analyze` の "go" の `'N'` → `'n'` など。
+4. `check_write` の `buf[(i = strlen(buf) - 1)]` は、`mes` が
+   空文字列だと `buf[-1]` を読む。第11段階の癖 9 と同種。
+   現在の呼び出し経路で空が渡る例は見当たらない。潜在。
+5. `twobyte_check` は空文字列だと戻り値 `m` が未初期化になる。
+   実経路では `sscanf` の `%s` 経由のため通常は到達しない。
+   潜在。
+6. 符号混じり比較 5 件（`main` の `active_time < time(NULL)`、
+   `ST_BAN` の `ip_ban` 時刻、`itemlist`、`command_analyze`
+   2 件）。
+7. 未使用変数：`command_analyze` の `buf2[20]`（コメント内で
+   のみ参照される死んだ宣言）、`save_mail` の `i`、
+   `delete_mail` の `i`。代入のみ：`input_analyze` の `l`。
+   字下げが誤解を招く箇所 2 件（`talk_analyze` の `else`、
+   `strindex` の `for`）。parentheses 警告 2 件は
+   `twobyte_check` の `&&` / `||`。`signal_trap` の `system()`
+   戻り値未使用。format-truncation 2 件（`read_mail` と
+   `dm_msg_jp.h` のマクロ由来 1 件）。
+8. `errnum_to_msg` のリテラルに "besouse" のタイポがある。
+   リテラル一致の原則どおり存置。
+
+### 検証
+
+- 文字列・文字リテラルの多重集合が前後で完全一致（667 件、
+  うち文字リテラル 262 件）。
+- プリプロセッサ行とコメントを除いたトークン列に、意図した
+  変換の逆変換（`std::array` 宣言 → C 宣言、複合宣言の分割の
+  再結合、`.data()` の除去、`.size()` → sizeof、`std::` 限定の
+  除去、nullptr → NULL、`kParsecom` → `parsecom`、`kDc` /
+  `kRdc` の復元、`wbuf[0]` ↔ `*wbuf` の特殊形）を適用すると
+  前後完全一致（40,618 トークン）。git の差分も目視で確認し、
+  意図した変更区分以外は無い。
+- バイナリの `strings` 比較：差分はコード生成に伴うバイト列の
+  ノイズとシンボル名・配置差（`parsecom` の無名名前空間化、
+  ジャンプテーブル番号）のみで、メッセージ文字列は不変。
+- 回帰プローブ（テストワールド、ポート 20019）：
+  - `probe_m57.py` 敵なし変種 n：地図バイト・テキスト 115 行
+    とも完全一致。
+  - `probe_single.py`：スクリプト部分は一致。差分は Cat の
+    徘徊による地図フレーム 1 回分の有無のみ（第9〜11段階と
+    同じ非回帰クラス）。
+  - `probe_party.py`：サマリ JSON はバイト一致、両トランス
+    クリプトは正規化後一致。
+  - `probe_use.py` a / b / c1〜c5 / d / e / disc の 10 変種：
+    全変種でトランスクリプト全文一致＋断定 OK。phi.log は
+    8 変種で一致。a / c5 では終了時の順序差（切断処理が
+    SIGTERM より先に進むと cli-err 行が出て、`lcnt == -1` の
+    ため `signal_trap` のバックアップ行が出ない）が出たが、
+    CPU 負荷をかけると書き換え前バイナリでも同一パターンを
+    再現した。ハーネスがプローブ終了直後に kill する競合で、
+    第7・11段階で記録した同種のタイミング差。
+  - `probe_skills.py` base / s1 / s2：s1 はトランスクリプト・
+    保存・phi.log すべて一致。base はトランスクリプト一致、
+    保存 `:S` 行は集合として一致（`:SmgF` の位置差は保存
+    タイミングの揺れで、第11段階で書き換え前同士の再現を
+    確認済みのクラス）、phi.log 差分は上記の終了時競合
+    （こちらは逆方向）。s2 は生成アイテム名 1 件
+    （Spirit claw / Air claw）のサイコロ差と、それに伴う
+    保存差のみ（第8段階と同じ）。
+  - `probe_calc.py`：スクリプト行は一致。差分は敵の徘徊・
+    戦闘ノイズと、Cure の暴発 1 回のサイコロ差のみ。
+  - `probe_attack.py`（before×2 / after×2）：冒頭 46 行の
+    スクリプト部分は 4 ランとも完全一致（分岐点はセッション
+    ごとの地図シード）。パターン件数のばらつきは書き換え前
+    同士の対照と同等で、after の 1 ランに武器落下
+    （`phi_attack` のファンブル）1 回を含む。
+- 動的に踏めていない経路：メール系の一部、世界移動
+  （`#ch-srv`）、ユーザー追加系などプローブの脚本に無い
+  経路は、トークン照合と書式・引数の照合で確認した。
+  `SPLITLOG` / `NOUSERADD` 等の代替ビルドは従来どおり
+  未確認だが、プリプロセッサの構造はそのまま保ってある。
+
+### 次のモジュール
+
+`phi_data.cpp`（データ入出力、約9900 行）が最終段階。
+
+- **`load_dd()` の memcpy 重なり（ASan 指摘）は `phi_data.cpp`
+  の担当**で、この段階では未着手。`phi_data.h` の宣言
+  （`id2f` / `loadstr` / `server_version_check` 等）と
+  `phi_dm.h` の extern 群は不変更のまま使える。
+- `lcnt`（`phi_data.cpp` 側：初期値 -1、データロード中は
+  0 以上）は `signal_trap` のバックアップ分岐の条件になって
+  いる。切断保存が済んだ後の終了ではバックアップ行が出ない
+  のは現行挙動として確認済み。
+- 今回記録した潜在バグ 3 件（`ST_BAN_` の sizeof ミス、
+  `check_write` の `buf[-1]`、`twobyte_check` の未初期化）は
+  `phi_dm.cpp` 内の話で、修正するかどうかは従来分
+  （`OP_REVERSE` のクラッシュ、`skill_crt_check` の範囲外
+  読み、`speed_degrade` のフォールスルー、`mg_attack_to` の
+  FN_PRISM フォールスルー、`charge_spell` の `md[n]`）と
+  合わせてユーザー判断待ち。
+- 検証ハーネスは今回のものが流用できる。なお `run_attack.sh`
+  には実行権限が無いため `sh run_attack.sh ...` で実行する
+  こと。
+
+## 第13段階：phi_data.cpp（データ入出力、最終段階）
+
+対象：`phi_data.cpp`（書き換え前 9876 行 → 書き換え後 9907 行）。
+データファイルの読み書き・保存まわり（`load_dd` / `load_cd` /
+`save_cd`、`phi.cd` / `phi.dd` / `phi.sd` 等のロードとセーブ、
+バックアップ、ゲート・世界移動データ、ストア、タイトル、
+ID バン、サークルのファイル保存など）を担う最大のモジュール。
+申し送りどおり `phi_data.h` の宣言（`efopen` / `efgets` /
+`efclose` 等）、`phi_dm.h` の extern 群、`phi_magic.h` /
+`phi_enemy.h` / `phi_attack.h` の宣言、`special_com`、
+`mgstrlen()`、`px` / `py` には触れていない。
+
+### 書き換え内容
+
+- ヘッダを C++ 化：`<stdio.h>` → `<cstdio>`、`<string.h>` →
+  `<cstring>`、`<ctype.h>` → `<cctype>`、`<signal.h>` →
+  `<csignal>`、`<time.h>` → `<ctime>`、`<stdlib.h>` →
+  `<cstdlib>`、`<limits.h>` → `<climits>`、`<array>` を追加。
+  未使用の `<math.h>`（数学関数は未使用）、`<memory.h>`、
+  `<sys/time.h>`、`<sys/types.h>` を削除。`<unistd.h>`、
+  `<dirent.h>` は従来どおり残した。
+- ファイル内限定テーブルを無名名前空間の `constexpr std::array`
+  化：拡張子表 `fnc[10]` → `kFnc`（`std::array<char, 10>`）。
+- バッファ 118 個（宣言文 98 か所）を `std::array<char, N>` 化
+  し、利用箇所は `.data()` / `.size()` を渡す。元のコードで
+  同サイズの複数宣言が 1 行に書かれていた箇所は、変換後も
+  1 行にまとめた形を保った。`load_fd` の `buf2` は
+  `#ifndef AREA_SUB` で 2 つのサイズ（`MAX_X * 2 + 2` /
+  `MAX_X * 3 + 2`）を持ち、両方とも式のまま変換した。
+- C 配列のまま残したバッファ（理由をコード内コメントで
+  明記、15 か所）：`save_cd` / `backup_cd` / `save_sav` の
+  `buf`、`get_gate` の `buf`、`load_td_swt` の `buf2`、
+  `load_switch` の `wbuf`、`load_gate` の `land`、`save_sd`
+  の `rbuf` / `wbuf`、`set_title` の `rbuf`、`save_store` の
+  `buf2`、`save_obj` の `buf`（CATSTR の宛先）、`load_sd` の
+  `tstr`、`savef_id_in_circle` の `buf`、ファイルスコープの
+  `pfname[128]`。いずれも CPYSTR / CATSTR の宛先で
+  `sizeof` 依存がある。`cfile` / `savfile` は `efopen(char *,
+  char *)`（`phi_data.h` の共有宣言）に渡すため `static
+  char *` のまま（コメント明記）。グローバル `debug_buf[256]`
+  は他モジュールにも同一の定義がある DEBUG 用のため不変更。
+- NULL → nullptr（462 か所）。
+- 標準関数の限定：`std::snprintf`（182）、`std::strcmp`（17）、
+  `std::strncmp`（43）、`std::strlen`（17）、`std::memcpy`
+  （36）、`std::memset`（6）、`std::memcmp`（1）、`std::atoi`
+  （6）、`std::abs`（1）、`std::strstr`（2）、`std::isspace`
+  （1）。`sscanf`、`strdup`（POSIX）、`time` / `localtime` /
+  `strftime` / `asctime`、`fopen` / `fclose` / `fprintf` /
+  `fputs` / `fgets`、`exit` / `free` / `malloc`、`rename` /
+  `unlink` は従来どおり無修飾。
+- 警告は単体で 232 件 → 231 件。差分は `load_dd` の
+  `-Wrestrict`（memcpy 重なり、次節）1 件が消えたのみで、
+  それ以外の内訳は完全一致（write-strings 199 件、符号混じり
+  比較 6 件、字下げ 6 件、format-truncation 9 件、未使用
+  変数ほか）。
+
+### `load_dd()` の memcpy 重なりへの判断（第5段階からの申し送り）
+
+対象は書き換え前 4442〜4443 行目の
+
+```c
+*yname = 0;
+memcpy(yname + 1, yname, 31);
+```
+
+（`yname` は `phi_dm.h` で宣言された `char yname[32]`、暦号）
+で、第5段階で ASan が `memcpy-param-overlap` を指摘した件。
+
+**判断：`std::memmove` に変更した**（重なりを許す定義済みの
+動作にする）。根拠は次のとおりで、結果のバイト列は変わら
+ない。
+
+1. `load_dd()` は起動時の初期化で 1 回だけ呼ばれ
+   （`phi_dm.cpp`）、その時点で `yname` は BSS で全ゼロ。
+   `*yname = 0;` の直後なのでコピー元 31 バイトはすべて 0
+   であり、memcpy でも memmove でも結果は全ゼロでバイト
+   単位で同一になる。
+2. `yname` の読みは常に C 文字列として（`*yname` の判定、
+   `%s` での表示）行われ、続く `loadstr(yname, &p, '\n',
+   32)` が先頭から終端まで書き直すため、最初の NUL より
+   後ろのバイトは観測されない。
+3. 同じ「1 バイトずらし」コピーには同一コードベース内に
+   memmove の使用例がある（`id_ban`）。
+
+検証：書き換え前の ASan ビルドは起動時に
+`memcpy-param-overlap`（`load_dd()`、4443 行目）で異常終了
+することを再現した。書き換え後の ASan ビルドは異常終了
+せずポート 20019 で待ち受けし、`probe_single.py` のフル
+セッションでも ASan エラーは 0 件だった。通常ビルドでも
+`-Wrestrict` 警告が消え、下記プローブで差は出ていない。
+なお ASan の調査時に `ASAN_OPTIONS=replace_intrin=0` を
+付けると、この重なりは検出されなくなる（第5段階の記録の
+「ASan での調査には replace_intrin=0 が要る」は、異常終了
+を回避して先の調査を進めるための指定）。
+
+### 見つけた癖（すべて存置）
+
+1. 未使用変数：`load_sav` の `name[32]` / `j` / `k`、
+   `load_authority` の `j`、`remap_lock_and_board` の `i`。
+   `efclose` の `i` は代入のみ（set-but-unused）。
+2. `decimal_load_p` の条件式内の代入（parentheses 警告、
+   約 8792 行目）。真理値として使う意図の既存コード。
+3. 符号混じり比較 6 件、字下げが誤解を招く箇所 6 件、
+   format-truncation 9 件、write-strings 199 件は、いずれも
+   書き換え前と同数・同種（詳細は警告内訳の照合どおり）。
+4. `load_fd` の `buf2` は `AREA_SUB` の有無でサイズが変わる
+   （書き換え内容の項を参照）。プリプロセッサ構造は不変更。
+5. このモジュールでは、上記の警告類のほか新規の潜在バグは
+   見つからなかった。`load_dd` の重なりは本段階で判断・
+   対処済み（前節）。
+
+### 検証
+
+- 文字列・文字リテラルの多重集合が前後で完全一致
+  （1534 件）。
+- プリプロセッサ行とコメントを除いたトークン列に、意図した
+  変換の逆変換（`std::array` 宣言 → C 宣言、`.data()` の
+  除去、`.size()` → sizeof、`std::` 限定の除去、nullptr →
+  NULL、`kFnc` → `fnc`、memmove の 1 か所を意図した変更
+  として扱う）を適用すると前後完全一致（70,245 トークン）。
+  git の差分も目視で確認し、意図した変更区分以外は無い。
+- バイナリの `strings` 比較：差分は `fnc` の無名名前空間化
+  に伴うシンボル名（`_ZL3fnc` → `_ZN12_GLOBAL__N_1L4kFncE`）、
+  `std::isspace` 限定に伴う参照シンボルの変化
+  （`__ctype_b_loc` → `isspace`）、ジャンプテーブル番号と
+  コード生成に伴うバイト列のノイズのみで、メッセージ
+  文字列は不変。
+- 回帰プローブ（テストワールド、ポート 20019）：
+  - `probe_m57.py` 敵なし変種 n：地図バイト・テキスト
+    115 行とも完全一致。
+  - `probe_single.py`：差分は Cat の徘徊による `#m57 O` 行
+    と空白行の位置のみ（書き換え前同士でも同量・同種）。
+    保存ファイル `phi.cd` は 1 行のみ差（サイコロ依存の
+    ステータス値 1 つと保存時刻の epoch 秒）で、書き換え前
+    バイナリ同士の 2 回実行でも同じ 1 行差が出ることを
+    確認した（保存形式・内容の非回帰）。
+  - `probe_party.py`：サマリ JSON は一致、トランスクリプト
+    A は完全一致、B は空白行 1 行のみ。
+  - `probe_calc.py`：差分行数は前後 500 行 / 書き換え前
+    同士 502 行で同等。差分は NPC 同士の戦闘・詠唱の
+    サイコロ結果のみ。
+  - `probe_skills.py` base / s1：トランスクリプト・保存
+    `:S` 行・phi.log すべて完全一致。s2 は生成アイテム名
+    1 件（Spirit claw / Erase claw）のサイコロ差とそれに
+    伴う保存差、phi.log の終了時競合 1 行のみ（第8・
+    12段階と同じクラス）。
+  - `probe_use.py` a / b / c1〜c5 / d / e / disc の 10 変種：
+    全変種でトランスクリプト全文一致＋断定 OK。
+  - `probe_attack.py`（before×2 / after×2）：スクリプト
+    共通部分は同じ分岐点まで一致し、パターン件数の
+    ばらつきは書き換え前同士の対照と同等。
+  - ASan ビルドでの `load_dd` 検証は前節のとおり。
+- 動的に踏めていない経路：世界移動の着側での保存、メール
+  系の一部などプローブの脚本に無い経路は、トークン照合と
+  書式・引数の照合で確認した。代替ビルド（`AREA_SUB` 等）
+  のプリプロセッサ構造はそのまま保ってある。
+
+### C++ 化の完了と申し送り
+
+- 本段階でサーバ本体の全モジュール（`tcp` / `phi_str` /
+  `ext_party` / `ext_data` / `new_command` / `new_proto` /
+  `phi_m57` / `expression_op` / `phi_calc` / `phi_use` /
+  `ext_skills` / `phi_attack` / `phi_enemy` / `phi_magic` /
+  `phi_dm` / `phi_data`）の C++ 化が完了した。変換ツール
+  `cdcnv.cpp` と BSD 由来の `strlcpy` / `strlcat` は対象外
+  （第0段階で C++ としてビルドできる状態にしてある）。
+- 修正判断がユーザー待ちの潜在バグは次の 5 件（群）で、
+  いずれも振る舞い維持のため存置してある：`OP_REVERSE`
+  のクラッシュ（第5段階）、`skill_crt_check` の範囲外
+  読み（第8段階）、`speed_degrade` の IT_FOOD →
+  IT_JEWEL フォールスルー（第9段階）、`phi_magic` の
+  FN_PRISM フォールスルーと `charge_spell` の `md[n]`
+  添字ミス（第11段階）、`phi_dm` の `ST_BAN_` の
+  sizeof ミス・`check_write` の `buf[-1]` 読み・
+  `twobyte_check` の未初期化戻り値（第12段階）。
+  `load_dd` の memcpy 重なりは本段階で対処済み。
+- GitHub リポジトリ `PHIDM_NEO` への反映は第7段階分まで
+  で、第8〜13段階はローカルコミットのみ（スナップショット
+  push は承認待ち）。
+
+## 潜在バグ修正（2026-11-16、C++ 化完了後の追補）
+
+ユーザーの判断により、各段階で「振る舞い維持のため存置」
+とした潜在バグ 9 件をすべて修正した。`load_dd` の memcpy
+重なりは第13段階で対処済みのため含まない。各段階の
+「見つけた癖（すべて存置）」の該当記述と、ソース内の
+存置コメントは本節が正（コメントは修正済みに更新した）。
+検証材料は `~/workspace/phi-cpp-verify/scratch/bugfix/`
+に置いた（リポジトリ外）。
+
+### 1. OP_REVERSE のクラッシュ（expression_op.cpp、c8bf10a）
+
+- 修正：`OP_REVERSE` で符号反転した ACUM を push する際、
+  `a2.kind = EXP_CONST` を設定するようにした。
+- 根拠：第5段階の記録にあった修正案どおり。VAL と ADDRESS
+  は共用体を共有するため、変数 (EXP_VARIABLE) のまま
+  push すると次回 `get_value` が壊れた ADDRESS を読む。
+- 検証：式評価ハーネスの variant C（`x1=1000,
+  @CHR.gp=-(x1)` というスイッチ）で、修正前はログイン
+  直後に SIGSEGV（phi.log に記録、セッション断）に
+  なることを再現し、修正後は落ちずに所持金が
+  -1000 gp と正しく評価されることを確認した。
+  variant A / B1 / B2 は修正前後で一致。
+
+### 2. skill_crt_check の範囲外読み（ext_skills.cpp、c1677bc）
+
+- 修正：添字を `(id->type & WT_MASK)/WT_PLACE`、
+  `(id->type & MT_MASK)/MT_PLACE` に変え、読んだ値を
+  割る形をやめた。`skillup_create` と同形。
+- 検証：スキル行（16 int）を PROT_NONE のガードページ
+  直前に置く単体テストで、type 0x1234 のアイテムに対し
+  修正前は行外読みで SEGV（ext_skills.cpp:737）、修正後
+  は期待値 227 を返すことを確認した。実サーバ経路
+  （probe_skills s2）では PER_DICE の短絡評価で呼び出し
+  自体が確率的になるため、ASan ビルドの s2 実行では
+  検出されなかった（単体テストが決定的な証拠）。
+  なお s2 の生成アイテム名（Shell/Air/Spirit claw）が
+  実行ごとに変わるのは `create_special_item` の乱数で、
+  同一バイナリの再実行でも変動することを確認済み
+  （本修正起因ではない）。
+
+### 3. speed_degrade の IT_FOOD フォールスルー（phi_attack.cpp、e027570）
+
+- 修正：`IT_FOOD` ケースの末尾に `break;` を追加した。
+- 根拠：`degrade()` 側は 20010220 の修正で同型の break
+  が入っており、そちらに合わせた。食べ物が IT_JEWEL の
+  処理（耐久-1、ATP 15/16 倍、VALUE 半減）を受ける
+  のは誤り。
+- 検証：probe_attack のパターン比較で非回帰（差は戦闘
+  ダイス由来のみ）。
+
+### 4. mg_attack_to の FN_PRISM フォールスルー（phi_magic.cpp、06f0a04）
+
+- 修正：`FN_PRISM` ケースに `break;` を追加し、計算した
+  tfn（被攻撃側 dfn+1、FN_NORMAL 超は FN_EARTH）が
+  default の `tfn = m->fn` で捨てられないようにした。
+- 検証：全スイート非回帰。PRISM 属性の魔法攻撃を決定的
+  に踏むプローブは無いため、効果はコード上の確認。
+
+### 5. charge_spell の md[n] 添字ミス（phi_magic.cpp、06f0a04）
+
+- 修正：extension 連結時の `cd[n].md[n].extension` を
+  `cd[n].md[m].extension`（呪文番号 m）に直した。
+- 検証：全スイート非回帰。extension 持ちの武器と呪文
+  での charge が必要で、プローブ範囲外のため効果は
+  コード上の確認。
+
+### 6. ST_BAN_ の sizeof ミス（phi_dm.cpp、3f2899e）
+
+- 修正：`dmprintf(n, 0, rbuf, sizeof(rbuf), ...)` の長さを
+  1024 に直した（ポインタの sizeof = 8 で返信が先頭
+  8 バイトに切り詰められていた）。
+- 根拠：rbuf は `input_analyze` の `char *` 引数で、実
+  呼び出しはすべて main() の `char buf[1024]`。同関数内
+  の他の rbuf 書き込みも 1023 を直書きし「main() の
+  buf サイズに依存」とコメント済み。dmprintf の len は
+  バッファ容量（len-1 まで整形）で、他の呼び出しも
+  バッファ全体の大きさを渡している。
+- 検証：静的確認 + 全スイート非回帰（BAN 解除コマンド
+  を踏むプローブは無い）。
+
+### 7. check_write の buf[-1] 読み（phi_dm.cpp、3f2899e）
+
+- 修正：末尾改行チェックを `buf[0] != '\0' && ...` と
+  ガードした。空の mes はそのまま渡り、`write_line`
+  が 0 バイト送信する（従来は buf[-1] を読んでいた）。
+- 検証：静的確認 + 全スイート非回帰（空文字列を渡す
+  呼び出しは現行コードに無い）。
+
+### 8. twobyte_check の未初期化戻り値（phi_dm.cpp、3f2899e）
+
+- 修正：戻り値 `m` を 0 で初期化した。
+- 根拠：呼び出し側は戻り値 0 を「有効な文字が無い＝
+  不合格」として名前を拒否しており、通常経路（空で
+  ない文字列）の戻り値とも矛盾しない。
+- 検証：静的確認 + 全スイート非回帰。
+
+### 9. fn() の境界外読み（phi_calc.cpp、a597e85）
+
+- 修正：表引きの前に `i %= 6` を入れ、負側の `i += 6`
+  と合わせて完全な剰余正規化にした。
+- 根拠：属性の相性は 6 つで循環し、元の `i += 6` は
+  その 1 回分の調整だった。範囲外を既定値に落とす
+  より、剰余に丸める方が元の意図に近い。範囲内
+  （afn/dfn が 0..9）の入力では結果は従来と同一。
+- 検証：単体テストで afn/dfn 0..9 の全 100 通りが
+  修正前と完全一致すること、範囲外では修正前が境界外
+  読みのゴミ値（例：fn(100,1,1000) = -137790）を
+  返すのに対し、修正後は正規化値（1000）を返す
+  ことを確認した。
+
+### 回帰検証（全体）
+
+修正前バイナリ（eba4842）と修正後で全プローブを同一
+条件で実行し比較した。残った差はすべて従来から知られた
+非回帰の型（敵の徘徊・戦闘ダイス・接続スロット番号・
+HP regen・phi.log のタイミング差）のみ：
+
+- probe_single：敵（Cat）の徘徊行のみ差。
+- probe_m57（敵なし）：地図バイト完全一致。テキスト差
+  は DM 負荷の数値のみ。
+- probe_party：サマリ・両記録とも完全一致。
+- probe_calc：スクリプト応答は一致（差は敵に進路を
+  塞がれた「進めません」2 行）。
+- probe_skills base / s1：記録・保存 :S 行・phi.log
+  すべて完全一致。s2：接続スロット番号・HP regen・
+  生成アイテム名（乱数）のみ差。
+- probe_use：全バリアント OK（a の phi.log 空行位置と
+  d のゲート閉鎖通知はタイミング差。再実行ペアでは
+  d も OK）。
+- probe_attack：パターン比較で戦闘ダイス由来の差のみ。
+- 式評価 A / B1 / B2：一致。C：上記 1. のとおり。

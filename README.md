@@ -4,11 +4,12 @@ Phantasmal Island（Philly）用ゲームサーバ `phi_dm`
 （`rel5g_MasterGate_plus`、Tofup Server Edition v6.5g 'Master Gate +'）
 の C++ への段階的書き換えです。
 
-**現状：第7段階まで完了。** `tcp.cpp`・`phi_str.cpp`・`ext_party.cpp`・
+**現状：全モジュール完了（第13段階まで完了）。** `tcp.cpp`・`phi_str.cpp`・`ext_party.cpp`・
 `ext_data.cpp`・`new_command.cpp`・`new_proto.cpp`・`phi_m57.cpp`・
-`expression_op.cpp`・`phi_calc.cpp`・`phi_use.cpp` を C++ らしく書き換え済み
-（振る舞いは変更なし、テスト用ワールドで前後比較済み）。それ以外の
-モジュールは C のままです。修正内容の詳細は `docs/cxx-port-notes.md`
+`expression_op.cpp`・`phi_calc.cpp`・`phi_use.cpp`・`ext_skills.cpp`・
+`phi_attack.cpp`・`phi_enemy.cpp`・`phi_magic.cpp`・`phi_dm.cpp`・`phi_data.cpp` を C++ らしく書き換え済み
+（振る舞いは変更なし、テスト用ワールドで前後比較済み）。サーバ本体の
+モジュールはすべて書き換えが終わりました。修正内容の詳細は `docs/cxx-port-notes.md`
 を参照してください。
 
 ソースの文字コードは UTF-8（行末は CRLF）です。ビルド時は
@@ -94,16 +95,16 @@ python3 -m neophi.cli --host 127.0.0.1 --port 20019 --id guest
 `phi_dm.h` が全グローバル状態（キャラクタ配列 `cd[]`、地図 `map` など）
 を持ち、全モジュールが include しています。
 
-## 次の段階の予定
+## 段階の進み具合
 
 依存関係の浅い・小さいモジュールから、1つずつ C++ らしく
-書き換えていきます（クラス化、`std::string` / `std::vector` 化、
-コメントとドキュメントの充実）。順番の案：
+書き換えてきました（クラス化、`std::string` / `std::vector` 化、
+コメントとドキュメントの充実）。実施した順番：
 
 1. `tcp.cpp`（依存が最も浅い）→ `phi_str.cpp`（小さい）【完了】
-2. `ext_party.cpp` / `ext_data.cpp` / `new_command.cpp`（小さい拡張群）【次】
-3. `new_proto.cpp` → `phi_m57.cpp` → `expression_op.cpp` → `phi_calc.cpp`
-4. `phi_use.cpp` → `ext_skills.cpp` → `phi_attack.cpp` → `phi_enemy.cpp`
-5. `phi_magic.cpp` → `phi_dm.cpp` → `phi_data.cpp`（中核3つは最後）
+2. `ext_party.cpp` / `ext_data.cpp` / `new_command.cpp`（小さい拡張群）【完了】
+3. `new_proto.cpp` → `phi_m57.cpp` → `expression_op.cpp` → `phi_calc.cpp`【完了】
+4. `phi_use.cpp` → `ext_skills.cpp` → `phi_attack.cpp` → `phi_enemy.cpp`【完了】
+5. `phi_magic.cpp` → `phi_dm.cpp` → `phi_data.cpp`（中核3つは最後）【完了】
 
-各モジュールの書き換えのたびに、テスト用ワールドで動作確認をします。
+各モジュールの書き換えのたびに、テスト用ワールドで動作確認をしました。

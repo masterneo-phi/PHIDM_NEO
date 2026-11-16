@@ -1,10 +1,11 @@
 /* written by Qajin 2002/03/07 */
 /* last update 2002/05/02 */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <math.h>
+#include <array>
+#include <cmath>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 
 #include "phi_dm.h"
 #include "ext_skills.h"
@@ -18,88 +19,102 @@
 /* 注) 送受信文字長の都合上 1つのスキル種につき 熟練度は41個まで */
 /* 熟練度数を後から増加させる事は出来ないので */
 /* スキル種増設時は必ず最大数を確保すること */
-static int skl_max[] =
+namespace {
+
+/* SKL_SPECIAL (13) の最大数は 0 で、格納場所を持たない
+   （skill_init() が nullptr を入れ、:Ssp 行は読み込み時に
+   エラー扱いになる）。 */
+constexpr std::array<int, MAX_SKILL_TYPES> kSkillMax =
 {SKL_WPN_MAX,
  SKL_MGAT_MAX,SKL_MGEF1_MAX,SKL_MGEF2_MAX,SKL_MGEF3_MAX,SKL_MGFN_MAX,SKL_MGSP_MAX,
  SKL_DTIT_MAX,SKL_DTWP_MAX,SKL_DTMT_MAX,
  SKL_CRIT_MAX,SKL_CRWP_MAX,SKL_CRMT_MAX,
  0};
 
-static char *skl_id[] =
+constexpr std::array<const char *, MAX_SKILL_TYPES> kSkillId =
 {"wp",
  "mgA","mgE1","mgE2","mgE3","mgF","mgS",
  "dtI","dtW","dtM",
  "crI","crW","crM",
  "sp"};
 
-extern int enmax;
+/* 1キャラ分のスキル配列を確保する。fill が 0 以上なら確保直後に
+   その値で埋める。確保に失敗したら false を返し、確保済みの
+   部分はそのまま残す（呼び出し元が即座に -1 を返す元の挙動
+   と同じ）。 */
+bool alloc_skill_row(int **row, int fill)
+{
+    for (int j = 0; j < MAX_SKILL_TYPES; j++) {
+        if (kSkillMax[j] <= 0) {
+            row[j] = nullptr;
+            continue;
+        }
+        int *p = static_cast<int *>(std::malloc(sizeof(int) * kSkillMax[j]));
+        if (p == nullptr)
+            return false;
+        row[j] = p;
+        if (fill >= 0) {
+            for (int i = 0; i < kSkillMax[j]; i++)
+                row[j][i] = fill;
+        }
+    }
+    return true;
+}
+
+} // namespace
+
+/* enmax は phi_data.h で宣言済み。 */
 
 int skill_init()
 {
-	int i,j;
-	int *p;
-	int **npc_skill;
-
-	for (i=0;i<MAX_NTTYS;i++) {
-		if ((cd[i].skill = (int **) malloc(sizeof(int *) * MAX_SKILL_TYPES)) == NULL)
-			return (-1);
-		for (j=0;j<MAX_SKILL_TYPES;j++) {
-			if (skl_max[j] > 0) {
-				if ((p = (int *) malloc(sizeof(int) * skl_max[j])) == NULL)
-					return (-1);
-				cd[i].skill[j] = p;
-			} else {
-				cd[i].skill[j] = NULL;
-			}
-		}
-		skill_clear(i);
-	}
-	if ((npc_skill = (int **) malloc(sizeof(int *) * MAX_SKILL_TYPES)) == NULL)
-		return (-1);
-	for (j=0;j<MAX_SKILL_TYPES;j++) {
-		if (skl_max[j] > 0) {
-			if ((p = (int *) malloc(sizeof(int) * skl_max[j])) == NULL)
-				return (-1);
-			npc_skill[j] = p;
-			for(i=0;i<skl_max[j];i++)
-				npc_skill[j][i] = 5000; /* 取り合えず 一律 5000 */
-		} else {
-			npc_skill[j] = NULL;
-		}
-	}
-	for (i=MAX_NTTYS;i<MAX_NTTYS+MAX_ENEMIES;i++) {
-		cd[i].skill = npc_skill;
-	}
-	return (0);
+    for (int i = 0; i < MAX_NTTYS; i++) {
+        cd[i].skill = static_cast<int **>(std::malloc(sizeof(int *) * MAX_SKILL_TYPES));
+        if (cd[i].skill == nullptr)
+            return (-1);
+        if (!alloc_skill_row(cd[i].skill, -1))
+            return (-1);
+        skill_clear(i);
+    }
+    int **npc_skill = static_cast<int **>(std::malloc(sizeof(int *) * MAX_SKILL_TYPES));
+    if (npc_skill == nullptr)
+        return (-1);
+    /* 取り合えず 一律 5000 */
+    if (!alloc_skill_row(npc_skill, 5000))
+        return (-1);
+    /* 敵は全員で1つのスキル表を共有する。 */
+    for (int i = MAX_NTTYS; i < MAX_NTTYS + MAX_ENEMIES; i++) {
+        cd[i].skill = npc_skill;
+    }
+    return (0);
 }
 
 int skill_clear(int n)
 {
-	int i;
-	
-	if (n >= MAX_NTTYS)
-		return(0);
+    if (n >= MAX_NTTYS)
+        return(0);
 
-	for (i=0;i<MAX_SKILL_TYPES;i++) {
-		if (cd[n].skill[i] != NULL && skl_max[i] > 0) {
-			memset(cd[n].skill[i],0,sizeof(int)*skl_max[i]);
-		}
-	}
-	return(0);
+    for (int i = 0; i < MAX_SKILL_TYPES; i++) {
+        if (cd[n].skill[i] != nullptr && kSkillMax[i] > 0) {
+            std::memset(cd[n].skill[i], 0, sizeof(int) * kSkillMax[i]);
+        }
+    }
+    return(0);
 }
 
 int load_skl_type(int n,int type,char *p)
 {
 	int i,j;
 	
-	if (n >= MAX_NTTYS || cd[n].skill[type] == NULL)
+	if (n >= MAX_NTTYS || cd[n].skill[type] == nullptr)
 		return(1);
 
-	for(i=0;i<skl_max[type];i++) {
+	/* 途中で : が無くなったら、行末なら残りを 0 で埋めて 0、
+	   それ以外（数字でも : でもない文字）は -1 を返す。 */
+	for(i=0;i<kSkillMax[type];i++) {
 		if (*p != ':') {
 			if (*p != '\n' && *p != '\0')
 				return(-1);
-			for(;i<skl_max[type];i++)
+			for(;i<kSkillMax[type];i++)
 				cd[n].skill[type][i]=0;
 			return(0);
 		}
@@ -119,23 +134,26 @@ extern char pfname[128];
 
 int load_skills(int n,char *p)
 {
-	int i;
-	char buf[256];
+    int i;
+    std::array<char, 256> buf;
 
-	for(i=0;i<MAX_SKILL_TYPES;i++) {
-		if (!strncmp(p,skl_id[i],strlen(skl_id[i]))) {
-			if (!load_skl_type(n,i,p+strlen(skl_id[i])))
-				break;
-		}
-	}
-	if (i == MAX_SKILL_TYPES) {
-		if (lcnt > 0) {
-			snprintf(buf, sizeof(buf),"%s at line %d: no parameter.(load_skills)", pfname, lcnt);
-			log_print(buf);
-		}
-		return (-1);
-	}
-	return (0);
+    /* load_skl_type() が 0 以外を返した場合は break せず走査を
+       続け、末尾まで行くと no parameter 扱いになる。:Ssp 行
+       （格納場所が無い）と書式エラー行がここに落ちる。 */
+    for (i = 0; i < MAX_SKILL_TYPES; i++) {
+        if (!std::strncmp(p, kSkillId[i], std::strlen(kSkillId[i]))) {
+            if (!load_skl_type(n, i, p + std::strlen(kSkillId[i])))
+                break;
+        }
+    }
+    if (i == MAX_SKILL_TYPES) {
+        if (lcnt > 0) {
+            std::snprintf(buf.data(), sizeof(buf), "%s at line %d: no parameter.(load_skills)", pfname, lcnt);
+            log_print(buf.data());
+        }
+        return (-1);
+    }
+    return (0);
 }
 
 /* 指定typeのスキル値を出力  */
@@ -148,17 +166,24 @@ int save_skl_type(int n,char *buf,int size,int type)
 	char *bp;
 	char bs;
 	
+	/* bs は char のため size の下位 8 ビットだけが残る。残りが
+	   128〜255 のとき負値になり、strlcpy の第3引数では巨大値
+	   として扱われるが、その位置には改行2バイト分の余裕が
+	   必ずあるため結果は同じ。全て 0 のときは何も書かないが、
+	   返値 1 の場合呼び出し元は buf を読まない。元のまま。 */
 	bp = buf; bs = size;
-	snprintf(buf,size,":S%s",skl_id[type]);
-	l = 2+strlen(skl_id[type]);
+	std::snprintf(buf,size,":S%s",kSkillId[type]);
+	l = 2+std::strlen(kSkillId[type]);
 	buf += l; size -= l;
 
-	if (cd[n].skill[type] == NULL || skl_max[type] == 0)
+	if (cd[n].skill[type] == nullptr || kSkillMax[type] == 0)
 		return(-1);
 
-	for (i=k=0;i<skl_max[type];i++) {
-		snprintf(buf,size,":%.0i",cd[n].skill[type][i]);
-		l = strlen(buf);
+	/* %.0i は 0 を空文字にするため、0 の項目は : だけになる。
+	   読み込み側は : の後が数字でなければ 0 と読む。 */
+	for (i=k=0;i<kSkillMax[type];i++) {
+		std::snprintf(buf,size,":%.0i",cd[n].skill[type][i]);
+		l = std::strlen(buf);
 		buf += l; size -= l;
 		if (cd[n].skill[type][i]==0)
 			k++;
@@ -167,51 +192,58 @@ int save_skl_type(int n,char *buf,int size,int type)
 		}
 	}
 	strlcpy(bp,"\n",bs);
-	return ( k==skl_max[type] ? 1 : 0 );
+	return ( k==kSkillMax[type] ? 1 : 0 );
 }
 
 int save_skills_cd(int n,FILE *f)
 {
-	int i;
-	char buf[256];
+    std::array<char, 256> buf;
 
-	for (i=0;i<MAX_SKILL_TYPES;i++) {
-		if(!save_skl_type(n,buf,sizeof(buf),i))
-			fputs(buf,f);
-	}
+    for (int i = 0; i < MAX_SKILL_TYPES; i++) {
+        if (!save_skl_type(n, buf.data(), sizeof(buf), i))
+            fputs(buf.data(), f);
+    }
 
-	return (0);
+    return (0);
 }
 
 int put_skills(int n,int m)
 {
-	int i;
-	char buf[256];
-	
-	snprintf(buf,sizeof(buf),"#chr-D %-15s VX",cd[0].uid);
+    std::array<char, 256> buf;
 
-	for (i=0;i<MAX_SKILL_TYPES;i++) {
-		if(!save_skl_type(n,buf+25,sizeof(buf)-25,i))
-			check_write(m,buf);
-	}
+    /* 先頭の UID は対象ではなく常に cd[0] のもの。元の挙動のまま。 */
+    std::snprintf(buf.data(), sizeof(buf), "#chr-D %-15s VX", cd[0].uid);
 
-	return (0);
+    for (int i = 0; i < MAX_SKILL_TYPES; i++) {
+        if (!save_skl_type(n, buf.data() + 25, sizeof(buf) - 25, i))
+            check_write(m, buf.data());
+    }
+
+    return (0);
 }
 
-static char *skl_mgc_regions[] =
+namespace {
+
+constexpr std::array<const char *, SKL_MGAT_MAX> kSkillMagicRegions =
 { "Hp damage", "Mp damage", "Heal",
  "Line", "Pierce", "Explode", "Sphere",
  "Roof Shake", "Rain", "Quake"};
 
-static char *skl_mgc_cmnspl[] =
+constexpr std::array<const char *, SKL_MGSP_MAX> kSkillMagicCommonSpells =
 { "Return", "Eagle eye", "Analyze", "Charge spell",
   "Identify", "Appear", "Disappear"};
+
+} // namespace
 
 int status_skills(int n,char *p)
 {
 	char buf[256],buf2[256];
 	int i,j,k;
 
+	/* 引数の扱い：空白で始まれば空白を読み飛ばし、単独の s なら
+	   1 文字読み飛ばす（skills と打った場合）。それ以外は 1 を
+	   返し、呼び出し元が次のコマンド分岐へ落とす。引数なしの
+	   skill はここで 1 を返し、発言として扱われる。 */
 	if (fisspace(*p))
 		SKIP_SPACE(p);
 	else if (*p == 's' && *(p+1) == '\0')
@@ -220,12 +252,12 @@ int status_skills(int n,char *p)
 		return (1);
 
 	dmcheck_write(n,DMM_SKILLS_SKILL);
-	if (*p == '\0' || !strcmp(p,"weapon")) {
+	if (*p == '\0' || !std::strcmp(p,"weapon")) {
 		dmcheck_write(n,DMM_SKILLS_WEAPON);
 		CPYSTR(buf2,"  ");
 		for (i=0;i<SKL_WPN_MAX;i++) {
 			if ((j=cd[n].skill[SKL_WEAPON][i]/100) > 0) {
-				snprintf(buf,sizeof(buf)," %-6.6s : %2i ",wt_name[i],j);
+				std::snprintf(buf,sizeof(buf)," %-6.6s : %2i ",wt_name[i],j);
 				CATSTR(buf2,buf);
 			}
 			if (i % 4 == 3 && *(buf2+2) != '\0') {
@@ -235,12 +267,12 @@ int status_skills(int n,char *p)
 			}
 		}
 	}
-	if (*p == '\0' || !strcmp(p,"spell")) {
+	if (*p == '\0' || !std::strcmp(p,"spell")) {
 		dmcheck_write(n,DMM_SKILLS_SPELL);
 		CPYSTR(buf2,"  ");
 		for (i=0;i<SKL_MGAT_MAX;i++) {
 			if ((j=cd[n].skill[SKL_MAGIC_AT][i]/100) > 0) {
-				snprintf(buf,sizeof(buf)," %-9.9s : %2i ",skl_mgc_regions[i],j);
+				std::snprintf(buf,sizeof(buf)," %-9.9s : %2i ",kSkillMagicRegions[i],j);
 				CATSTR(buf2,buf);
 			}
 			if ((i==2 || i==6 || i==9) && *(buf2+2) != '\0') {
@@ -249,9 +281,13 @@ int status_skills(int n,char *p)
 				CPYSTR(buf2,"  ");
 			}
 		}
+		/* k は EF1/EF2/EF3 の3ループで通し番号。表示した項目が
+		   4 個たまるごとに改行し、最後の端数もまとめて出す。
+		   use_effect の添字 +11/+46/+61 は EF の範囲
+		   11〜39/46〜60/61〜93 に対応する。 */
 		for (i=k=0;i<SKL_MGEF1_MAX;i++) {
 			if ((j=cd[n].skill[SKL_MAGIC_EF1][i]/100) > 0) {
-				snprintf(buf,sizeof(buf)," %-13.13s: %2i ",use_effect[i+11],j);
+				std::snprintf(buf,sizeof(buf)," %-13.13s: %2i ",use_effect[i+11],j);
 				CATSTR(buf2,buf);
 				if(++k % 4 == 0) {
 					CATSTR(buf2,"\n");
@@ -262,7 +298,7 @@ int status_skills(int n,char *p)
 		}
 		for (i=0;i<SKL_MGEF2_MAX;i++) {
 			if ((j=cd[n].skill[SKL_MAGIC_EF2][i]/100) > 0) {
-				snprintf(buf,sizeof(buf)," %-13.13s: %2i ",use_effect[i+46],j);
+				std::snprintf(buf,sizeof(buf)," %-13.13s: %2i ",use_effect[i+46],j);
 				CATSTR(buf2,buf);
 				if(++k % 4 == 0) {
 					CATSTR(buf2,"\n");
@@ -273,7 +309,7 @@ int status_skills(int n,char *p)
 		}
 		for (i=0;i<SKL_MGEF3_MAX;i++) {
 			if ((j=cd[n].skill[SKL_MAGIC_EF3][i]/100) > 0) {
-				snprintf(buf,sizeof(buf)," %-13.13s: %2i ",use_effect[i+61],j);
+				std::snprintf(buf,sizeof(buf)," %-13.13s: %2i ",use_effect[i+61],j);
 				CATSTR(buf2,buf);
 				if(++k % 4 == 0) {
 					CATSTR(buf2,"\n");
@@ -289,7 +325,7 @@ int status_skills(int n,char *p)
 		}
 		for (i=0;i<SKL_MGSP_MAX;i++) {
 			if ((j=cd[n].skill[SKL_MAGIC_SP][i]/100) > 0) {
-				snprintf(buf,sizeof(buf)," %-12.12s : %2i ",skl_mgc_cmnspl[i],j);
+				std::snprintf(buf,sizeof(buf)," %-12.12s : %2i ",kSkillMagicCommonSpells[i],j);
 				CATSTR(buf2,buf);
 			}
 			if (i % 4 == 3 && *(buf2+2) != '\0') {
@@ -303,10 +339,11 @@ int status_skills(int n,char *p)
 			check_write(n,buf2);
 			CPYSTR(buf2,"  ");
 		}
+		/* FN は i が 3 の倍数のときに中身があれば改行して出す。 */
 		dmcheck_write(n,DMM_SKILLS_FN);
 		for (i=0;i<SKL_MGFN_MAX;i++) {
 			if ((j=cd[n].skill[SKL_MAGIC_FN][i]/100) > 0) {
-				snprintf(buf,sizeof(buf)," %-7.7s : %2i ",fn_name[i],j);
+				std::snprintf(buf,sizeof(buf)," %-7.7s : %2i ",fn_name[i],j);
 				CATSTR(buf2,buf);
 			}
 			if (i % 3 == 0 && *(buf2+2) != '\0') {
@@ -316,12 +353,14 @@ int status_skills(int n,char *p)
 			}
 		}
 	}
-	if (*p == '\0' || !strcmp(p,"detect")) {
+	/* detect/create の各小見出しは、最初の flush のときに遅れて
+	   出す（中身が無ければ見出しも出ない）。 */
+	if (*p == '\0' || !std::strcmp(p,"detect")) {
 		dmcheck_write(n,DMM_SKILLS_DETECT);
 		CPYSTR(buf2,"    ");
 		for (i=k=0;i<SKL_DTIT_MAX;i++) {
 			if ((j=cd[n].skill[SKL_DETECT_IT][i]/100) > 0) {
-				snprintf(buf,sizeof(buf)," %-12.12s: %2i ",it_name[i],j);
+				std::snprintf(buf,sizeof(buf)," %-12.12s: %2i ",it_name[i],j);
 				CATSTR(buf2,buf);
 			}
 			if (i % 4 == 3 && *(buf2+4) != '\0') {
@@ -336,7 +375,7 @@ int status_skills(int n,char *p)
 		CPYSTR(buf2,"    ");
 		for (i=k=0;i<SKL_DTWP_MAX;i++) {
 			if ((j=cd[n].skill[SKL_DETECT_WT][i]/100) > 0) {
-				snprintf(buf,sizeof(buf)," %-6.6s : %2i ",wt_name[i],j);
+				std::snprintf(buf,sizeof(buf)," %-6.6s : %2i ",wt_name[i],j);
 				CATSTR(buf2,buf);
 			}
 			if (i % 4 == 3 && *(buf2+4) != '\0') {
@@ -351,7 +390,7 @@ int status_skills(int n,char *p)
 		CPYSTR(buf2,"    ");
 		for (i=k=0;i<SKL_DTMT_MAX;i++) {
 			if ((j=cd[n].skill[SKL_DETECT_MT][i]/100) > 0) {
-				snprintf(buf,sizeof(buf)," %-8.8s: %2i ",mt_name[i],j);
+				std::snprintf(buf,sizeof(buf)," %-8.8s: %2i ",mt_name[i],j);
 				CATSTR(buf2,buf);
 			}
 			if (i % 4 == 3 && *(buf2+4) != '\0') {
@@ -364,12 +403,12 @@ int status_skills(int n,char *p)
 			}
 		}
 	}
-	if (*p == '\0' || !strcmp(p,"create")) {
+	if (*p == '\0' || !std::strcmp(p,"create")) {
 		dmcheck_write(n,DMM_SKILLS_CREATE);
 		CPYSTR(buf2,"    ");
 		for (i=k=0;i<SKL_CRIT_MAX;i++) {
 			if ((j=cd[n].skill[SKL_CREATE_IT][i]/100) > 0) {
-				snprintf(buf,sizeof(buf)," %-12.12s: %2i ",it_name[i],j);
+				std::snprintf(buf,sizeof(buf)," %-12.12s: %2i ",it_name[i],j);
 				CATSTR(buf2,buf);
 			}
 			if (i % 4 == 3 && *(buf2+4) != '\0') {
@@ -384,7 +423,7 @@ int status_skills(int n,char *p)
 		CPYSTR(buf2,"    ");
 		for (i=k=0;i<SKL_CRWP_MAX;i++) {
 			if ((j=cd[n].skill[SKL_CREATE_WT][i]/100) > 0) {
-				snprintf(buf,sizeof(buf)," %-6.6s : %2i ",wt_name[i],j);
+				std::snprintf(buf,sizeof(buf)," %-6.6s : %2i ",wt_name[i],j);
 				CATSTR(buf2,buf);
 			}
 			if (i % 4 == 3 && *(buf2+4) != '\0') {
@@ -399,7 +438,7 @@ int status_skills(int n,char *p)
 		CPYSTR(buf2,"    ");
 		for (i=k=0;i<SKL_CRMT_MAX;i++) {
 			if ((j=cd[n].skill[SKL_CREATE_MT][i]/100) > 0) {
-				snprintf(buf,sizeof(buf)," %-8.8s: %2i ",mt_name[i],j);
+				std::snprintf(buf,sizeof(buf)," %-8.8s: %2i ",mt_name[i],j);
 				CATSTR(buf2,buf);
 			}
 			if (i % 4 == 3 && *(buf2+4) != '\0') {
@@ -432,7 +471,7 @@ int check_lvup_pc(int n,int m)
 
   if (n < MAX_NTTYS && m < MAX_NTTYS) {
     pc = 1;
-    if (!strcmp(ip_address_check(n),ip_address_check(m)))
+    if (!std::strcmp(ip_address_check(n),ip_address_check(m)))
       pc = 2;
   } else
     pc = 0;
@@ -453,7 +492,9 @@ int skillup(int n,int type,int idx,int limit,int per,int e)
   lv  = cd[n].skill[type][idx] / 100;
   exp = cd[n].skill[type][idx] % 100;
 
-  i = (int) (log10((double) (cd[n].exp + 10.0)) * 10.0);
+  /* PER_DICE は評価のたびに乱数を振り直す。下の3回の評価は
+     それぞれ別の出目であり、変数にまとめてはいけない。 */
+  i = (int) (std::log10((double) (cd[n].exp + 10.0)) * 10.0);
   if (PER_DICE < i) {
       if (PER_DICE > lv &&
           PER_DICE < per) {
@@ -480,13 +521,13 @@ int skillup_weapon(int n,int m,int type,int sp)
   limit = 10 + sp;
   if (type == WT_WIDE || type == WT_AROUND)
     limit = 50;
-  if (strlen(special_com[type][0]) == sp / 10)  /* 0番が最長… */
+  if (std::strlen(special_com[type][0]) == sp / 10)  /* 0番が最長… */
     limit = 99;
 
   /* 同じ武器を使う相手なら相手の Skill LV が高い程上がり易い */
-  if (type == WT_FIST && m < MAX_NTTYS && cd[m].weq == NULL) {
+  if (type == WT_FIST && m < MAX_NTTYS && cd[m].weq == nullptr) {
     vslv = cd[m].skill[SKL_WEAPON][WT_FIST/WT_PLACE];
-  } else if (cd[m].weq != NULL && (cd[m].weq->type & WT_MASK) / WT_PLACE == type) {
+  } else if (cd[m].weq != nullptr && (cd[m].weq->type & WT_MASK) / WT_PLACE == type) {
     vslv = cd[m].skill[SKL_WEAPON][type];
   } else
     vslv = 0;
@@ -513,6 +554,8 @@ int skillup_magic_one(int n,int m,int type,int idx,int f)
         skillup(n,type,idx,98,50,1);
     }
 
+    /* NCN_COAT() は double のため、100 / NCN_COAT は浮動小数点
+       の割り算になり、int へ切り捨てて代入される。 */
     /* coat,spell upに頼ると未熟なまま… */
     if (type == SKL_MAGIC_EF1 && idx == SKL_MGEF1_COAT) {
       j = 100 / NCN_COAT(n);
@@ -528,6 +571,9 @@ int skillup_magic_one(int n,int m,int type,int idx,int f)
     return (1);
 }
 
+/* m==0 は「相手なし」（詠唱のみ・空撃ち）の合図で、lvup 判定を
+   素通りし、上限は 10 になる。m>0 のときだけ check_lvup_pc()
+   で PC 同士の制限を見る。 */
 int skillup_magic(int n,int m,MagicData *md,int chrg)
 {
   int ef;
@@ -601,8 +647,8 @@ int skill_down_dead(int n)
 		return(0);
 
 	for (i=0;i<MAX_SKILL_TYPES;i++) {
-		if (cd[n].skill[i] != NULL && skl_max[i] > 0) {
-			for (j=0;j<skl_max[i];j++) {
+		if (cd[n].skill[i] != nullptr && kSkillMax[i] > 0) {
+			for (j=0;j<kSkillMax[i];j++) {
 				cd[n].skill[i][j] -= 10;
 				/* 一度習得した Skill LV は 0にはならない */
 				if (cd[n].skill[i][j] >= 90 && cd[n].skill[i][j] < 100)
@@ -624,8 +670,8 @@ int skill_down_idle(int n)
 		return(0);
 
 	for (i=0;i<MAX_SKILL_TYPES;i++) {
-		if (cd[n].skill[i] != NULL && skl_max[i] > 0) {
-			for (j=0;j<skl_max[i];j++) {
+		if (cd[n].skill[i] != nullptr && kSkillMax[i] > 0) {
+			for (j=0;j<kSkillMax[i];j++) {
 				if (PER_DICE < cd[n].skill[i][j]/100) {
 					cd[n].skill[i][j]--;
 					/* 一度習得した Skill LV は 0にはならない */
@@ -641,6 +687,11 @@ int skill_down_idle(int n)
 	return(1);
 }
 
+/* skillup_magic() と同じ効果振り分けで、対応する熟練度を返す。
+   ただし EF_NONE はここでは 0 を返す（skillup_magic() 側は
+   効果 0 でも AT 2/0 の熟練度を振る経路に入る）。添字の
+   3/7/2 は SKL_MGAT_LINE/SKL_MGAT_ROOF/SKL_MGAT_HEAL の
+   値そのもの。 */
 int skill_mg_calc(int n, MagicData *md)
 {
   int ef;
@@ -677,8 +728,12 @@ int skill_mg_calc(int n, MagicData *md)
 
 int skill_crt_check(int n, ItemData *id)
 {
+	/* WT/MT の添字は skillup_create() と同じく PLACE で割ってから
+	   使う。以前は割らずに添字にしていたため、type & WT_MASK は
+	   最大 0xf0、type & MT_MASK は最大 0xf00 になり、16 個しかない
+	   配列の範囲外を読んでいた（2026-11-16 修正）。 */
 	return ((cd[n].skill[SKL_CREATE_IT][id->type & IT_MASK] +
-	         cd[n].skill[SKL_CREATE_WT][id->type & WT_MASK]/WT_PLACE +
+	         cd[n].skill[SKL_CREATE_WT][(id->type & WT_MASK)/WT_PLACE] +
              /* 素材のウェイトが大きい… */
-	     2 * cd[n].skill[SKL_CREATE_MT][id->type & MT_MASK]/MT_PLACE) / 4);
+	     2 * cd[n].skill[SKL_CREATE_MT][(id->type & MT_MASK)/MT_PLACE]) / 4);
 }

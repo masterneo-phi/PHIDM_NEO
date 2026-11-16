@@ -1,15 +1,13 @@
 
 /*  Phantasmal Island ( Dungeon Master )  1994-5(C)b-Yak-38 */
 
-#include  <stdio.h>
-#include  <string.h>
-#include  <ctype.h>
-#include  <math.h>
-#ifndef Mips
-#include  <stdlib.h>
-#endif
-#include  <time.h>
-#include <limits.h>
+#include  <cstdio>
+#include  <cstdlib>
+#include  <cstring>
+#include  <cmath>
+#include  <ctime>
+#include  <climits>
+#include  <array>
 
 #include  "phi_dm.h"
 #include  "phi_data.h"
@@ -19,22 +17,16 @@
 #include  "phi_magic.h"
 #include  "phi_str.h"
 
-#define MC_F  0x1
-#define MC_L  0x2
-#define MC_R  0x4
-#define MC_B  0x8
+namespace {
 
-#define STEP_GO     0
-#define STEP_GO_L   1
-#define STEP_GO_R   2
-#define STEP_GO_B   3
-#define STEP_TURN_L 4
-#define STEP_TURN_R 5
-#define STEP_TURN_B 6
-
-static char *go_com[7] =
+/* 歩行・回転のコマンド文字列。添字は STEP_* (phi_enemy.h)。
+   input_analyze() の引数が char * (phi_dm.h のモジュール間
+   インターフェース) のため、呼び出し側で const_cast する。 */
+constexpr std::array<const char *, 7> kGoCom =
 {"go", "go l",   "go r",   "go b",
  "turn l", "turn r", "turn b"};
+
+} // namespace
 
 #ifdef DEBUG
 char  debug_buf[256];
@@ -43,11 +35,16 @@ char  debug_buf[256];
 extern int px[];
 extern int py[];
 
-static int sx[25] =
+namespace {
+
+/* 視界 (5x5) の走査順。view[ kSy[sa] + 1 ][ kSx[sa] + 2 ] の形で使う。 */
+constexpr std::array<int, 25> kSx =
 {0, -1, 1, 0, 0, -1, 1, -1, 1, 0, -2, 2, 0, -1, 1, -2, 2, -2, 2, -1, 1, -2, 2, -2, 2};
 
-static int sy[25] =
+constexpr std::array<int, 25> kSy =
 {1, 0, 0, -1, 0, 1, 1, -1, -1, 2, 0, 0, 3, 2, 2, 1, 1, -1, -1, 3, 3, 2, 2, 3, 3};
+
+} // namespace
 
 extern int enmax; /* move for controlable sammon 20000614 */
 extern CHROData *ed_o;
@@ -243,7 +240,7 @@ int    try_to_attackstep(int n, int m, int vx, int vy, int mc)
     }
     i++;
   }
-  input_analyze(n, go_com[i]);
+  input_analyze(n, const_cast<char *>(kGoCom[i]));
   return 1;
 }
 
@@ -420,7 +417,7 @@ int   try_to_wizardstep(int n, int m, int vx, int vy, int mc)
     }
     i++;
   }
-  input_analyze(n, go_com[i]);
+  input_analyze(n, const_cast<char *>(kGoCom[i]));
   if(i==0 && max_num == 1 && PER_DICE < 30)
     cd[n].think = TH_NONE;
   return 1;
@@ -504,7 +501,7 @@ int    try_to_tracestep(int n, int m, int vx, int vy, int mc)
     }
     i++;
   }
-  input_analyze(n, go_com[i]);
+  input_analyze(n, const_cast<char *>(kGoCom[i]));
   return 1;
 }
 
@@ -625,7 +622,7 @@ int    try_to_runstep(int n, int m, int vx, int vy, int mc, int damaged)
   /* view 位置への変換 */
   xx= -py[cd[n].d]*(cd[m].x-cd[n].x)+px[cd[n].d]*(cd[m].y-cd[n].y);
   yy=  px[cd[n].d]*(cd[m].x-cd[n].x)+py[cd[n].d]*(cd[m].y-cd[n].y);
-  if(abs(xx)<=abs(yy))
+  if(std::abs(xx)<=std::abs(yy))
     if(yy>=0) calc[STEP_GO]/=2;
     else      calc[STEP_GO_B]/=2;
   else
@@ -710,12 +707,13 @@ int    try_to_runstep(int n, int m, int vx, int vy, int mc, int damaged)
     }
     i++;
   }
-  input_analyze(n, go_com[i]);
+  input_analyze(n, const_cast<char *>(kGoCom[i]));
   return 1;
 }
 
 int auto_action(int n)
 {
+  /* buf は CPYSTR/CATSTR (sizeof(d) を使うマクロ) で使うため C 配列のまま */
   char   buf[256],*p;
   int    x, y, d;
   int    pdx, pdy;
@@ -731,7 +729,7 @@ int auto_action(int n)
     return (0);
   }
   if (cd[n].st == ST_TRANSSELECT){
-    input_analyze(n,".");
+    input_analyze(n, (char *)".");
     return 0;
   }
   if(cd[n].think == TH_WIN){
@@ -757,10 +755,10 @@ int auto_action(int n)
     return (0);
   }
   if((cd[n].think == TH_TALK || cd[n].think == TH_WAIT) && cd[n].damaged >=0){
-    if(view_location(n, cd[n].trace, NULL, NULL))
-      input_analyze(n, NTK_LATE);
+    if(view_location(n, cd[n].trace, nullptr, nullptr))
+      input_analyze(n, (char *)NTK_LATE);
     else
-      input_analyze(n, NTK_WHERE);
+      input_analyze(n, (char *)NTK_WHERE);
     cd[n].trace = -1;
     cd[n].vf = 0;
     cd[n].think = TH_NONE;
@@ -782,7 +780,7 @@ int auto_action(int n)
     i=j;
     break;
   }
-      snprintf(buf, sizeof(buf), "use %s", cd[n].id[i].name);
+      std::snprintf(buf, sizeof(buf), "use %s", cd[n].id[i].name);
       input_analyze(n, buf);
       return (0);
     }
@@ -802,7 +800,7 @@ int auto_action(int n)
    && (cd[n].id[i].UE == EF_HEAL
        || cd[n].id[i].UE == EF_HEALS
        || (cd[n].id[i].UE == EF_REGENE && CN_REGENE(n)==0))
-   && (!is_need_charge_time || cd[n].id[i].active_time <= time(NULL)))
+   && (!is_need_charge_time || cd[n].id[i].active_time <= time(nullptr)))
   break;
     if(i<MAX_ITEMS){
       for(j = 0; j< i; j++)
@@ -811,7 +809,7 @@ int auto_action(int n)
     i=j;
     break;
   }
-      snprintf(buf, sizeof(buf),"use %s",cd[n].id[i].name);
+      std::snprintf(buf, sizeof(buf),"use %s",cd[n].id[i].name);
       input_analyze(n,buf);
       return 0;
     }
@@ -851,13 +849,13 @@ int auto_action(int n)
   switch (cd[n].think) {
   case TH_TALK:
     if (cd[n].target == cd[n].trace){
-      if (str_search(n, "bye")) {
+      if (str_search(n, (char *)"bye")) {
   input_analyze(n, (char*)(50 > cd[n].align ? NTK_BYE_LAW : NTK_BYE_CHAOS));
   cd[n].trace = -1;
   cd[n].vf = 0;
   cd[n].think = TH_NONE;
   return (0);
-      } else if (str_search(n, "help")) {
+      } else if (str_search(n, (char *)"help")) {
   if(!((fld[map[cd[n].y][cd[n].x].area].flag) & FF_MAGIC)){
     for (i = 0; i < MAX_MAGICS; i++)
       if (cd[n].md[i].effect == EF_HEALS)
@@ -872,28 +870,28 @@ int auto_action(int n)
   input_analyze(n, (char*)(50 > cd[n].align
         ? NTK_HELP_NO_LAW : NTK_HELP_NO_CHAOS));
   return (0);
-      } else if (!(cd[n].vf & VF_NOT_TRACE) && str_search(n, "come")) {
+      } else if (!(cd[n].vf & VF_NOT_TRACE) && str_search(n, (char *)"come")) {
   if (PER_DICE < cd[n].align) {
     input_analyze(n, (char*)(50 > cd[n].align
           ? NTK_COME_NO_LAW : NTK_COME_NO_CHAOS));
     cd[n].vf |= VF_NOT_TRACE;
   } else {
-    input_analyze(n, NTK_COME_OK);
+    input_analyze(n, (char *)NTK_COME_OK);
     cd[n].think = TH_TRACE;
   }
   return (0);
-      } else if (!(cd[n].vf & VF_NOT_STAY) && str_search(n, "stay")) {
+      } else if (!(cd[n].vf & VF_NOT_STAY) && str_search(n, (char *)"stay")) {
   if (PER_DICE < cd[n].align) {
     input_analyze(n, (char*)(50 > cd[n].align
           ? NTK_STAY_NO_LAW : NTK_STAY_NO_CHAOS));
     cd[n].vf |= VF_NOT_STAY;
   } else {
-    input_analyze(n, NTK_STAY_OK);
+    input_analyze(n, (char *)NTK_STAY_OK);
     cd[n].think = TH_WAIT;
   }
   return (0);
-      } else if (str_search(n, "?")) {
-  if (!(cd[n].vf & VF_FOOD) && str_search(n, "food")) {
+      } else if (str_search(n, (char *)"?")) {
+  if (!(cd[n].vf & VF_FOOD) && str_search(n, (char *)"food")) {
     for (i = 0; i < MAX_ITEMS; i++)
       if ((cd[n].id[i].type & IT_MASK) == IT_FOOD
     &&(cd[n].id[i].wp >= cd[n].id[i].ENTROP
@@ -913,7 +911,7 @@ int auto_action(int n)
     input_analyze(n, (char*)(50 > cd[n].align
           ? NTK_BUY_FOOD_NO_LAW : NTK_BUY_FOOD_NO_CHAOS));
     return (0);
-  } else if (!(cd[n].vf & VF_WEAPON) && str_search(n, "weapon")) {
+  } else if (!(cd[n].vf & VF_WEAPON) && str_search(n, (char *)"weapon")) {
     for (i = 0; i < MAX_ITEMS; i++)
       if (cd[n].id[i].type == DT_NONE)
         break;
@@ -926,7 +924,7 @@ int auto_action(int n)
     input_analyze(n, (char*)(50 > cd[n].align
           ? NTK_BUY_WPN_NO_LAW : NTK_BUY_WPN_NO_CHAOS));
     return (0);
-  } else if (!(cd[n].vf & VF_ARMOR) && str_search(n, "armor")) {
+  } else if (!(cd[n].vf & VF_ARMOR) && str_search(n, (char *)"armor")) {
     for (i = 0; i < MAX_ITEMS; i++)
       if (cd[n].id[i].type == DT_NONE)
         break;
@@ -939,7 +937,7 @@ int auto_action(int n)
     input_analyze(n, (char*)(50 > cd[n].align
           ? NTK_BUY_ARM_NO_LAW : NTK_BUY_ARM_NO_CHAOS));
     return (0);
-  } else if (!(cd[n].vf & VF_ACCESSORY) && str_search(n, "accessory")) {
+  } else if (!(cd[n].vf & VF_ACCESSORY) && str_search(n, (char *)"accessory")) {
     for (i = 0; i < MAX_ITEMS; i++)
       if (cd[n].id[i].type == DT_NONE)
         break;
@@ -954,7 +952,7 @@ int auto_action(int n)
     return (0);
   } else if (npc_use_charged_item
        &&!(cd[n].vf & VF_CHARGE)
-       && str_search(n, "charged item")) {
+       && str_search(n, (char *)"charged item")) {
     for (i = 0; i < MAX_ITEMS; i++)
       if (cd[n].id[i].type == DT_NONE)
         break;
@@ -971,7 +969,7 @@ int auto_action(int n)
     for(i = 0; i < MAX_TALKS; i++)
       if(cd[n].td[i].type == TT_KEYWORD){
         CPYSTR(buf, cd[n].td[i].string);
-        if((p=strchr(buf,':'))!=NULL){
+        if((p=std::strchr(buf,':'))!=nullptr){
     *p='\0';
     if(str_search(n,buf)){
       input_analyze(n, p+1);
@@ -990,7 +988,7 @@ int auto_action(int n)
   input_analyze(n, (char*)(50 > cd[n].align
         ? NTK_HELP_THX_LAW : NTK_HELP_THX_CHAOS));
   if (PER_DICE > cd[n].align + 50) {
-    snprintf(buf, sizeof(buf), "pay %i", (99 - cd[n].align) / 10 + 1);
+    std::snprintf(buf, sizeof(buf), "pay %i", (99 - cd[n].align) / 10 + 1);
     input_analyze(n, buf);
   }
   cd[n].vf &= ~(VF_DYING | VF_HEAL);
@@ -1001,10 +999,10 @@ int auto_action(int n)
       break;
   if (i < MAX_ITEMS) {
     if((cd[n].vf & VF_FOOD)
-       && (flooritem=investigate_item_on_floor(n,IT_FOOD))!=NULL){
+       && (flooritem=investigate_item_on_floor(n,IT_FOOD))!=nullptr){
       cd[n].vf &= ~VF_FOOD;
       item_name_on_floor(cd[n].str,flooritem,sizeof(cd[n].str));
-      snprintf(buf, sizeof(buf), "get %s", cd[n].str);
+      std::snprintf(buf, sizeof(buf), "get %s", cd[n].str);
       input_analyze(n, buf);
       if (PER_DICE < cd[n].align - 50) {
         cd[n].think = TH_GET_AWAY;
@@ -1018,7 +1016,7 @@ int auto_action(int n)
       else if(cd[n].at == AT_IRONSTOMACH)
         i = 1;
       else {
-        snprintf(buf, sizeof(buf), "put %s", cd[n].str);
+        std::snprintf(buf, sizeof(buf), "put %s", cd[n].str);
         input_analyze(n, buf);
         input_analyze(n
           ,(char*)(50 > cd[n].align
@@ -1031,12 +1029,12 @@ int auto_action(int n)
       if (i < 10)
         i = 10;
       if (cd[n].gp >= i) {
-        snprintf(buf, sizeof(buf), "pay %i", i);
+        std::snprintf(buf, sizeof(buf), "pay %i", i);
         input_analyze(n, buf);
         input_analyze(n, (char*)(50 > cd[n].align
         ? NTK_BUY_FOOD_THX_LAW : NTK_BUY_FOOD_THX_CHAOS));
       } else {
-        snprintf(buf, sizeof(buf), "put %s", cd[n].str); /* bug fix by Qajin 20000103 */
+        std::snprintf(buf, sizeof(buf), "put %s", cd[n].str); /* bug fix by Qajin 20000103 */
         input_analyze(n, buf);
         input_analyze(n, (char*)(50 > cd[n].align
         ? NTK_BUY_FOOD_POOR_LAW
@@ -1045,10 +1043,10 @@ int auto_action(int n)
       return (0);
     }
     if ((cd[n].vf & VF_WEAPON)
-        && (flooritem=investigate_item_on_floor(n, 0))!=NULL){
+        && (flooritem=investigate_item_on_floor(n, 0))!=nullptr){
       cd[n].vf &= ~VF_WEAPON;
       item_name_on_floor(cd[n].str, flooritem,sizeof(cd[n].str));
-      snprintf(buf, sizeof(buf), "get %s", cd[n].str);
+      std::snprintf(buf, sizeof(buf), "get %s", cd[n].str);
       input_analyze(n, buf);
       if (PER_DICE < cd[n].align - 50) {
         cd[n].think = TH_GET_AWAY;
@@ -1061,7 +1059,7 @@ int auto_action(int n)
         if (cd[n].id[j].type == DT_NONE || i == j)
     continue;
         if (cd[n].id[i].ATP <= cd[n].id[j].ATP) {
-    snprintf(buf, sizeof(buf), "put %s", cd[n].id[i].name);
+    std::snprintf(buf, sizeof(buf), "put %s", cd[n].id[i].name);
     input_analyze(n, buf);
     input_analyze(n
             ,(char*)(50 > cd[n].align
@@ -1076,12 +1074,12 @@ int auto_action(int n)
       if (i < 10)
         i = 10;
       if (cd[n].gp >= i) {
-        snprintf(buf, sizeof(buf), "pay %i", i);
+        std::snprintf(buf, sizeof(buf), "pay %i", i);
         input_analyze(n, buf);
         input_analyze(n, (char*)(50 > cd[n].align
         ? NTK_BUY_WPN_THX_LAW : NTK_BUY_WPN_THX_CHAOS));
       } else {
-        snprintf(buf, sizeof(buf), "put %s", cd[n].str);
+        std::snprintf(buf, sizeof(buf), "put %s", cd[n].str);
         input_analyze(n, buf);
         input_analyze(n, (char*)(50 > cd[n].align
         ? NTK_BUY_WPN_POOR_LAW
@@ -1090,10 +1088,10 @@ int auto_action(int n)
       return (0);
     }
     if ((cd[n].vf & VF_ACCESSORY)
-        &&(flooritem=investigate_item_on_floor(n, IT_ACCESSORY))!=NULL){
+        &&(flooritem=investigate_item_on_floor(n, IT_ACCESSORY))!=nullptr){
       cd[n].vf &= ~VF_ACCESSORY;
       item_name_on_floor(cd[n].str, flooritem,sizeof(cd[n].str));
-      snprintf(buf, sizeof(buf), "get %s", cd[n].str);
+      std::snprintf(buf, sizeof(buf), "get %s", cd[n].str);
       input_analyze(n, buf);
       if (PER_DICE < cd[n].align - 50) {
         cd[n].think = TH_GET_AWAY;
@@ -1103,8 +1101,8 @@ int auto_action(int n)
         select_accessory(n);
         return (0);
       }
-      if ((cd[n].oeq != NULL) || (curse_check(n, cd[n].id[i].SE) < 0)) {
-        snprintf(buf, sizeof(buf), "put %s", cd[n].id[i].name);
+      if ((cd[n].oeq != nullptr) || (curse_check(n, cd[n].id[i].SE) < 0)) {
+        std::snprintf(buf, sizeof(buf), "put %s", cd[n].id[i].name);
         input_analyze(n, buf);
         input_analyze(n
           ,(char*)(50 > cd[n].align
@@ -1118,13 +1116,13 @@ int auto_action(int n)
       if (i < 10)
         i = 10;
       if (cd[n].gp >= i) {
-        snprintf(buf, sizeof(buf), "pay %i", i);
+        std::snprintf(buf, sizeof(buf), "pay %i", i);
         input_analyze(n, buf);
         input_analyze(n, (char*)(50 > cd[n].align
         ? NTK_BUY_ACC_THX_LAW : NTK_BUY_ACC_THX_CHAOS));
         select_accessory(n);
       } else {
-        snprintf(buf, sizeof(buf), "put %s", cd[n].str);
+        std::snprintf(buf, sizeof(buf), "put %s", cd[n].str);
         input_analyze(n, buf);
         input_analyze(n, (char*)(50 > cd[n].align
         ? NTK_BUY_ACC_POOR_LAW
@@ -1133,10 +1131,10 @@ int auto_action(int n)
       return (0);
     }
     if ((cd[n].vf & VF_ARMOR)
-        && (flooritem=investigate_item_on_floor(n, IT_ARMOR))!=NULL){
+        && (flooritem=investigate_item_on_floor(n, IT_ARMOR))!=nullptr){
       cd[n].vf &= ~VF_ARMOR;
       item_name_on_floor(cd[n].str, flooritem,sizeof(cd[n].str));
-      snprintf(buf, sizeof(buf), "get %s", cd[n].str);
+      std::snprintf(buf, sizeof(buf), "get %s", cd[n].str);
       input_analyze(n, buf);
       if (PER_DICE < cd[n].align - 50) {
         cd[n].think = TH_GET_AWAY;
@@ -1151,7 +1149,7 @@ int auto_action(int n)
     continue;
         if (cd[n].id[i].DFP + cd[n].id[i].MRP
       <= cd[n].id[j].DFP + cd[n].id[j].MRP) {
-    snprintf(buf, sizeof(buf), "put %s", cd[n].id[i].name);
+    std::snprintf(buf, sizeof(buf), "put %s", cd[n].id[i].name);
     input_analyze(n, buf);
     input_analyze(n
             ,(char*)(50 > cd[n].align
@@ -1167,13 +1165,13 @@ int auto_action(int n)
       if (i < 10)
         i = 10;
       if (cd[n].gp >= i) {
-        snprintf(buf, sizeof(buf), "pay %i", i);
+        std::snprintf(buf, sizeof(buf), "pay %i", i);
         input_analyze(n, buf);
         input_analyze(n, (char*)(50 > cd[n].align
         ? NTK_BUY_ARM_THX_LAW : NTK_BUY_ARM_THX_CHAOS));
         select_armor(n);
       } else {
-        snprintf(buf, sizeof(buf), "put %s", cd[n].str);
+        std::snprintf(buf, sizeof(buf), "put %s", cd[n].str);
         input_analyze(n, buf);
         input_analyze(n, (char*)(50 > cd[n].align
         ? NTK_BUY_ARM_POOR_LAW
@@ -1182,10 +1180,10 @@ int auto_action(int n)
       return (0);
     }
     if ((cd[n].vf & VF_CHARGE)
-        && (flooritem=investigate_item_on_floor(n,IT_CHARGE))!=NULL){
+        && (flooritem=investigate_item_on_floor(n,IT_CHARGE))!=nullptr){
       cd[n].vf &= ~VF_CHARGE;
       item_name_on_floor(cd[n].str, flooritem,sizeof(cd[n].str));
-      snprintf(buf, sizeof(buf), "get %s", cd[n].str);
+      std::snprintf(buf, sizeof(buf), "get %s", cd[n].str);
       input_analyze(n, buf);
       if (PER_DICE < cd[n].align - 50) {
         cd[n].think = TH_GET_AWAY;
@@ -1204,12 +1202,12 @@ int auto_action(int n)
       if (i < 10)
         i = 10;
       if (cd[n].gp >= i) {
-        snprintf(buf, sizeof(buf), "pay %i", i);
+        std::snprintf(buf, sizeof(buf), "pay %i", i);
         input_analyze(n, buf);
         input_analyze(n, (char*)(50 > cd[n].align
         ? NTK_BUY_CHG_THX_LAW : NTK_BUY_CHG_THX_CHAOS));
       } else {
-        snprintf(buf, sizeof(buf), "put %s", cd[n].str);
+        std::snprintf(buf, sizeof(buf), "put %s", cd[n].str);
         input_analyze(n, buf);
         input_analyze(n, (char*)(50 > cd[n].align
         ? NTK_BUY_CHG_POOR_LAW
@@ -1221,7 +1219,7 @@ int auto_action(int n)
       }
     }
     if(!view_location(n, cd[n].trace, &vx, &vy)){
-      input_analyze(n, NTK_WHERE);
+      input_analyze(n, (char *)NTK_WHERE);
       cd[n].trace = -1;
       cd[n].vf = 0;
       cd[n].think = TH_NONE;
@@ -1231,7 +1229,7 @@ int auto_action(int n)
       k = temptation_to_attack(n);
       if(k == 0 && vx == 2 && vy == 1) break;
       if(PER_DICE<= cd[n].align + k){
-  if(k>0) input_analyze(n, NTK_LATE);
+  if(k>0) input_analyze(n, (char *)NTK_LATE);
   else    input_analyze(n, (char*)(50 > cd[n].align
           ? NTK_TRACESTOP_LAW : NTK_TRACESTOP_CHAOS));
   cd[n].trace = -1;
@@ -1270,17 +1268,17 @@ int auto_action(int n)
     }
     if (cd[n].type == CT_NORMAL
   && i >= 0 && i < MAX_NTTYS && cd[n].target == i) {
-      if (str_search(n, "hi")
+      if (str_search(n, (char *)"hi")
     && cd[n].damaged <0
     && PER_DICE > cd[i].align && PER_DICE > cd[n].align
     && cd[n].angry!=i) {
   if(!npc_talk(n, TT_HI))
-    input_analyze(n, NTK_HI);
+    input_analyze(n, (char *)NTK_HI);
   cd[n].trace = i;
   cd[n].vf = 0;
   cd[n].think = TH_TALK;
   return (0);
-      } else if (cd[n].trace == i && str_search(n, "bye")){
+      } else if (cd[n].trace == i && str_search(n, (char *)"bye")){
   input_analyze(n, (char*)(50 > cd[n].align
         ? NTK_BYE_LAW : NTK_BYE_CHAOS));
   cd[n].trace = -1;
@@ -1297,11 +1295,11 @@ int auto_action(int n)
   if (cd[n].id[i].type == DT_NONE)
     break;
       if (i < MAX_ITEMS) {
-  if((flooritem = investigate_item_on_floor(n,IT_FOOD))!=NULL
+  if((flooritem = investigate_item_on_floor(n,IT_FOOD))!=nullptr
      && (flooritem->id.wp >= flooritem->id.ENTROP
          || cd[n].at == AT_IRONSTOMACH)){
     item_name_on_floor(cd[n].str, flooritem,sizeof(cd[n].str));
-    snprintf(buf, sizeof(buf), "get %s", cd[n].str);
+    std::snprintf(buf, sizeof(buf), "get %s", cd[n].str);
     input_analyze(n, buf);
     for (j = 0; j < MAX_ITEMS; j++)
       if (i != j
@@ -1319,48 +1317,48 @@ int auto_action(int n)
     i=k;
     break;
         }
-      snprintf(buf, sizeof(buf), "use %s", cd[n].id[i].name);
+      std::snprintf(buf, sizeof(buf), "use %s", cd[n].id[i].name);
       input_analyze(n, buf);
     }
     return 0;
   }
   if(cd[n].type == CT_NORMAL
-     && (flooritem=investigate_item_on_floor(n, IT_WEAPON))!=NULL){
+     && (flooritem=investigate_item_on_floor(n, IT_WEAPON))!=nullptr){
     for(j=0; j<MAX_ITEMS; j++)
       if((cd[n].id[j].type & IT_MASK) == IT_WEAPON
          && cd[n].id[j].active_time!=ULONG_MAX)
         break;
     if(j>=MAX_ITEMS){
       item_name_on_floor(cd[n].str, flooritem,sizeof(cd[n].str));
-      snprintf(buf, sizeof(buf), "get %s", cd[n].str);
+      std::snprintf(buf, sizeof(buf), "get %s", cd[n].str);
       input_analyze(n, buf);
       return 0;
     }
   }
   if(npc_use_charged_item){
     if(cd[n].type == CT_NORMAL
-       && (flooritem=investigate_item_on_floor(n, IT_CHARGE))!=NULL){
+       && (flooritem=investigate_item_on_floor(n, IT_CHARGE))!=nullptr){
       item_name_on_floor(cd[n].str, flooritem,sizeof(cd[n].str));
-      snprintf(buf, sizeof(buf), "get %s", cd[n].str);
+      std::snprintf(buf, sizeof(buf), "get %s", cd[n].str);
       input_analyze(n, buf);
       return 0;
     }
   }
       }
       if(cd[n].type == CT_NORMAL
-   && (flooritem=investigate_item_on_floor(n, IT_JEWEL))!=NULL
+   && (flooritem=investigate_item_on_floor(n, IT_JEWEL))!=nullptr
    && (i< MAX_ITEMS || is_gp(flooritem))){
   item_name_on_floor(cd[n].str, flooritem,sizeof(cd[n].str));
-  snprintf(buf, sizeof(buf), "get %s", cd[n].str);
+  std::snprintf(buf, sizeof(buf), "get %s", cd[n].str);
   input_analyze(n, buf);
   return 0;
       }
       if(i<MAX_ITEMS){
   if(cd[n].type == CT_ERASER
-     && (flooritem=investigate_item_on_floor(n, 0))!=NULL){
+     && (flooritem=investigate_item_on_floor(n, 0))!=nullptr){
     item_name_on_floor(cd[n].str, flooritem,sizeof(cd[n].str));
     j = cd[n].gp;
-    snprintf(buf, sizeof(buf), "get %s", cd[n].str);
+    std::snprintf(buf, sizeof(buf), "get %s", cd[n].str);
     input_analyze(n, buf);
     if (cd[n].gp > j) {
       dmprintf(n,0,buf, sizeof(buf),DMM_DESTRUCT_MONEY
@@ -1381,12 +1379,12 @@ int auto_action(int n)
 
     if(cd[n].think == TH_WAIT) {
       if(PER_DICE<= cd[n].align + temptation_to_attack(n)) {
-  if(view_location(n, cd[n].trace, NULL, NULL)){
-    input_analyze(n, NTK_LATE);
+  if(view_location(n, cd[n].trace, nullptr, nullptr)){
+    input_analyze(n, (char *)NTK_LATE);
     cd[n].trace = -1;
     cd[n].think = TH_NONE;
   } else {
-    input_analyze(n, NTK_WHERE);
+    input_analyze(n, (char *)NTK_WHERE);
     cd[n].trace = -1;
     cd[n].think = TH_NONE;
   }
@@ -1395,10 +1393,10 @@ int auto_action(int n)
     }
 
     if (cd[n].think == TH_TRACE && PER_DICE <= cd[n].align - 50){
-      if(view_location(n, cd[n].trace, NULL, NULL))
-  input_analyze(n, NTK_TRACESTOP_CHAOS);
+      if(view_location(n, cd[n].trace, nullptr, nullptr))
+  input_analyze(n, (char *)NTK_TRACESTOP_CHAOS);
       else
-  input_analyze(n, NTK_WHERE);
+  input_analyze(n, (char *)NTK_WHERE);
       cd[n].trace = -1;
       cd[n].think = TH_NONE;
       break;
@@ -1411,17 +1409,17 @@ int auto_action(int n)
       cd[n].think = TH_NONE;
 
     if (cd[n].trace != -1
-  && !view_location(n, cd[n].trace, NULL, NULL)
+  && !view_location(n, cd[n].trace, nullptr, nullptr)
   && PER_DICE <= cd[n].align) {
       /* trace してる PC を見失う */
-      input_analyze(n, NTK_WHERE);
+      input_analyze(n, (char *)NTK_WHERE);
       cd[n].target = cd[n].trace = -1;
       cd[n].think = TH_NONE;
       break;
     }
     /* add for controlable sammon 20000614 */
     if (cd[n].trace == -1 && cd[n].vf2 >= 0
-  && view_location(n, cd[n].vf2, NULL, NULL)
+  && view_location(n, cd[n].vf2, nullptr, nullptr)
   && accept_master(n,cd[n].vf2)) {
       /* 見失った master を 再発見した */
       if(cd[n].type == CT_NORMAL)
@@ -1460,6 +1458,7 @@ void      random_walk(int n, int mc)
 {
   int xx, yy;
   int pdx, pdy;
+  /* CPYSTR で使うため C 配列のまま */
   char buf[7];
 
   xx = cd[n].x;
@@ -1510,7 +1509,7 @@ void      random_walk(int n, int mc)
   }
   input_analyze(n, buf);
   if (*buf == 'g' && xx == cd[n].x && yy == cd[n].y)
-    input_analyze(n, "turn b");
+    input_analyze(n, (char *)"turn b");
 }
 
 int    run_walk(int n, int mc)
@@ -1528,7 +1527,7 @@ int    run_walk(int n, int mc)
     return 1;
   for (sa=0; sa<25; sa++)
     for (i=0;i<MAX_CHRS_INONE;i++){
-      if ((j = cd[n].view[vy=sy[sa]+1][vx=sx[sa]+2].chr[i] - 1) < 0)
+      if ((j = cd[n].view[vy=kSy[sa]+1][vx=kSx[sa]+2].chr[i] - 1) < 0)
   continue;
       if (enemy_check(n,j) && try_to_runstep(n, j, vx, vy, mc, damaged))
   return 1;
@@ -1652,7 +1651,7 @@ int attack_check(int n, int m)
         && ((cd[n].id[i].type & IT_MASK) == IT_CHARGE
       && (cd[n].id[i].SE == SE_HITTOUSE
           || cd[n].id[i].SE == SE_HITISUSE))
-        && (!is_need_charge_time || cd[n].id[i].active_time <= time(NULL))) {
+        && (!is_need_charge_time || cd[n].id[i].active_time <= time(nullptr))) {
       if(!is_effective_effect(n, m, cd[n].id[i].UE, cd[n].id[i].fn,ED_NORESTRICT))
   continue;
     } else continue;
@@ -1689,7 +1688,7 @@ int attack_check(int n, int m)
   cd[n].weq = &cd[n].id[f];
   cd[n].wsep = sep_calc(n, cd[n].weq);
   set_fn(n);
-  input_analyze(n, "hit");
+  input_analyze(n, (char *)"hit");
   return (2);
 }
 
@@ -1791,24 +1790,24 @@ void select_magic(int n, int f)
   MagicData md;
   int    i;
 
-  memcpy(&md, &(cd[n].md[f]), sizeof(MagicData));
+  std::memcpy(&md, &(cd[n].md[f]), sizeof(MagicData));
   for (i = f; i > 0; i--) {
     if (cd[n].md[i].effect == EF_NONE)
       continue;
-    memcpy(&(cd[n].md[i]), &(cd[n].md[i-1]), sizeof(MagicData));
+    std::memcpy(&(cd[n].md[i]), &(cd[n].md[i-1]), sizeof(MagicData));
   }
-  memcpy(&(cd[n].md[0]),&md, sizeof(MagicData));
+  std::memcpy(&(cd[n].md[0]),&md, sizeof(MagicData));
 
   if ((f=best_er_weapon(n)) == -1) {
-    cd[n].weq = NULL;
+    cd[n].weq = nullptr;
     cd[n].wsep = 0;
   } else {
     cd[n].weq = &cd[n].id[f];
     cd[n].wsep = sep_calc(n, cd[n].weq);
   }
   set_fn(n);
-  input_analyze(n, "cast");
-  cd[n].wt = strlen(md.spell)*2 - TCN_HASTE(n);
+  input_analyze(n, (char *)"cast");
+  cd[n].wt = std::strlen(md.spell)*2 - TCN_HASTE(n);
   cd[n].wt = cd[n].wt * (10000 - cd[n].lv[LV_WIZARD]) / 10000;
   if (cd[n].wt < 5)
     cd[n].wt = 5;
@@ -1830,7 +1829,7 @@ void select_armor(int n)
     if (f < 0 || cd[n].id[i].DFP + cd[n].id[i].MRP > cd[n].id[f].DFP + cd[n].id[f].MRP)
       f = i;
   }
-  cd[n].aeq = (f < 0 ? NULL : &cd[n].id[f]);
+  cd[n].aeq = (f < 0 ? nullptr : &cd[n].id[f]);
   cd[n].asep = (f < 0 ? 0 : sep_calc(n, cd[n].aeq));
   set_fn(n);
   return;
@@ -1849,7 +1848,7 @@ void select_accessory(int n)
     if (f < 0)
       f = i;
   }
-  cd[n].oeq = (f < 0 ? NULL : &(cd[n].id[f]));
+  cd[n].oeq = (f < 0 ? nullptr : &(cd[n].id[f]));
   cd[n].at = (f < 0 ? AT_NONE : cd[n].oeq->AT);
   cd[n].osep = (f < 0 ? 0 : sep_calc(n, cd[n].oeq));
   set_fn(n);
@@ -2226,7 +2225,7 @@ int    use_charged_item_check(int n, int m)
 {
   int    f, ff;
   int    i, j;
-  char   buf[40];
+  std::array<char, 40> buf;
 
   if(fld[map[cd[n].y][cd[n].x].area].flag & FF_CHARGE)
     return -1;
@@ -2236,7 +2235,7 @@ int    use_charged_item_check(int n, int m)
        && cd[n].id[i].active_time !=ULONG_MAX
        && cd[n].id[i].SE != SE_HITTOUSE
        && cd[n].id[i].SE != SE_HITISUSE
-       && (!is_need_charge_time || cd[n].id[i].active_time <= time(NULL))) break;
+       && (!is_need_charge_time || cd[n].id[i].active_time <= time(nullptr))) break;
   if (i >= MAX_ITEMS) return -1;
 
   f=direction_check(cd[n].x, cd[n].y, cd[n].d, cd[m].x, cd[m].y);
@@ -2247,7 +2246,7 @@ int    use_charged_item_check(int n, int m)
    && cd[n].id[i].active_time !=ULONG_MAX
    && cd[n].id[i].SE != SE_HITTOUSE
    && cd[n].id[i].SE != SE_HITISUSE
-   && (!is_need_charge_time || cd[n].id[i].active_time <= time(NULL))
+   && (!is_need_charge_time || cd[n].id[i].active_time <= time(nullptr))
    && cd[n].id[i].UE == EF_ERASE)
   break;
     if(i < MAX_ITEMS) {
@@ -2257,17 +2256,19 @@ int    use_charged_item_check(int n, int m)
     i=j;
     break;
   }
-      snprintf(buf, sizeof(buf), "use %s", cd[n].id[i].name);
-      input_analyze(n, buf);
+      std::snprintf(buf.data(), buf.size(), "use %s", cd[n].id[i].name);
+      input_analyze(n, buf.data());
       return 1;
     }
   }
+  /* 未設定の判定は !ff (magic_check の ff == -1 と非対称で、添字 0 の
+     候補も未設定扱いになる。元のまま) */
   for(i = MAX_ITEMS-1, ff = -1; i >= 0; i--)/*上の方ほど使われやすくするため*/
     if((cd[n].id[i].type & IT_MASK) == IT_CHARGE
        && cd[n].id[i].active_time !=ULONG_MAX
        && cd[n].id[i].SE != SE_HITTOUSE
        && cd[n].id[i].SE != SE_HITISUSE
-       && (!is_need_charge_time || cd[n].id[i].active_time <= time(NULL))
+       && (!is_need_charge_time || cd[n].id[i].active_time <= time(nullptr))
        && is_effective_effect(n, m, cd[n].id[i].UE, cd[n].id[i].fn, f))
       if(!ff || PER_DICE <50)
   ff = i;
@@ -2279,8 +2280,8 @@ int    use_charged_item_check(int n, int m)
       ff = j;
       break;
     }
-  snprintf(buf, sizeof(buf), "use %s", cd[n].id[ff].name);
-  input_analyze(n, buf);
+  std::snprintf(buf.data(), buf.size(), "use %s", cd[n].id[ff].name);
+  input_analyze(n, buf.data());
   return 1;
 }
 
@@ -2296,7 +2297,7 @@ int    view_location(int n, int j, int *vx, int *vy)
 
   if(xx<-2 || xx>2 || yy>3 || yy<-1) return 0;
   if(cd[n].view[yy+1][xx+2].tip== T_UNKNOWN) return 0;
-  if(vx!=NULL && vy!=NULL){
+  if(vx!=nullptr && vy!=nullptr){
     *vx = xx+2;
     *vy = yy+1;
   }
@@ -2341,18 +2342,18 @@ int    attack_angry(int n, int mc)
     switch(damaged){
     case 0:
       if(mc & MC_F){
-  input_analyze(n, "go");
+  input_analyze(n, (char *)"go");
   return 1;
       }
       return 0;
     case 1:
-      input_analyze(n, "turn r");
+      input_analyze(n, (char *)"turn r");
       return 1;
     case 2:
-      input_analyze(n, "turn b");
+      input_analyze(n, (char *)"turn b");
       return 1;
     case 3:
-      input_analyze(n, "turn l");
+      input_analyze(n, (char *)"turn l");
       return 1;
     }
   }
@@ -2415,13 +2416,14 @@ int   attack_enemy(int n, int mc)
   }
 
   if(k>0){
+    /* wd と比べる定数は TH_NONE (WD_NONE と同じ 0。同値なので動く。元のまま) */
     if(cd[n].think == TH_WIZARDSTEP
        || cd[n].wd == TH_NONE
        || PER_DICE < cd[n].lv[LV_WIZARD]*20/(cd[n].lv[LV_FIGHTER]+1))
       /* 魔法攻撃を選択 */
       for(sa=0; sa<25; sa++)
   for(i=0; i<MAX_CHRS_INONE; i++) {
-    if ((j = cd[n].view[vy=sy[sa]+1][vx=sx[sa]+2].chr[i] - 1) < 0)
+    if ((j = cd[n].view[vy=kSy[sa]+1][vx=kSx[sa]+2].chr[i] - 1) < 0)
       continue;
     if (enemy_check(n, j)){
       k=useable_long_range_magic(n,j);
@@ -2454,13 +2456,13 @@ int   attack_enemy(int n, int mc)
     /* 隣接地点攻撃チェック */
     for(sa=0; sa<=3; sa++)
       for(i=0; i<MAX_CHRS_INONE; i++)
-  if ((j = cd[n].view[vy=sy[sa]+1][vx=sx[sa]+2].chr[i] - 1) >=0 && attack_check(n, j)==2)
+  if ((j = cd[n].view[vy=kSy[sa]+1][vx=kSx[sa]+2].chr[i] - 1) >=0 && attack_check(n, j)==2)
     return 1; /* think として TH_ATTACK か TH_WIN が入る */
 
     /* 武器攻撃移動チェック */
     for(sa=0; sa<25; sa++)
       for(i=0; i<2; i++) {
-  if ((j = cd[n].view[vy=sy[sa]+1][vx=sx[sa]+2].chr[i] - 1) < 0)
+  if ((j = cd[n].view[vy=kSy[sa]+1][vx=kSx[sa]+2].chr[i] - 1) < 0)
     continue;
   if (enemy_check(n, j))
     if(try_to_attackstep(n, j, vx, vy, mc)){
@@ -2564,7 +2566,7 @@ int    useable_long_range_magic(int n, int m)
    && cd[n].id[i].active_time !=ULONG_MAX
    && cd[n].id[i].SE != SE_HITISUSE
    && cd[n].id[i].SE != SE_HITTOUSE
-   && (!is_need_charge_time || cd[n].id[i].active_time <= time(NULL))) {
+   && (!is_need_charge_time || cd[n].id[i].active_time <= time(nullptr))) {
   if((cd[n].id[i].UE == EF_EXPLODE
       || cd[n].id[i].UE == EF_LINE
       || cd[n].id[i].UE == EF_PIERCE
@@ -2597,6 +2599,7 @@ int    useable_long_range_magic(int n, int m)
 int    npc_talk(int n, int tt)
 {
   int  k;
+  /* CPYSTR で使うため C 配列のまま */
   char buf[64];
 
   for(k=0; k<MAX_TALKS; k++)
@@ -2616,10 +2619,10 @@ int    temptation_to_attack(int n)
 
   for (sa=0; sa<25; sa++)
     for (i=0;i<MAX_CHRS_INONE;i++){
-      if ((j =cd[n].view[vy=sy[sa]+1][vx=sx[sa]+2].chr[i] - 1) < 0)
+      if ((j =cd[n].view[vy=kSy[sa]+1][vx=kSx[sa]+2].chr[i] - 1) < 0)
   continue;
       if (enemy_check(n,j)){
-  k=abs(vx-2)+abs(vy-1);
+  k=std::abs(vx-2)+std::abs(vy-1);
   if(k==0) return 100;
   return 100/k;
       }
@@ -2654,7 +2657,7 @@ void  angry_check(int as, int ds)
      PER_DICE < cd[ds].cooldown) return;
   cd[ds].angry=as;
 #ifdef DEBUG_ANGRY
-  snprintf(debug_buf, sizeof(debug_buf), "angry    : %s(%d) <- %s(%d) ", cd[as].name,as,cd[ds].name,ds);
+  std::snprintf(debug_buf, sizeof(debug_buf), "angry    : %s(%d) <- %s(%d) ", cd[as].name,as,cd[ds].name,ds);
   log_print(debug_buf);
 #endif
 
@@ -2667,7 +2670,7 @@ void  angry_check(int as, int ds)
   /*   |       */
   /*   +--->xx */
 
-  if(abs(xx)<=abs(yy))
+  if(std::abs(xx)<=std::abs(yy))
     if(yy>=0) cd[ds].damaged = 0;   /* 前方から攻撃を受けた(以下同様) */
     else      cd[ds].damaged = 2;
   else
@@ -2684,8 +2687,8 @@ int accept_master(int n, int m)
         cd[n].vf2 == m &&
         (cd[n].align < 50 ?
            (cd[m].align >= 50 && PER_DICE < cd[m].align) :
-           ((log(cd[m].lv[LV_FIGHTER]+cd[m].lv[LV_WIZARD]+1)
-           - log(cd[n].lv[LV_FIGHTER]+cd[n].lv[LV_WIZARD]+1))/log(2.0)+1)*50 > PER_DICE )
+           ((std::log(cd[m].lv[LV_FIGHTER]+cd[m].lv[LV_WIZARD]+1)
+           - std::log(cd[n].lv[LV_FIGHTER]+cd[n].lv[LV_WIZARD]+1))/std::log(2.0)+1)*50 > PER_DICE )
         )
         return 1;
 
@@ -2707,7 +2710,7 @@ void  cooldown_check()
    || cd[cd[n].angry].think == TH_GET_AWAY){
   if(PER_DICE <= cd[n].cooldown){
 #ifdef DEBUG_ANGRY
-    snprintf(debug_buf, sizeof(debug_buf),"cool down: %s(%d) <- %s(%d) (%d %%)",
+    std::snprintf(debug_buf, sizeof(debug_buf),"cool down: %s(%d) <- %s(%d) (%d %%)",
       cd[cd[n].angry].name,cd[n].angry,
       cd[n].name,n,cd[n].cooldown);
     log_print(debug_buf);
@@ -2718,7 +2721,7 @@ void  cooldown_check()
   if(n<cd[n].angry
      && PER_DICE <= (cd[n].cooldown+cd[cd[n].angry].cooldown)/2){
 #ifdef DEBUG_ANGRY
-    snprintf(debug_buf, sizeof(debug_buf),"cool down: %s(%d) <-> %s(%d) (%d %%)",
+    std::snprintf(debug_buf, sizeof(debug_buf),"cool down: %s(%d) <-> %s(%d) (%d %%)",
       cd[cd[n].angry].name,cd[n].angry,
       cd[n].name, n,
       (cd[n].cooldown+cd[cd[n].angry].cooldown)/2);

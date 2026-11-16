@@ -691,9 +691,9 @@ int put_stack(ACUM acum)
 /* スタックから値を1つ取り、変数なら中身を読んで定数化する。
  * 変数の場合、kind は EXP_VARIABLE のまま type だけを
  * EXP_CONST にする。EXP_CONST の値は VAR_CHAR の値と同じ
- * (0x01)ため、単項マイナスで符号を変えた変数を、後でもう
- * 一度 get_value で読むと、先頭1バイトを char として読み
- * 直す。従来の挙動として残す。 */
+ * (0x01)ため、値を書き換えて push し直す場合は、呼び出し側で
+ * kind を EXP_CONST にし直さないと、共用体の ADDRESS が壊れた
+ * まま変数として読まれてしまう（OP_REVERSE はそうしている）。 */
 int get_value(ACUM *acum)
 {
 	if (get_stack(acum)<0)
@@ -777,6 +777,11 @@ int calc_expression(int n,int *lpt,ATOM *abf)
 				op = a1.OPERATOR;
 				if (op == OP_REVERSE) {
 					a2.VAL = -a2.VAL;
+					/* VAL と ADDRESS は共用体を共有するため、
+					 * 変数のまま push すると次回参照で壊れた
+					 * ポインタを読む。定数として push する
+					 * （2026-11-16 修正）。 */
+					a2.kind = EXP_CONST;
 					if(put_stack(a2)<0)
 						return (-1);
 					break;
