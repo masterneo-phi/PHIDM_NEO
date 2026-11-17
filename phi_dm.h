@@ -963,6 +963,7 @@ typedef struct cd_t {
   char   sg;         /* 強制 Shrink/Gigant */
   char  *formatA;    /* format-A対応 */
   CHRExData *extension; /* 拡張データ */
+  int    big;       /* 2x2 の大きな敵 (CHROData.big の引き継ぎ) */
 }      CHRData;  /* PC,NPC 共有キャラクターデータ */
 
 typedef struct csd_t {
@@ -1030,6 +1031,7 @@ typedef struct cdo_t {
   int    fbn;       /* フラグON数(発生時) */
   int    fborn;     /* フラグNO(発生時)   */
   int    threaten;  /* 必要最低棲息時間 */
+  int    big;       /* 2x2 の大きな敵 (phi.ed の :O B) */
 }      CHROData;   /* NPC の元データ */
 
 typedef struct fd_t {

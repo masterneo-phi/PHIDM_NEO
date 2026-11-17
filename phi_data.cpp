@@ -2359,6 +2359,7 @@ void   load_ed_o()
     ed_o[en].nhp = 1;   /* MaxHp = x1 */
     ed_o[en].nmp = 1;   /* MaxMp = x1 */
     ed_o[en].cooldown = 50;     /* 怒りが収まる割合 */
+    ed_o[en].big = 0;   /* 2x2 の大きな敵ではない */
     ed_o[en].fdn = -1;     /* フラグを操作する発生・消滅数 */
     ed_o[en].fbn = MAX_NTTYS + MAX_ENEMIES;
     ed_o[en].fdead = ed_o[en].fborn = -1; /* 操作するフラグNo */
@@ -2425,6 +2426,9 @@ void   load_ed_o()
       break;
     case 'M':
       ed_o[en].nmp = decimal_load(5, &p);
+      break;
+    case 'B':   /* 2x2 の大きな敵 */
+      ed_o[en].big = 1;
       break;
     }
   continue;
@@ -2601,6 +2605,30 @@ void    free_ed_o(){
 /*----------------------------------
    クリーチャー発生
 ----------------------------------*/
+static int big_spawn_ok(int x, int y)
+/* 2x2 の大きな敵の発生位置として、4マスとも地形が通れて
+   キャラを埋め込めるか */
+{
+  int i, j, xx, yy;
+
+  for (i = 0; i < 4; i++) {
+    xx = x + BIG_OFF[i][0];
+    yy = y + BIG_OFF[i][1];
+    if (xx < 1 || xx >= MAX_X - 1 || yy < 1 || yy >= MAX_Y - 1)
+      return (0);
+    if (map[yy][xx].tip & (wall_for_beast | T_EWALL))
+      return (0);
+    if ((map[yy][xx].tip & TMASK) == T_BOX)
+      return (0);
+    /* 体が重なるため、4マスとも誰もいないこと (通常の敵と違い、
+       空きスロットがあるだけでは不十分) */
+    for (j = 0; j < MAX_CHRS_INONE; j++)
+      if (map[yy][xx].chr[j])
+        return (0);
+  }
+  return (1);
+}
+
 void   load_ed(int n)
 {
   int    en;
@@ -2643,6 +2671,7 @@ void   load_ed(int n)
   cd[n].name = ed_o[en].name; /* 名前の設定 */
   cd[n].cg = cd[n].ocg = ed_o[en].cg;
   cd[n].type = ed_o[en].type;
+  cd[n].big = ed_o[en].big;
   cd[n].align = ed_o[en].align;
   cd[n].moral = ed_o[en].moral;
   cd[n].sp = ed_o[en].sp;
@@ -2678,12 +2707,22 @@ void   load_ed(int n)
     if (cd[n].x >= 1 && cd[n].x < MAX_X - 1
   && cd[n].y >= 1 && cd[n].y < MAX_Y - 1
   && !(map[cd[n].y][cd[n].x].tip & (wall_for_beast | T_EWALL)) /* change for cureature barrier 20000621 */
-  && (map[cd[n].y][cd[n].x].tip & TMASK) != T_BOX) {
+  && (map[cd[n].y][cd[n].x].tip & TMASK) != T_BOX
+  && (!chr_big(n) || big_spawn_ok(cd[n].x, cd[n].y))) {
     /* change for variable multi characters in one space 20000721 */
       for (j = 0; j < MAX_CHRS_INONE; j++)
         if (!(map[cd[n].y][cd[n].x].chr[j]))
           break;
-      if (j < MAX_CHRS_INONE)
+      if (j >= MAX_CHRS_INONE)
+        continue;
+      /* 2x2 の大きな敵の体の上には発生しない (体が重なるため。
+         空きスロットの有無とは別に、占有者が大きな敵なら不可) */
+      for (j = 0; j < MAX_CHRS_INONE; j++) {
+        int occ = map[cd[n].y][cd[n].x].chr[j] - 1;
+        if (occ >= 0 && chr_big(occ))
+          break;
+      }
+      if (j >= MAX_CHRS_INONE)
         break;
     }
   }

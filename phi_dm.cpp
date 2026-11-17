@@ -1648,6 +1648,14 @@ void   set_view(int n)
   for (i = 0; i < MAX_CHRS_INONE; i++)
 	cd[n].view[y + 1][x + 2].chr[i] = map[yy][xx].chr[i];
 
+	/* 2x2 の大きな敵は基準マスのセルだけに残す (他の体のマスからは
+	   消す)。地図送信で同じ敵が4回出るのを防ぐため。 */
+	for (i = 0; i < MAX_CHRS_INONE; i++) {
+	  int cj = cd[n].view[y + 1][x + 2].chr[i] - 1;
+	  if (cj >= 0 && chr_big(cj) && (cd[cj].x != xx || cd[cj].y != yy))
+	    cd[n].view[y + 1][x + 2].chr[i] = 0;
+	}
+
 	}
 
   if (cd[n].view[2][2].tip & T_MIST) {
@@ -1984,7 +1992,7 @@ void   print_map(int n, int f)
 	  kRdc[(4 + cd[j].d - cd[n].d) & 3] , cd[j].name ,
 	  (!(cd[j].st) && CN_GASIFY(j) >= 60 ? ST_GASIFY : cd[j].st),
 	  CHRGRA(j),
-	   ((!(cd[j].sg & 3) && gigant_check(j))||(cd[j].sg & 1)) ? '*' : '#',
+	   chr_marker(j),
 	  /* for change character graphic added by Qajin 19991224 */
 	  (j < MAX_NTTYS ? ((cd[j].cg !=nullptr || cd[j].ocg != nullptr) ? 0x40: 0) : cd[j].type));
 
@@ -2250,6 +2258,46 @@ void   move_chr(int n, int sx, int sy, int ex, int ey, int msg)
 	ex = sx;
 	ey = sy;
   }
+  /* 2x2 の大きな敵の移動は、基準マス以外の3マスについても
+     範囲・地形・占有を検証し、1つでも塞がっていれば進めない。
+     体が重なるため、相手が通常のキャラでも共有はできない */
+  if (chr_big(n) && (ex != sx || ey != sy)) {
+	int bi, bj, bk, bx2, by2;
+	for (bi = 1; bi < 4 && (ex != sx || ey != sy); bi++) {
+	  bx2 = ex + BIG_OFF[bi][0];
+	  by2 = ey + BIG_OFF[bi][1];
+	  if (bx2 < 1 || bx2 >= MAX_X - 1 || by2 < 1 || by2 >= MAX_Y - 1) {
+		cng = 1;
+		ex = sx;
+		ey = sy;
+		break;
+	  }
+	  if (!TCN_PASSWALL(n)) {
+		if (cd[n].type == CT_NORMAL) {
+		  if (map[by2][bx2].tip & T_CWALL) {
+			cng = 1;
+			ex = sx;
+			ey = sy;
+			break;
+		  }
+		} else if (cd[n].type != CT_ASTRAL && (map[by2][bx2].tip & T_EWALL)) {
+		  cng = 1;
+		  ex = sx;
+		  ey = sy;
+		  break;
+		}
+	  }
+	  for (bj = 0; bj < MAX_CHRS_INONE; bj++) {
+		bk = map[by2][bx2].chr[bj] - 1;
+		if (bk >= 0 && bk != n) {
+		  cng = 1;
+		  ex = sx;
+		  ey = sy;
+		  break;
+		}
+	  }
+	}
+  }
   /* add 'if' for lock message for gigant 20000621 */
   if (ex != sx || ey != sy) {
 	k = 0;
@@ -2257,7 +2305,7 @@ void   move_chr(int n, int sx, int sy, int ex, int ey, int msg)
 	  i = map[ey][ex].chr[j] - 1;
 	  if (i >= 0)
 		k++;
-	  if (sg_check(i)) {
+	  if (sg_check(i) || chr_big(i)) {
 		cng = 1;
 		ex = sx;
 		ey = sy;
@@ -2361,26 +2409,45 @@ void   move_chr(int n, int sx, int sy, int ex, int ey, int msg)
   return;
 }
 
-void   set_chr(int n)
-/* キャラクタのマップへの埋め込み */
-/* これにより、他のキャラからの認識ができる */
+static void embed_chr(int n, int x, int y, int *conflict)
+/* 1マスへの埋め込み。既に埋め込み済みなら何もしない */
 {
   MapData *d;
-  std::array<char, 256> buf;
   int i;
 
-  if (!cd[n].type)
-	return;
-  d = &(map[cd[n].y][cd[n].x]);
+  if (x < 0 || x >= MAX_X || y < 0 || y >= MAX_Y)
+    return;
+  d = &(map[y][x]);
   for(i = 0; i < MAX_CHRS_INONE; i++) {
 	if (d->chr[i] - 1 == n)
 	  return;
 	if (!(d->chr[i])) {
 	  d->chr[i] = n + 1;
-	  break;
+	  return;
 	}
   }
-  if (i >= MAX_CHRS_INONE)
+  *conflict = 1;
+}
+
+void   set_chr(int n)
+/* キャラクタのマップへの埋め込み */
+/* これにより、他のキャラからの認識ができる */
+{
+  std::array<char, 256> buf;
+  int i;
+  int conflict;
+
+  if (!cd[n].type)
+	return;
+  /* 2x2 の大きな敵は、基準マスと東・南・南東の4マスに埋め込む。
+     これにより、どのマスへの攻撃・侵入も通常の chr 表で判定できる */
+  conflict = 0;
+  embed_chr(n, cd[n].x, cd[n].y, &conflict);
+  if (chr_big(n)) {
+	for (i = 1; i < 4; i++)
+	  embed_chr(n, cd[n].x + BIG_OFF[i][0], cd[n].y + BIG_OFF[i][1], &conflict);
+  }
+  if (conflict)
 	check_write(n,"#ex-chr-conflict"); /* new protocol added 20000227 change 0403 */
 
   /** psp6 by aleph **/
@@ -2441,7 +2508,13 @@ void   set_chr(int n)
 
 void   clear_chr(int n)
 {
+	int i;
+
 	clear_chr_pos(n, cd[n].x, cd[n].y);
+	if (chr_big(n)) {
+	  for (i = 1; i < 4; i++)
+		clear_chr_pos(n, cd[n].x + BIG_OFF[i][0], cd[n].y + BIG_OFF[i][1]);
+	}
 }
 
 /* bug fix for remote put/get on trans switch 20050330 */
@@ -2450,6 +2523,8 @@ void   clear_chr_pos(int n, int x, int y)
   MapData *d;
   int i;
 
+  if (x < 0 || x >= MAX_X || y < 0 || y >= MAX_Y)
+    return;
   d = &(map[y][x]);
   for(i = 0; i < MAX_CHRS_INONE; i++) {
 	if (d->chr[i] - 1 == n) {

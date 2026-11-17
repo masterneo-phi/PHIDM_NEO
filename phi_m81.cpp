@@ -164,6 +164,14 @@ void   set_view9(int n)
       }
       if (is_visible9(ox, oy)) {
         std::memcpy(&(view9[oy + sp9][ox + kCenter]), &(map[yy][xx]), sizeof(MapData));
+
+  /* 2x2 の大きな敵は基準マスのセルだけに残す (他の体のマスからは
+     消す)。地図送信で同じ敵が4回出るのを防ぐため。 */
+  for (int ci = 0; ci < MAX_CHRS_INONE; ci++) {
+    int cj = view9[oy + sp9][ox + kCenter].chr[ci] - 1;
+    if (cj >= 0 && chr_big(cj) && (cd[cj].x != xx || cd[cj].y != yy))
+      view9[oy + sp9][ox + kCenter].chr[ci] = 0;
+  }
         view9[oy + sp9][ox + kCenter].tip &= ~T_ITEM7;
         view9[oy + sp9][ox + kCenter].tip |= flooritemtype(xx, yy) << 8;
         if (blind > 0 && (map[yy][xx].tip & TMASK) == T_MIST) {
@@ -298,7 +306,7 @@ void   print_m81(int n, int f)
             rdc[(4 + cd[j].d - cmr9) & 3], cd[j].name,
             (!(cd[j].st) && CN_GASIFY(j) >= 60 ? ST_GASIFY : cd[j].st),
             CHRGRA(j),
-             ((!(cd[j].sg & 3) && gigant_check(j)) || (cd[j].sg & 1)) ? '*' : '#',
+             chr_marker(j),
             /* for change character graphic added by Qajin 19991224 */
             (j < MAX_NTTYS ? ((cd[j].cg != nullptr || cd[j].ocg != nullptr) ? 0x40 : 0) : cd[j].type));
 

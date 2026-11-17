@@ -773,6 +773,29 @@ int sep_calc(int n, ItemData *id)
   return (sep);
 }
 
+const int BIG_OFF[4][2] = {{0, 0}, {1, 0}, {0, 1}, {1, 1}};
+
+char chr_marker(int n)
+/* 地図行の大きさ印。'B' = 2x2 の大きな敵 (chr_big)、'*' = gigant、
+   '#' = 通常。大きな敵は gigant より優先する (体が 2x2 の方を
+   クライアントに伝えるため)。sg の隠蔽規則は従来どおり */
+{
+  if (!(cd[n].sg & 3) && chr_big(n))
+    return ('B');
+  if ((cd[n].sg & 1) || (!(cd[n].sg & 3) && gigant_check(n)))
+    return ('*');
+  return ('#');
+}
+
+int chr_big(int n)
+{
+  /* 2x2 の大きな敵か。gigant (表示の大きさ) とは別の設定で、
+   * 敵データ phi.ed の :O B で指定された個体だけが対象。 */
+  if (n < 0 || n >= MAX_NTTYS + MAX_ENEMIES)
+    return (0);
+  return (cd[n].big != 0);
+}
+
 int gigant_check(int n)
 {
   /* NPC (または ggflag のときの PC) で mhp 5000 以上なら巨大。

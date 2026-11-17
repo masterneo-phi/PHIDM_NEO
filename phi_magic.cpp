@@ -3761,6 +3761,21 @@ void effect_analyze(int n, MagicData *m, int f)
   return;
 }
 
+static int big_already(int *list, int *count, int j)
+/* 範囲・直線魔法用: 2x2 の大きな敵は体の複数マスが範囲に入っても
+   1回だけ適用する。j をこの詠唱で処理済みなら 1、未処理なら
+   記録して 0 を返す */
+{
+  int i;
+
+  for (i = 0; i < *count; i++)
+    if (list[i] == j)
+      return (1);
+  if (*count < 8)
+    list[(*count)++] = j;
+  return (0);
+}
+
 void   mg_heal(int n, MagicData * m, int f)
 {
   int    mdp;
@@ -3770,6 +3785,8 @@ void   mg_heal(int n, MagicData * m, int f)
   int    backup;
   int    xx,yy,d;
   int    s;
+  int    big_done[8]; int nbig = 0;  /* 2x2 の大きな敵の二重適用防止 */
+
 
   if (m->effect == EF_HEAL) {
     display_single_magic(n,MHeal);
@@ -3807,6 +3824,8 @@ void   mg_heal(int n, MagicData * m, int f)
 
   for (i = 0; i < MAX_CHRS_INONE; i++) {
     if ((j = map[yy][xx].chr[i] - 1) < 0)
+      continue;
+    if (chr_big(j) && big_already(big_done, &nbig, j))
       continue;
     if (CN_REFLEX(j) || CN_GASIFY(j) >= 60) {
       dmcheck_write(n, DMM_INVALID_EFC_MAGIC);
@@ -4661,6 +4680,7 @@ void   mg_line_attack(int n, MagicData * m, int f, int f2)
   int   xx,yy;
   int    d;
   int    range,hit;
+  int    big_done[8]; int nbig = 0;  /* 2x2 の大きな敵の二重適用防止 */
 
   d = cd[n].d;
   range = hit = 0;
@@ -4725,6 +4745,8 @@ void   mg_line_attack(int n, MagicData * m, int f, int f2)
     for (i = 0; i < MAX_CHRS_INONE; i++) {
       if ((j = map[y][x].chr[i] - 1) < 0)
   continue;
+      if (chr_big(j) && big_already(big_done, &nbig, j))
+  continue;
       if (!(f & 16) && TCN_MIRROR(j)) {
   dmprintf(n, j, buf.data(), buf.size(),DMM_MAGIC_REFLECT,
     m->spell);
@@ -4788,6 +4810,8 @@ void   mg_sphere_attack(int n, MagicData * m, int f, int f2)
   int    x, y;
   int    i, j;
   int    s;
+  int    big_done[8]; int nbig = 0;  /* 2x2 の大きな敵の二重適用防止 */
+
 
   s = cd[n].skill[SKL_MAGIC_AT][SKL_MGAT_SPHERE];
 
@@ -4844,6 +4868,8 @@ void   mg_sphere_attack(int n, MagicData * m, int f, int f2)
     continue;
   if (j == n)
     continue;
+  if (chr_big(j) && big_already(big_done, &nbig, j))
+    continue;
   mg_attack_to(n, j, m, f | (x != 0 || y != 0 ? 8 : 0), f2);
       }
     }
@@ -4859,6 +4885,8 @@ void   mg_explode(int n, MagicData * m, int x0, int y0, int f, int f2)
   int    x, y;
   int    i, j;
   int    s;
+  int    big_done[8]; int nbig = 0;  /* 2x2 の大きな敵の二重適用防止 */
+
 
   s = cd[n].skill[SKL_MAGIC_AT][SKL_MGAT_EXPLODE];
 #if MAX_OBJECTS > 0
@@ -4895,6 +4923,8 @@ void   mg_explode(int n, MagicData * m, int x0, int y0, int f, int f2)
 #endif
       for (i = 0; i < MAX_CHRS_INONE; i++) {
   if ((j = map[y+y0][x+x0].chr[i] - 1) < 0)
+    continue;
+  if (chr_big(j) && big_already(big_done, &nbig, j))
     continue;
   mg_attack_to(n, j, m, f | (x != 0 || y != 0 ? 8 : 0), f2);
       }

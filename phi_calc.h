@@ -26,6 +26,9 @@ void   set_fn(int);
 int    ecn(int, int);
 int    sep_calc(int, ItemData *);
 int    gigant_check(int);
+int    chr_big(int);            /* 2x2 の大きな敵か (phi.ed :O B) */
+char   chr_marker(int);         /* 地図行の大きさ印 'B'/'*'/'#' */
+extern const int BIG_OFF[4][2]; /* 2x2 の占有オフセット (基準+東,南,南東) */
 int    sg_check(int);
 int    analyze_numbers(int *, int, char *);
 int    analyze_single_number(char *);

@@ -43,6 +43,43 @@ int friend_attack;
 
 } // namespace
 
+static void attack_line(int n, int tx, int ty, int v, int w, int spear, int *asf)
+/* (tx,ty) のマスのキャラ全員を攻撃する。槍ならバリアのない限り
+   その1マス先 (v,w 方向) も攻撃する */
+{
+  MapData *pmap;
+  int    i, j;
+
+  if (tx < 0 || tx >= MAX_X || ty < 0 || ty >= MAX_Y)
+    return;
+  pmap = &(map[ty][tx]);
+  for (i = 0; i < MAX_CHRS_INONE; i++) {
+    if ((j = pmap->chr[i] - 1) < 0)
+      continue;
+    if (j == n)
+      continue;
+    attack_to(n, j);
+    *asf = 1;
+  }
+#ifndef OLDWEAPON
+  if (spear && !(pmap->tip & T_SPEARBARRIER)) {
+    tx += v;
+    ty += w;
+    if (tx < 0 || tx >= MAX_X || ty < 0 || ty >= MAX_Y)
+      return;
+    pmap = &(map[ty][tx]);
+    for (i = 0; i < MAX_CHRS_INONE; i++) {
+      if ((j = pmap->chr[i] - 1) < 0)
+        continue;
+      if (j == n)
+        continue;
+      attack_to(n, j);
+      *asf = 1;
+    }
+  }
+#endif
+}
+
 void   attack_other(int n)
 {
   int    i, j;
@@ -107,7 +144,18 @@ void   attack_other(int n)
   /* 4方向のブロックは座標式が違うだけで同形。槍の2セル先は、
      バリア判定が「1セル先」の tip を見る点も含め、元の形の
      まま残してある (phi_m57.cpp のオブジェ走査と同じ判断)。 */
-  if (tp & WD_FORE) {
+  if ((tp & WD_FORE) && chr_big(n)) {
+	/* 2x2 の大きな敵: 正面は体の前縁の外側2マス。
+	   基準マスの正面は自らの体なので、通常の正面処理は行わない */
+	int ci, tx, ty;
+	for (ci = 0; ci < 4; ci++) {
+	  tx = x + BIG_OFF[ci][0] + v;
+	  ty = y + BIG_OFF[ci][1] + w;
+	  if (tx >= x && tx <= x + 1 && ty >= y && ty <= y + 1)
+		continue;   /* 体内に戻る方向は前縁ではない */
+	  attack_line(n, tx, ty, v, w, spear, &asf);
+	}
+  } else if (tp & WD_FORE) {
 	pmap = &(map[y+w][x+v]);
     for (i = 0; i < MAX_CHRS_INONE; i++) {
       if ((j = pmap->chr[i] - 1) < 0)

@@ -1622,6 +1622,39 @@ int enemy_check(int n, int m)
 /*  1(移動モード) */
 /* -1(装備できる武器がない) */
 /* 2(直接攻撃を行った) */
+static int big_target_in_dir(int n, int m, int dd)
+/* 2x2 の大きな敵 n から見て、対象 m が dd 方向の攻撃セル
+   (体の縁の外側) にいるか。縁は2マスあるため、基準マスの
+   正面だけを見る通常の判定では届かない位置も対象になる */
+{
+  int i, tx, ty;
+
+  for (i = 0; i < 4; i++) {
+    tx = cd[n].x + BIG_OFF[i][0] + px[dd];
+    ty = cd[n].y + BIG_OFF[i][1] + py[dd];
+    if (tx >= cd[n].x && tx <= cd[n].x + 1
+        && ty >= cd[n].y && ty <= cd[n].y + 1)
+      continue;   /* 体内に戻る方向は縁ではない */
+    if (cd[m].x == tx && cd[m].y == ty)
+      return (1);
+  }
+  return (0);
+}
+
+static int big_target_any(int n, int m, int hf)
+/* 武器の攻撃方向 (hf) のいずれかで、対象 m が攻撃セルにいるか */
+{
+  if ((hf & WD_FORE) && big_target_in_dir(n, m, D_FORE(n)))
+    return (1);
+  if ((hf & WD_BACK) && big_target_in_dir(n, m, D_BACK(n)))
+    return (1);
+  if ((hf & WD_RIGHT) && big_target_in_dir(n, m, D_RIGHT(n)))
+    return (1);
+  if ((hf & WD_LEFT) && big_target_in_dir(n, m, D_LEFT(n)))
+    return (1);
+  return (0);
+}
+
 int attack_check(int n, int m)
 {
   int    f;
@@ -1667,7 +1700,7 @@ int attack_check(int n, int m)
   ((hf & WD_RIGHT) && ((cd[m].x == X_RIGHT(n) && cd[m].y == Y_RIGHT(n)) ||
            (spear &&  cd[m].x == X_RIGHT2(n)&& cd[m].y == Y_RIGHT2(n)))) ||
   ((hf & WD_LEFT)  && ((cd[m].x == X_LEFT(n) && cd[m].y == Y_LEFT(n)) ||
-           (spear &&  cd[m].x == X_LEFT2(n)&& cd[m].y == Y_LEFT2(n))))) {
+           (spear &&  cd[m].x == X_LEFT2(n)&& cd[m].y == Y_LEFT2(n)))) || (chr_big(n) && big_target_any(n, m, hf))) {
       if (hflag == 0) {
   f = i;
   hflag = 1;
