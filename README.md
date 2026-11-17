@@ -4,6 +4,26 @@ Phantasmal Island（Philly）用ゲームサーバ `phi_dm`
 （`rel5g_MasterGate_plus`、Tofup Server Edition v6.5g 'Master Gate +'）
 の C++ への段階的書き換えです。
 
+## PHIDM_NEO（公開版）について
+
+このリポジトリは PHIDM_NEO のソース一式です。現在の公開版は
+**v1.2** で、内容は次のとおりです。
+
+- サーバ本体の全 16 モジュールを C++ 化し、潜在バグ 9 件を修正
+- 9x9 マップ対応（`#ex-map size=81`、NeoPHI 等の対応クライアント向け）
+- 9x9 時の Eagle Eye を 20x20 に拡大
+- 掲示板の検索結果など大量の行を送る際に、送信バッファの
+  あふれで接続が切れる問題を対策（バッファ拡大と送出待ち）
+
+すぐ動かしたい場合は、Releases から `PHIDM_NEO.zip` を
+ダウンロードしてください。ビルド済みの `phi_dm` と
+`cdcnv`、雛形ワールド（ポート 20017、サンプルアカウント
+guest / master 入り）が入っています。雛形ワールドを
+公開サーバに使う場合は、マスターアカウントのパスワード
+変更や不要なアカウントの削除を忘れずに行ってください。
+
+著作権と配布については同梱の `Notice` を参照してください。
+
 **現状：全モジュール完了（第13段階まで完了）。** `tcp.cpp`・`phi_str.cpp`・`ext_party.cpp`・
 `ext_data.cpp`・`new_command.cpp`・`new_proto.cpp`・`phi_m57.cpp`・
 `expression_op.cpp`・`phi_calc.cpp`・`phi_use.cpp`・`ext_skills.cpp`・
