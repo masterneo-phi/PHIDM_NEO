@@ -640,16 +640,15 @@ void   print_m57(int n, int f)
 void eagleeye_m57(int n)
 {
   const int fl = fld[map[cd[n].y][cd[n].x].area].floor;
-  /* m81 (9x9) クライアントでは Eagle eye は 20x20 にする
-   * (9x9 の方が 7x7 の 15x15 より広く見えるのが仕様、2026-11-17)。
+  /* m121 (11x11) クライアントでは Eagle eye は 25x25 にする
+   * (中心が自キャラに合う奇数サイズ、2026-11-20)。
    * それ以外は従来通り (FF_M57 の土地では 11x11、それ以外は 15x15)。
-   * 20 は偶数なので範囲は -10..+9 (中心は1マス北西寄り) で、
-   * ヘッダの size は マス数-1 = 19。 */
-  const bool m81 = (cd[n].modef & MD_M81) != 0;
-  const int size = (m81 ? 19
+   * 範囲は -size/2..+size/2、ヘッダの size は マス数-1。 */
+  const bool wide = (cd[n].modef & MD_M121) != 0;
+  const int size = (wide ? 24
                     : ((fld[map[cd[n].y][cd[n].x].area].flag & FF_M57) ? 10 : 14));
-  const int lo = m81 ? -10 : -size / 2;
-  const int hi = m81 ? 9 : size / 2;
+  const int lo = -size / 2;
+  const int hi = size / 2;
 #ifndef NO_SKILL
   const int j = cd[n].skill[SKL_MAGIC_SP][SKL_MGSP_EAGLE];
 #endif

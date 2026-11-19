@@ -17,7 +17,7 @@
 
 /*	   v509ewl21+fix2 -> v509ewl21+fix2+psp6+QSCP -> v5x-010  */
 /*	   v5x-010 release 13 test8 -> v5y rel.0 test1	*/
-#define PHI_VERSION "v5z release v1.9 /*color=teal*/PHIDM NEO/*.*/ /*color=red*/'Nymphicus hollandicus'/*.*/"SKILL_VER	/* クライアント表示：任意長 */
+#define PHI_VERSION "v5z release v1.10 /*color=teal*/PHIDM NEO/*.*/ /*color=red*/'Nymphicus hollandicus'/*.*/"SKILL_VER	/* クライアント表示：任意長 */
 
 #define PHI_DM_VERS "v5x:011:0005:38"		 /* DM種別通知：任意長 */
 #define PHI_PROT_VERS "05115000" /* プロトコルバージョン：８桁 */
@@ -766,7 +766,7 @@
 #define MD_M57          0x8
 #define MD_M57SOLID     0x10
 #define MD_FEAGLE       0x20
-#define MD_M81          0x40
+#define MD_M121         0x80
 
 typedef struct md_t {
   char  *spell;     /* 呪文 */

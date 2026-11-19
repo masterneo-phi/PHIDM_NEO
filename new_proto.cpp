@@ -67,31 +67,38 @@ int func_analyze_ex(int n, char *p)
                     if (mapsize_only55) {
                         /* 57 桁地図を許可しない世界では断る。 */
                         cd[n].modef &= ~MD_M57;
-                        cd[n].modef &= ~MD_M81;
+                        cd[n].modef &= ~MD_M121;
                         check_write(n, "#ex-map size=no\n");
                         send_name_if_cg_changed(n, CHRGRA(n));
                     } else {
                         cd[n].modef |= MD_M57;
-                        cd[n].modef &= ~MD_M81;
+                        cd[n].modef &= ~MD_M121;
                         check_write(n, "#ex-map size=57\n");
                         send_name_if_cg_changed(n, cd[n].name);
                     }
                 } else if (std::strcmp(value.data(), "81") == 0) {
+                    /* 9x9 (旧 M81) は仕様削除 (2026-11-20、11x11 に
+                     * 統一)。81 の要求は断って従来地図にする。 */
+                    cd[n].modef &= ~MD_M57;
+                    cd[n].modef &= ~MD_M121;
+                    check_write(n, "#ex-map size=no\n");
+                    send_name_if_cg_changed(n, CHRGRA(n));
+                } else if (std::strcmp(value.data(), "121") == 0) {
                     if (mapsize_only55) {
-                        /* 81 桁地図を許可しない世界では断る。 */
+                        /* 121 桁地図を許可しない世界では断る。 */
                         cd[n].modef &= ~MD_M57;
-                        cd[n].modef &= ~MD_M81;
+                        cd[n].modef &= ~MD_M121;
                         check_write(n, "#ex-map size=no\n");
                         send_name_if_cg_changed(n, CHRGRA(n));
                     } else {
-                        cd[n].modef |= MD_M81;
+                        cd[n].modef |= MD_M121;
                         cd[n].modef &= ~MD_M57;
-                        check_write(n, "#ex-map size=81\n");
+                        check_write(n, "#ex-map size=121\n");
                         send_name_if_cg_changed(n, cd[n].name);
                     }
                 } else if (std::strcmp(value.data(), "40") == 0) {
                     cd[n].modef &= ~MD_M57;
-                    cd[n].modef &= ~MD_M81;
+                    cd[n].modef &= ~MD_M121;
                     check_write(n, "#ex-map size=40\n");
                     send_name_if_cg_changed(n, CHRGRA(n));
                 }

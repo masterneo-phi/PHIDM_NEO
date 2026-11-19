@@ -6716,7 +6716,7 @@ int   load_switch(int n, int sx, int sy, int f)
     case 12:    /* #name再送スイッチ */
       if (n < MAX_NTTYS) {
         cd[n].cg = cd[n].ocg /*findstr("human")*/; /* added by Qajin 19991224 */
-        if (!(cd[n].modef & (MD_M57 | MD_M81))) {
+        if (!(cd[n].modef & (MD_M57 | MD_M121))) {
             snprintf(wbuf, sizeof(wbuf),"#name %s\n", cd[n].name);
             check_write(n, wbuf);
         }
@@ -6726,7 +6726,7 @@ int   load_switch(int n, int sx, int sy, int f)
       break;
     case 15:    /* キャラグラ変更スイッチ added by Qajin 19991224 from psp10 */
       cd[n].cg = swtd[cn][lpt++].dp;
-      if (!(cd[n].modef & (MD_M57 | MD_M81))) {
+      if (!(cd[n].modef & (MD_M57 | MD_M121))) {
           if (cd[n].cv >= 5090152) {           /* phiwin/Tphi 識別追加 added 20000101 */
             snprintf(wbuf,sizeof(wbuf),"#name %s\n",cd[n].cg);
             check_write(n,wbuf);

@@ -36,7 +36,7 @@
 #include  "phi_obj.h"
 #include  "phi_str.h"
 #include  "phi_m57.h"
-#include  "phi_m81.h"
+#include  "phi_m121.h"
 #include  "new_proto.h"
 #include  "new_command.h"
 #include  "ext_skills.h"
@@ -713,7 +713,7 @@ int    main(int argc, char **argv)
 		  cd[n].fd = fd;
 		  cd[n].cv = 0;
 		  cd[n].modef &= ~MD_M57; /* for client change from m57 */
-		  cd[n].modef &= ~MD_M81;
+		  cd[n].modef &= ~MD_M121;
 		  cd[n].weq = nullptr;
 		  cd[n].aeq = nullptr;
 		  cd[n].oeq = nullptr;
@@ -1970,8 +1970,8 @@ void   print_map(int n, int f)
 	last_time[n] = abstime;
   }
 
-  if (cd[n].modef & MD_M81) {
-	print_m81(n,f);
+  if (cd[n].modef & MD_M121) {
+	print_m121(n,f);
 	return;
   }
   if (cd[n].modef & MD_M57) {
@@ -2044,8 +2044,8 @@ void   print_map(int n, int f)
   if(!need_check && ((f & MD_CHAT) || !cd[n].eye))
 	return;
 
-  if (cd[n].modef & MD_M81) {
-	print_m81(n,f);
+  if (cd[n].modef & MD_M121) {
+	print_m121(n,f);
 	return;
   }
   if (cd[n].modef & MD_M57) {
@@ -2174,7 +2174,7 @@ void   print_status(int n)
 
   snprintf(buf.data(), buf.size(), "#status %-31s:% 5li:% 5li:% 5li:% 5li:% 9i:% 5i:% 5i:% 5i:% 5i:% 5i \n"
   /* changed by Qajin 19991224,19991228,20000101 */
-  , (cd[n].cv < 5085910 || !IS_CGCHGED(n) || (cd[n].modef & (MD_M57 | MD_M81))) ? cd[n].name : (cd[n].cv >= 5090152 ? CHRGRA(n) : "__")
+  , (cd[n].cv < 5085910 || !IS_CGCHGED(n) || (cd[n].modef & (MD_M57 | MD_M121))) ? cd[n].name : (cd[n].cv >= 5090152 ? CHRGRA(n) : "__")
 	, cd[n].hp, cd[n].mhp, cd[n].mp, cd[n].mmp, cd[n].exp, cd[n].gp
 	,cd[n].lv[LV_FIGHTER], cd[n].lv[LV_WIZARD]
 	,cd[n].lv[LV_MERCHANT], cd[n].lv[LV_CREATER]);
@@ -5126,7 +5126,7 @@ void   charagra_set(int n, char *crgr) /*キャラグラセット用　by NEO 20
     if (cd[n].type == CT_NORMAL && n <= MAX_NTTYS) { 
 	  if (std::strlen(crgr) < 17) {
         cd[n].cg = cd[n].ocg = findstr(crgr);
-        if (!(cd[n].modef & (MD_M57 | MD_M81))) {
+        if (!(cd[n].modef & (MD_M57 | MD_M121))) {
 	        if (cd[n].cv >= 5090152) {
     	      snprintf(buf.data(),buf.size(),"#name %s\n",cd[n].cg);
 			  check_write(n,buf.data());

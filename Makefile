@@ -22,13 +22,13 @@ BSDARC  = bsd.o
 
 OBJS	= phi_dm.o phi_data.o phi_enemy.o \
 		phi_magic.o phi_attack.o phi_use.o phi_calc.o \
-		phi_str.o phi_m57.o phi_m81.o new_proto.o ext_data.o new_command.o \
+		phi_str.o phi_m57.o phi_m121.o new_proto.o ext_data.o new_command.o \
 		expression_op.o ext_skills.o ext_party.o \
 		$(BSDARC) \
 		tcp.o phi_class.o $(LUAOBJS)
 SRCS	= phi_dm.cpp phi_data.cpp phi_enemy.cpp \
 		phi_magic.cpp phi_attack.cpp phi_use.cpp phi_calc.cpp \
-		phi_str.cpp phi_m57.cpp phi_m81.cpp new_proto.cpp ext_data.cpp new_command.cpp \
+		phi_str.cpp phi_m57.cpp phi_m121.cpp new_proto.cpp ext_data.cpp new_command.cpp \
 		expression_op.cpp ext_skills.cpp ext_party.cpp \
 		tcp.cpp
 PROGRAM	= phi_dm
