@@ -1445,6 +1445,12 @@ void spell_analyze(int n, char *spell)
       CN_GASIFY(n) = 0x10000;
       check_write(n, "#s-edit\n");
       return;
+    } else if (!std::strcmp(spell, "Hammer of Ares") && (i=have_authority(n,MS_KICK,0,0))) {
+      dmcheck_write(n, DMM_HAMMER_INPUT);
+      cd[n].st = ST_HAMMER;
+      CN_GASIFY(n) = 0x10000;
+      check_write(n, "#s-edit\n");
+      return;
     } else if (!std::strcmp(spell, "Master search") && (i=have_authority(n,MS_LOAD,0,0))) {
       master_search(n);
       return;
@@ -5635,6 +5641,35 @@ void exchange_magic(int n, MagicData *m)
   cd[n].md[0].is_inherence = md.is_inherence;
   cd[n].md[0].extension = md.extension;
   return;
+}
+
+/* add for Hammer of Ares: destroy one item or spell of n and
+ * send the shatter message to n. Items are destroyed first
+ * (in slot order), then spells (in learned order).
+ * Returns 1 if something was destroyed, 0 if nothing is left. */
+int hammer_step(int n)
+{
+  int    i;
+  char   buf[1024];
+  char   name[32];
+
+  for (i = 0; i < MAX_ITEMS; i++) {
+    if (cd[n].id[i].type != DT_NONE) {
+      std::snprintf(name, sizeof(name), "%s", cd[n].id[i].name);
+      delete_item(&(cd[n].id[i]));
+      dmprintf(n, 0, buf, sizeof(buf), DMM_HAMMER_BREAK, name);
+      check_write(n, buf);
+      return 1;
+    }
+  }
+  if (cd[n].md[0].effect != EF_NONE) {
+    std::snprintf(name, sizeof(name), "%s", cd[n].md[0].spell);
+    forget_magic(n, 0);
+    dmprintf(n, 0, buf, sizeof(buf), DMM_HAMMER_BREAK, name);
+    check_write(n, buf);
+    return 1;
+  }
+  return 0;
 }
 
 void   forget_magic(int n, int in)

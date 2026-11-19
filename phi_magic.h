@@ -49,6 +49,7 @@ int    mdp_calc(int, MagicData *, int, int, double *);
 void   copy_spell(int, MagicData *);
 void   exchange_magic(int, MagicData *);
 void   forget_magic(int, int);
+int   hammer_step(int); /* add for Hammer of Ares */
 void   learn_magic(int, MagicData *);
 void   charge_spell(int, int);
 int    create_special_item(int, int, int, int);

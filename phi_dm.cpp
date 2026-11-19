@@ -480,6 +480,9 @@ int    main(int argc, char **argv)
 	  }
 		if (CN_AEGIS(n) > 0 && CN_AEGIS(n) < 0x10000) /* add for Aegis of Athena */
 		  CN_AEGIS(n)--;
+		if (CN_HAMMER(n)) /* add for Hammer of Ares */
+		  if (!hammer_step(n))
+		    CN_HAMMER(n) = 0;
 		CN_IDLE(n)++;
 		if (CN_IDLE(n) >= 60) {
 		  CN_GASIFY(n) = 60; /* change for checkable idle 20010222 change 20020822 */
@@ -3416,6 +3419,26 @@ void   input_analyze(int n, char *rbuf)
 	    check_write(n, wbuf.data());
 	  } else
 	    dmcheck_write(n, DMM_THUNDER_NO);
+	}
+	break;
+  case ST_HAMMER:
+	{
+	  int tm = 0;
+	  cd[n].st = ST_COMMAND;
+	  CN_GASIFY(n) = 0;
+	  if (std::sscanf(rbuf, "%i", &tm) == 1 && tm >= 1 && tm < MAX_NTTYS
+	      && tm != n && cd[tm].type) {
+	    std::array<char, 32> tname;
+	    std::snprintf(tname.data(), tname.size(), "%s", cd[tm].name);
+	    std::snprintf(wbuf.data(), wbuf.size(), "hammer   : %s -> %s \n", cd[n].name, tname.data());
+	    log_print(wbuf.data());
+	    dmprintf(n, 0, wbuf.data(), wbuf.size(), DMM_HAMMER, tname.data());
+	    check_write(n, wbuf.data());
+	    CN_HAMMER(tm) = 1;
+	    if (!hammer_step(tm))
+	      CN_HAMMER(tm) = 0;
+	  } else
+	    dmcheck_write(n, DMM_HAMMER_NO);
 	}
 	break;
 /* added by Qajin 19991021 */

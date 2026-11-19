@@ -17,7 +17,7 @@
 
 /*	   v509ewl21+fix2 -> v509ewl21+fix2+psp6+QSCP -> v5x-010  */
 /*	   v5x-010 release 13 test8 -> v5y rel.0 test1	*/
-#define PHI_VERSION "v5z release v1.4 /*color=teal*/PHIDM NEO/*.*/ /*color=red*/'Nymphicus hollandicus'/*.*/"SKILL_VER	/* クライアント表示：任意長 */
+#define PHI_VERSION "v5z release v1.5 /*color=teal*/PHIDM NEO/*.*/ /*color=red*/'Nymphicus hollandicus'/*.*/"SKILL_VER	/* クライアント表示：任意長 */
 
 #define PHI_DM_VERS "v5x:011:0005:38"		 /* DM種別通知：任意長 */
 #define PHI_PROT_VERS "05115000" /* プロトコルバージョン：８桁 */
@@ -215,6 +215,7 @@
 #define ST_REMOTE_BOARDS 0x6c /* add for Remote boards */
 #define ST_REMOTE_ERASE 0x6d /* add for Remote erase */
 #define ST_THUNDER 0x6e /* add for Thunder of Zeus */
+#define ST_HAMMER 0x6f /* add for Hammer of Ares */
 
 /* 注意: a-f の数を使うと今のところ phiwin でエラーが発生します。*/
 
@@ -546,6 +547,7 @@
 #define CNN_IDLE  20 /* change 20020822 */
 #define CNN_LAG 21
 #define CNN_AEGIS 22 /* add for Aegis of Athena */
+#define CNN_HAMMER 23 /* add for Hammer of Ares */
 
 /* Condition */
 
@@ -576,10 +578,12 @@
 #define CN_LAG(n) (cd[n].cn[CNN_LAG])
 #define CN_AEGIS(n) (cd[n].cn[CNN_AEGIS]) /* add for Aegis of Athena */
 #define TCN_AEGIS(n) ( CN_AEGIS(n) )
+#define CN_HAMMER(n) (cd[n].cn[CNN_HAMMER]) /* add for Hammer of Ares */
+#define TCN_HAMMER(n) ( CN_HAMMER(n) ) /* add for Hammer of Ares */
 #define CN_ALAG(n)  (cd[n].et)
 #define CN_DLAG(n)  (cd[n].ec)  /* add for lag attack 20020115 */
 
-#define MAX_CN    23  /* cn の個数 */
+#define MAX_CN    24  /* cn の個数 */
 
 /* add 20000707 */
 /* xN Condition */
