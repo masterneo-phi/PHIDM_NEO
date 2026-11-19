@@ -1,11 +1,11 @@
-/* phi_class.h - PHIDM NEO extension: phi.class (Lua) switch programs.
+/* phi_class.h - PHIDM NEO extension: phi.cls (Lua) switch programs.
  *
  * A switch record with action type 62 carries a program name (a quoted
  * string). When the switch fires, the same-named Lua function defined
- * in the world's phi.class file is executed and control returns to the
+ * in the world's phi.cls file is executed and control returns to the
  * normal switch processing.
  *
- * class_load()  : (re)load phi.class into a fresh Lua state. Called at
+ * class_load()  : (re)load phi.cls into a fresh Lua state. Called at
  *                 server startup and by the master spell "Load class".
  * class_call()  : run one program for player n; sx, sy are the switch
  *                 cell coordinates that fired.

@@ -1,4 +1,4 @@
-/* phi_class.cpp - PHIDM NEO extension: phi.class (Lua) switch programs.
+/* phi_class.cpp - PHIDM NEO extension: phi.cls (Lua) switch programs.
  *
  * See phi_class.h. The Lua state is deliberately small: only the base,
  * table, string and math libraries are opened (no io / os / package),
@@ -409,14 +409,27 @@ void class_load(void)
   lua_setfield(cls_L, -2, "vars");
   lua_setglobal(cls_L, "dm");
 
-  int rc = luaL_loadfile(cls_L, "phi.class");
+  /* The class file is phi.cls (renamed from phi.class in v1.8: the
+   * .class extension is hard to open on macOS). Phi.cls and the old
+   * phi.class are accepted as fallbacks. */
+  static const char *cls_files[] = {"phi.cls", "Phi.cls", "phi.class"};
+  const char *cls_name = nullptr;
+  int rc = LUA_ERRFILE;
+  for (int i = 0; i < 3; i++) {
+    rc = luaL_loadfile(cls_L, cls_files[i]);
+    if (rc != LUA_ERRFILE) {
+      cls_name = cls_files[i];
+      break;
+    }
+    lua_pop(cls_L, 1);
+  }
   if (rc == LUA_ERRFILE) {
-    log_print((char *)"class    : phi.class not found"
+    log_print((char *)"class    : phi.cls not found"
                       " (class switches are no-ops)");
     return;
   }
   if (rc != LUA_OK) {
-    cls_log_error("phi.class load failed");
+    cls_log_error("phi.cls load failed");
     lua_pop(cls_L, 1);
     return;
   }
@@ -425,12 +438,16 @@ void class_load(void)
   rc = lua_pcall(cls_L, 0, 0, 0);
   lua_sethook(cls_L, nullptr, 0, 0);
   if (rc != LUA_OK) {
-    cls_log_error("phi.class top-level error");
+    cls_log_error("phi.cls top-level error");
     lua_pop(cls_L, 1);
     return;
   }
   cls_ready = 1;
-  log_print((char *)"class    : phi.class loaded");
+  {
+    char buf[64];
+    std::snprintf(buf, sizeof(buf), "class    : %s loaded", cls_name);
+    log_print(buf);
+  }
 }
 
 void class_call(int n, const char *prog, int sx, int sy)
