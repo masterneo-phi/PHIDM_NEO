@@ -77,18 +77,23 @@ constexpr int kWriteChunkSize = 2048;	/* 1回の write() で送る上限 (EL's i
 
 /* 1つの接続の状態。バッファは接続の開始時に確保し、切断時に解放する。 */
 struct Client {
-  bool connecting = false;	/* ソケットが生きているか */
-  bool reference = false;	/* ゲーム側が参照しているか (偽だと遅延切断) */
-  int errnum = 0;		/* 切断時のエラー番号 */
-  SOCKET fd = INVALID_SOCKET;
-  char ip_address[32] = {};	/* 接続元の IP アドレス文字列 */
-  char ip_domain[256] = {};	/* 接続元のドメイン名 (add for domain display 20020218) */
+  bool connecting;	/* ソケットが生きているか */
+  bool reference;	/* ゲーム側が参照しているか (偽だと遅延切断) */
+  int errnum;		/* 切断時のエラー番号 */
+  SOCKET fd;
+  char ip_address[32];	/* 接続元の IP アドレス文字列 */
+  char ip_domain[256];	/* 接続元のドメイン名 (add for domain display 20020218) */
   std::unique_ptr<char[]> rbuf;	/* 読み込みバッファ */
-  int rbuf_len = 0;		/* 読み込みバッファ内の有効バイト数 */
+  int rbuf_len;		/* 読み込みバッファ内の有効バイト数 */
   std::unique_ptr<char[]> wbuf;	/* 書き込みバッファ */
-  int wbuf_len = 0;		/* 書き込みバッファ内の有効バイト数 */
-  int wtimeout = 0;		/* 書き込むデータがあって書き込めない回数 */
-  bool closing_err = false;	/* nfclose() 後に異常切断した */
+  int wbuf_len;		/* 書き込みバッファ内の有効バイト数 */
+  int wtimeout;		/* 書き込むデータがあって書き込めない回数 */
+  bool closing_err;	/* nfclose() 後に異常切断した */
+  Client() : connecting(false), reference(false), errnum(0), fd(INVALID_SOCKET),
+             rbuf_len(0), wbuf_len(0), wtimeout(0), closing_err(false) {
+    ip_address[0] = '\0';
+    ip_domain[0] = '\0';
+  }
 };
 
 std::array<Client, MAX_CLIENT> clients;

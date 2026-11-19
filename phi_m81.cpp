@@ -59,8 +59,8 @@ namespace {
  * のマンハッタン距離の昇順でなければならない (m57 の tsx/ssx と
  * 同じ前提を、表を生成することで満たす)。 */
 struct ScanOrder {
-    std::array<int, kViewCells> x{};
-    std::array<int, kViewCells> y{};
+    std::array<int, kViewCells> x;
+    std::array<int, kViewCells> y;
 };
 
 ScanOrder make_scan(int dx_min, int dx_max, int dy_min, int dy_max)
@@ -84,7 +84,7 @@ ScanOrder make_scan(int dx_min, int dx_max, int dy_min, int dy_max)
                       return a.second < b.second;
                   return a.first < b.first;
               });
-    ScanOrder s;
+    ScanOrder s = {};
     for (int i = 0; i < kViewCells; i++) {
         s.x[i] = cells[i].first;
         s.y[i] = cells[i].second;
