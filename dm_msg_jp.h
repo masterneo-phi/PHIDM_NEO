@@ -145,7 +145,7 @@
 #define DMM_CHANGE_CLIENT_IN    " 使用クライアントをこちらに切り替えました. \n"
 #define DMM_CHANGE_CLIENT_FAIL  " クライアントの切替に失敗しました. \n"
 
-#define DMM_DISP_VERSION        " This phi server is based on %ver with 日本語. \n        /*color=teal*/Tofup Server Edition v6.5g/*.*/ /*color=+mp*/'Master Gate +'/*.*/ modified by NEO. \n"
+#define DMM_DISP_VERSION        " This phi server is based on %ver with 日本語. \n"
 #define DMM_DISP_PENARTY        " ---- Running with /*color=red*/%i％/*.*/ Death penalty rate + /*color=red*/No limitter/*.*/.\n" /* Add for デスペナ表示 by NEO 2008/04/01 */
 #define DMM_DISP_PENARTY_LMT    " ---- Running with /*color=red*/%i％/*.*/ Death penalty rate + /*color=blue*/Limitter/*.*/.\n" /* Add for デスペナリミッタ設定 by NEO 2011/12/4 */
 #define DMM_DISP_COUNTER_OFF    " ---- and Additional setup : /*color=red*/No counter/*.*/.\n" /* Add for カウンター効果設定 by NEO 2011/12/10 */
