@@ -48,8 +48,57 @@ LUAOBJS	= lua/lapi.o lua/lcode.o lua/lctype.o lua/ldebug.o lua/ldo.o \
 		lua/ltable.o lua/ltm.o lua/lundump.o lua/lvm.o lua/lzio.o \
 		lua/lauxlib.o lua/lbaselib.o lua/lmathlib.o lua/lstrlib.o lua/ltablib.o
 
-lua/%.o: lua/%.c
-	$(CC) -O2 -c -o $@ $<
+# BSD make には GNU make 式の % パターンルールがないため、Lua の各ファイルを明示ルールで書く
+lua/lapi.o: lua/lapi.c
+	$(CC) -O2 -c -o $@ lua/lapi.c
+lua/lcode.o: lua/lcode.c
+	$(CC) -O2 -c -o $@ lua/lcode.c
+lua/lctype.o: lua/lctype.c
+	$(CC) -O2 -c -o $@ lua/lctype.c
+lua/ldebug.o: lua/ldebug.c
+	$(CC) -O2 -c -o $@ lua/ldebug.c
+lua/ldo.o: lua/ldo.c
+	$(CC) -O2 -c -o $@ lua/ldo.c
+lua/ldump.o: lua/ldump.c
+	$(CC) -O2 -c -o $@ lua/ldump.c
+lua/lfunc.o: lua/lfunc.c
+	$(CC) -O2 -c -o $@ lua/lfunc.c
+lua/lgc.o: lua/lgc.c
+	$(CC) -O2 -c -o $@ lua/lgc.c
+lua/llex.o: lua/llex.c
+	$(CC) -O2 -c -o $@ lua/llex.c
+lua/lmem.o: lua/lmem.c
+	$(CC) -O2 -c -o $@ lua/lmem.c
+lua/lobject.o: lua/lobject.c
+	$(CC) -O2 -c -o $@ lua/lobject.c
+lua/lopcodes.o: lua/lopcodes.c
+	$(CC) -O2 -c -o $@ lua/lopcodes.c
+lua/lparser.o: lua/lparser.c
+	$(CC) -O2 -c -o $@ lua/lparser.c
+lua/lstate.o: lua/lstate.c
+	$(CC) -O2 -c -o $@ lua/lstate.c
+lua/lstring.o: lua/lstring.c
+	$(CC) -O2 -c -o $@ lua/lstring.c
+lua/ltable.o: lua/ltable.c
+	$(CC) -O2 -c -o $@ lua/ltable.c
+lua/ltm.o: lua/ltm.c
+	$(CC) -O2 -c -o $@ lua/ltm.c
+lua/lundump.o: lua/lundump.c
+	$(CC) -O2 -c -o $@ lua/lundump.c
+lua/lvm.o: lua/lvm.c
+	$(CC) -O2 -c -o $@ lua/lvm.c
+lua/lzio.o: lua/lzio.c
+	$(CC) -O2 -c -o $@ lua/lzio.c
+lua/lauxlib.o: lua/lauxlib.c
+	$(CC) -O2 -c -o $@ lua/lauxlib.c
+lua/lbaselib.o: lua/lbaselib.c
+	$(CC) -O2 -c -o $@ lua/lbaselib.c
+lua/lmathlib.o: lua/lmathlib.c
+	$(CC) -O2 -c -o $@ lua/lmathlib.c
+lua/lstrlib.o: lua/lstrlib.c
+	$(CC) -O2 -c -o $@ lua/lstrlib.c
+lua/ltablib.o: lua/ltablib.c
+	$(CC) -O2 -c -o $@ lua/ltablib.c
 
 $(PROGRAM): $(OBJS)
 	$(CXX) -o $@ $(OBJS) $(LIBS)
