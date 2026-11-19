@@ -3,7 +3,6 @@
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
-#include <string_view>
 
 #include "phi_dm.h"
 #include "phi_calc.h"
@@ -48,7 +47,7 @@ std::array<ACUM, MAX_STACKS> stack;
 // 接頭辞の重なりはない(pay と player、tax と talk は3文字目で
 // 区別される)が、念のため順序は変えないこと。
 struct SysVarEntry {
-	std::string_view keyword;
+	const char *keyword;
 	char name;
 };
 
@@ -114,7 +113,7 @@ int get_token(char **p,int *lpt,ATOM *abf)
 		a.kind = EXP_SYSVAR;
 		const SysVarEntry *found = nullptr;
 		for (const SysVarEntry &e : kSysVars) {
-			if (std::strncmp(*p,e.keyword.data(),e.keyword.size()) == 0) {
+			if (std::strncmp(*p,e.keyword,std::strlen(e.keyword)) == 0) {
 				found = &e;
 				break;
 			}
@@ -123,7 +122,7 @@ int get_token(char **p,int *lpt,ATOM *abf)
 			log_error(ERRM_UNDEF_SYSVAR);
 			return (-1);
 		}
-		(*p) += found->keyword.size();
+		(*p) += std::strlen(found->keyword);
 		a.NAME = found->name;
 		return (put_token(a,lpt,abf));
 	} else if (**p == '@') {	/* オブジェクト */
@@ -519,7 +518,7 @@ int get_sentence(char **p,int *lpt,ATOM *abf,char term)
 			case '\n':
 			case ',':
 				if (term != '\0') {
-					std::snprintf(buf.data(),buf.size(),ERRM_UNMATCH_BRACKET,term);
+					snprintf(buf.data(),buf.size(),ERRM_UNMATCH_BRACKET,term);
 					log_print(buf.data());
 				}
 				if (!termnext) {

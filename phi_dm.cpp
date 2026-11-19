@@ -251,9 +251,9 @@ int    main(int argc, char **argv)
   class_load();  /* PHIDM NEO extension: phi.class (Lua) */
   oldh = hour = (int) (timestr[11] - '0') * 10 + (int) (timestr[12] - '0') + tslide;
   log_print("start    : Dungeon Master ");
-  std::snprintf(buf, sizeof(buf),"version  : %s ", PHI_VERSION);
+  snprintf(buf, sizeof(buf),"version  : %s ", PHI_VERSION);
   log_print(buf);
-  std::snprintf(buf, sizeof(buf),"tax      : %li ", tax);
+  snprintf(buf, sizeof(buf),"tax      : %li ", tax);
   log_print(buf);
   server_lag_cnt = 0;
   server_lag = server_lag_prev = server_lag_prev2 = 10;
@@ -274,7 +274,7 @@ int    main(int argc, char **argv)
 	connect_check(100 - ((server_lag+server_lag_prev+server_lag_prev2) / 3 - 10 )*10);
 	/* nfclose() 後のエラー発生 */
 	while((n=nfclose_error_check())>=0){
-	  std::snprintf(buf, sizeof(buf),"exit-err : (%i:%i) = %s (%s)",
+	  snprintf(buf, sizeof(buf),"exit-err : (%i:%i) = %s (%s)",
 		  n, fd_check(n), ip_domain_check(n),
 		  errnum_to_msg(connect_error_check(n)));
 	  log_print(buf);
@@ -282,7 +282,7 @@ int    main(int argc, char **argv)
 	/* 新規接続受理 */
 	while((n=new_connect_check())>=0){
 	  if(connect_full()){
-	std::snprintf(buf, sizeof(buf),"full connect: (%i:%i) = %s ",
+	snprintf(buf, sizeof(buf),"full connect: (%i:%i) = %s ",
 		n, fd_check(n), ip_domain_check(n));
 	log_print(buf);
 	write_line(n, " No more connection. \n#x\n", 25, 0);
@@ -292,7 +292,7 @@ int    main(int argc, char **argv)
 	  }
 	  /* add for multi access control 20000713 */
 	  if(multi_access && !ip_multi(n)) {
-		std::snprintf(buf, sizeof(buf),"multi access refused: (%i:%i) = %s",
+		snprintf(buf, sizeof(buf),"multi access refused: (%i:%i) = %s",
 				n, fd_check(n), ip_domain_check(n));
 		log_print(buf);
 		write_line(n, "#x\n", 3, 0);
@@ -303,7 +303,7 @@ int    main(int argc, char **argv)
 	  /* psp4 add - banned check - by aleph */
 	  /* 新規接続の:Bスイッチ拒否 */
 	  if(!ip_banned(n)){
-		std::snprintf(buf, sizeof(buf),"connection refused: (%i:%i) = %s",
+		snprintf(buf, sizeof(buf),"connection refused: (%i:%i) = %s",
 				n, fd_check(n), ip_domain_check(n));
 		log_print(buf);
 		write_line(n, "#x\n", 3, 0);
@@ -313,7 +313,7 @@ int    main(int argc, char **argv)
 	  }
 	  /* end */
 	  init_connected_cd(n);
-	  std::snprintf(buf, sizeof(buf),"connect  : (%i:%i) = %s ", n, cd[n].fd, cd[n].str);
+	  snprintf(buf, sizeof(buf),"connect  : (%i:%i) = %s ", n, cd[n].fd, cd[n].str);
 	  log_print(buf);
 	}
 	/* 接続切断受理 */
@@ -347,7 +347,7 @@ int    main(int argc, char **argv)
 	min == 0 /* 負荷時差分散 20020516 */
 #endif
 	) {
-	std::snprintf(buf, sizeof(buf),"tax      : %li ", tax);
+	snprintf(buf, sizeof(buf),"tax      : %li ", tax);
 	log_print(buf);
 #ifdef DEBUG
 	log_print("phi_dm:call save_sd()");
@@ -636,7 +636,7 @@ int    main(int argc, char **argv)
 	  if (!*buf)
 		continue;
 	  if (!std::strncmp(buf, "#x", 2)) {
-		std::snprintf(buf, sizeof(buf),"x-detect : %s ", cd[n].name);
+		snprintf(buf, sizeof(buf),"x-detect : %s ", cd[n].name);
 		log_print(buf);
 		close_connect(n);
 		continue;
@@ -645,7 +645,7 @@ int    main(int argc, char **argv)
 		loadstr(cd[n].uid, &p, ' ', 16);
 		/* add for chrID ban 20030722 */
 		if (id_banned(n)) {
-		  std::snprintf(buf, sizeof(buf),"login refused: (%i:%i) = %s",
+		  snprintf(buf, sizeof(buf),"login refused: (%i:%i) = %s",
 				  n, fd_check(n), cd[n].uid);
 		  log_print(buf);
 		  write_line(n, "#x\n", 3, 0);
@@ -670,7 +670,7 @@ int    main(int argc, char **argv)
 		if (!(i = load_cd(n, 1))) {
 		  dmcheck_write(n, DMM_NO_CHARACTER);
 		  check_write(n, "#x\n");
-		  std::snprintf(buf, sizeof(buf),"no-chr   : (%i:%i) ", n, cd[n].fd);
+		  snprintf(buf, sizeof(buf),"no-chr   : (%i:%i) ", n, cd[n].fd);
 		  log_print(buf);
 		  close_connect(n);
 		  continue;
@@ -680,13 +680,13 @@ int    main(int argc, char **argv)
 		check_write(n, DMM_GUEST_USED);
 		check_write(n, DMM_GUEST_TRYLATER);
 		check_write(n, "#x\n");
-		std::snprintf(buf, sizeof(buf),"w-access guest: (%i:%i) ", n, cd[n].fd);
+		snprintf(buf, sizeof(buf),"w-access guest: (%i:%i) ", n, cd[n].fd);
 		log_print(buf);
 		close_connect(n);
 		continue;
 		  } else {
 		dmcheck_write(n, DMM_ACCESS_ALREADY);
-		std::snprintf(buf, sizeof(buf),"w-access : (%i:%i) ", n, cd[n].fd);
+		snprintf(buf, sizeof(buf),"w-access : (%i:%i) ", n, cd[n].fd);
 		log_print(buf);
 		for(i = 1; i < MAX_NTTYS; i++)
 		  if (i != n && cd[i].type && !std::strcmp(cd[n].uid, cd[i].uid))
@@ -695,13 +695,13 @@ int    main(int argc, char **argv)
 		  dmcheck_write(i, DMM_ACCESS_BY_OTHER);
 		  dmcheck_write(i, DMM_CHANGE_CLIENT_OUT);
 		  check_write(i, "#close\n");
-		  std::snprintf(buf, sizeof(buf),"cli-chang: (%i:%i) -> (%i:%i) ", i, cd[i].fd, n, cd[n].fd);
+		  snprintf(buf, sizeof(buf),"cli-chang: (%i:%i) -> (%i:%i) ", i, cd[i].fd, n, cd[n].fd);
 		  log_print(buf);
-		  std::snprintf(buf, sizeof(buf),"#name %s\n", cd[i].name); /* change for Rphi 20001018 */
+		  snprintf(buf, sizeof(buf),"#name %s\n", cd[i].name); /* change for Rphi 20001018 */
 		  check_write(n, buf);
 		  if (IS_CGCHGED(i)) { /* キャラグラ変更 added by Qajin 19991224 */
 			if(IS_CLIENT_RPHIWIN(n)) {				 /* phiwin/tphi 識別追加 added 20000101 */
-			  std::snprintf(buf, sizeof(buf),"#name %s\n", CHRGRA(i));
+			  snprintf(buf, sizeof(buf),"#name %s\n", CHRGRA(i));
 			  check_write(n, buf);
 			} else if(cd[i].cv >= 5085910)
 			  check_write(n,"#name __\n");
@@ -759,13 +759,13 @@ int    main(int argc, char **argv)
 		}
 		  }
 		}
-		std::snprintf(buf, sizeof(buf),"#name %s\n", cd[n].name);
+		snprintf(buf, sizeof(buf),"#name %s\n", cd[n].name);
 		check_write(n, buf);
 		cd[n].type = CT_NORMAL;
 		cd[n].cv = 0;
 		ex_notice(n,1); /* add for SD51 */
 		set_chr(n);
-		std::snprintf(buf, sizeof(buf),"access   : %s (%i:%i) ", cd[n].name, n, cd[n].fd);
+		snprintf(buf, sizeof(buf),"access   : %s (%i:%i) ", cd[n].name, n, cd[n].fd);
 		log_print(buf);
 		dmprintf(n, 0, buf, sizeof(buf),DMM_DISP_VERSION);
 		check_write(n, buf);
@@ -788,13 +788,13 @@ int    main(int argc, char **argv)
 		else			wizard_eye_f(n,0);
 
 		#ifdef ENPRN /* DM負荷表示 by NEO 2011/11/13 */
-		  std::snprintf(buf, sizeof(buf)-1, 
+		  snprintf(buf, sizeof(buf)-1, 
 		  " [DM LOAD: %i(%.2f) -> %i(%.2f) -> %i(%.2f)]\n", 
 		  (int)server_lag_prev2, (long)server_lag_prev2 / 10.0, 
 		  (int)server_lag_prev, (long)server_lag_prev / 10.0, 
 		  (int)server_lag, (long)server_lag / 10.0);
 		#else
-		  std::snprintf(buf, sizeof(buf)-1, 
+		  snprintf(buf, sizeof(buf)-1, 
 		  " [DM負荷: %i(%.2f) -> %i(%.2f) -> %i(%.2f)]\n", 
 		  (int)server_lag_prev2, (long)server_lag_prev2 / 10.0, 
 		  (int)server_lag_prev, (long)server_lag_prev / 10.0, 
@@ -890,7 +890,7 @@ int    main(int argc, char **argv)
 		/* for character graphic added by Qajin 19991224 */
 		/* バージョンチェック追加 changed by Qajin 19991228 */
 		if(std::atoi(buf+13) < 5098003 && cd[i].cv >= 5085910 && IS_CGCHGED(i)) {
-			std::snprintf(buf,sizeof(buf),"#name %s\n",CHRGRA(i));
+			snprintf(buf,sizeof(buf),"#name %s\n",CHRGRA(i));
 		check_write(i,buf);
 		}
 		cd[n].wt = cd[i].wt; /* 残り時間を延長 */
@@ -905,7 +905,7 @@ int    main(int argc, char **argv)
 		cd[n].name = findstr("????");
 		/* add for chrID ban 20030722 */
 		if (id_banned(n)) {
-		  std::snprintf(buf, sizeof(buf),"reserve refused: (%i:%i) = %s",
+		  snprintf(buf, sizeof(buf),"reserve refused: (%i:%i) = %s",
 				  n, fd_check(n), cd[n].uid);
 		  log_print(buf);
 		  write_line(n, "#rsv-no\n#x\n", 3, 0);
@@ -935,7 +935,7 @@ int    main(int argc, char **argv)
 		cd[n].st = ST_RESERVE;
 		cd[n].wt = 600;
 		check_write(n, "#rsv-ok\n");
-		std::snprintf(buf, sizeof(buf),"reserve  : (%i:%i) ", n, cd[n].fd);
+		snprintf(buf, sizeof(buf),"reserve  : (%i:%i) ", n, cd[n].fd);
 		log_print(buf);
 		for (i = 0; i < MAX_TALKS; i++){
 	cd[n].td[i].type = TT_NONE;
@@ -960,7 +960,7 @@ int    main(int argc, char **argv)
 	  cd[n].iy = cd[n].y;
 	  if (IS_CGCHGED(n)) { /* bug fix by Qajin 19991228 */
 		 if (cd[n].cv >= 5090152) { 			/* phiwin/tphi 識別追加  added 20000101 */
-		   std::snprintf(buf,sizeof(buf),"#name %s\n",CHRGRA(n));
+		   snprintf(buf,sizeof(buf),"#name %s\n",CHRGRA(n));
 		   check_write(n,buf);
 		 } else if (cd[n].cv >= 5085910)
 		   check_write(n,"#name __\n");
@@ -974,7 +974,7 @@ int    main(int argc, char **argv)
 	  /* クライアントより転送先サーバへのキャラクタ情報転送要求 */
 	  if(std::strcmp(cd[i=cd[n].vf].uid, cd[n].uid)){
 		check_write(n, "#trs-no\n");  /* 転送ソケット落ち */
-		std::snprintf(buf, sizeof(buf),"trs-err  : %s -> %s ",cd[n].name, cd[n].str);
+		snprintf(buf, sizeof(buf),"trs-err  : %s -> %s ",cd[n].name, cd[n].str);
 		log_print(buf);
 		cd[n].type = CT_NORMAL;
 		cd[n].st = ST_COMMAND;
@@ -983,7 +983,7 @@ int    main(int argc, char **argv)
 		cd[n].iy = cd[n].y;
 		dmcheck_write(n, DMM_TRANS_NO_MISS_DEST);
 	  } else {
-		std::snprintf(buf, sizeof(buf),"chr-trs  : (%i:%i) %s ", i,cd[i].fd,cd[n].name);
+		snprintf(buf, sizeof(buf),"chr-trs  : (%i:%i) %s ", i,cd[i].fd,cd[n].name);
 		log_print(buf);
 		p = cd[i].str + 8;
 		loadstr(nm.data(), &p, ' ', 32); /* ip */
@@ -1003,7 +1003,7 @@ int    main(int argc, char **argv)
 		/* 転送要求してたクライアントが見当たらない */
 		log_print(buf);
 		check_write(n, "#rcv-no\n");
-		std::snprintf(buf, sizeof(buf),"rcv-err  : (%i:%i) ", n, cd[n].fd);
+		snprintf(buf, sizeof(buf),"rcv-err  : (%i:%i) ", n, cd[n].fd);
 		log_print(buf);
 		close_connect(n);
 		continue;
@@ -1012,7 +1012,7 @@ int    main(int argc, char **argv)
 	  case -3:
 		log_print(buf);
 		check_write(n, "#rcv-no\n");
-		std::snprintf(buf, sizeof(buf),"refuse master in : (%i:%i) ", n, cd[n].fd);
+		snprintf(buf, sizeof(buf),"refuse master in : (%i:%i) ", n, cd[n].fd);
 		log_print(buf);
 		close_connect(n);
 		continue;
@@ -1020,7 +1020,7 @@ int    main(int argc, char **argv)
 	  case -1:			/* エラー発生 */
 		log_print(buf);
 		check_write(n, "#rcv-no\n");
-		std::snprintf(buf, sizeof(buf),"rcv-err  : (%i:%i) ", n, cd[n].fd);
+		snprintf(buf, sizeof(buf),"rcv-err  : (%i:%i) ", n, cd[n].fd);
 		log_print(buf);
 		close_connect(n);
 	  case 1:
@@ -1029,7 +1029,7 @@ int    main(int argc, char **argv)
 	  cd[i].wt = 600; /* 列車事故対策 20000718 */
 	  check_write(n, "#rcv-ok\n");
 	  while (!save_cd(i, 1));
-	  std::snprintf(buf, sizeof(buf),"chr-rcv  : (%i:%i) ", n, cd[n].fd);
+	  snprintf(buf, sizeof(buf),"chr-rcv  : (%i:%i) ", n, cd[n].fd);
 	  log_print(buf);
 	  close_connect(n);
 	} else if (cd[n].st == ST_SENDCHR && !std::strcmp(buf, "#rcv-no")){ /* check enhance 20000719 */
@@ -1039,7 +1039,7 @@ int    main(int argc, char **argv)
 	  } else {
 		cd[i].st = ST_TRANSFAILE; /* add for checking abnomal process sequence 20000725 */
 		check_write(i, "#trs-no\n");
-		std::snprintf(buf, sizeof(buf),"trs-err  : %s -> %s ",cd[i].name, cd[i].str);
+		snprintf(buf, sizeof(buf),"trs-err  : %s -> %s ",cd[i].name, cd[i].str);
 		log_print(buf);
 		/* 転送用ソケットを閉じる */
 		close_connect(n);
@@ -1053,7 +1053,7 @@ int    main(int argc, char **argv)
 	  } else {
 		check_write(i, "#trs-ok\n");
 		close_connect(i);
-		std::snprintf(buf, sizeof(buf),"out      : %s -> %s ",cd[i].name, cd[i].str);
+		snprintf(buf, sizeof(buf),"out      : %s -> %s ",cd[i].name, cd[i].str);
 		log_print(buf);
 		dmprintf(i, 0, buf, sizeof(buf),DMM_OUT
 		  , cd[i].str);
@@ -1069,7 +1069,7 @@ int    main(int argc, char **argv)
 	  set_chr(n);
 	  if (IS_CGCHGED(n)) { /* bug fix by Qajin 19991228 */
 		 if (cd[n].cv >= 5090152) { 			/* phiwin/tphi 識別追加  added 20000101 */
-		   std::snprintf(buf, sizeof(buf),"#name %s\n",CHRGRA(n));
+		   snprintf(buf, sizeof(buf),"#name %s\n",CHRGRA(n));
 		   check_write(n,buf);
 		 } else if (cd[n].cv >= 5085910)
 		   check_write(n,"#name __\n");
@@ -1077,7 +1077,7 @@ int    main(int argc, char **argv)
 	  print_map(n, 0);
 	  dmcheck_write(n, DMM_TRANS_FAIL);
 	} else if (cd[n].st == ST_RECEIVECOMPLETE && !std::strcmp(buf, "#ch-srv-ok")) { /* check enhance for bug fix 20000710 */
-	  std::snprintf(buf, sizeof(buf), "in       : %s from %s"
+	  snprintf(buf, sizeof(buf), "in       : %s from %s"
 		,cd[n].name, cd[n].str);
 	  log_print(buf);
 	  cd[n].type = CT_NORMAL; /* change sequence for dmprintf 20021226 */
@@ -1107,13 +1107,13 @@ int    main(int argc, char **argv)
 	  else			  wizard_eye_f(n,0);
 	  
 		#ifdef ENPRN /* DM負荷表示 by NEO 2011/11/13 */
-		  std::snprintf(buf, sizeof(buf)-1, 
+		  snprintf(buf, sizeof(buf)-1, 
 		  " [DM LOAD: %i(%.2f) -> %i(%.2f) -> %i(%.2f)]\n", 
 		  (int)server_lag_prev2, (long)server_lag_prev2 / 10.0, 
 		  (int)server_lag_prev, (long)server_lag_prev / 10.0, 
 		  (int)server_lag, (long)server_lag / 10.0);
 		#else
-		  std::snprintf(buf, sizeof(buf)-1, 
+		  snprintf(buf, sizeof(buf)-1, 
 		  " [DM負荷: %i(%.2f) -> %i(%.2f) -> %i(%.2f)]\n", 
 		  (int)server_lag_prev2, (long)server_lag_prev2 / 10.0, 
 		  (int)server_lag_prev, (long)server_lag_prev / 10.0, 
@@ -1147,7 +1147,7 @@ int    main(int argc, char **argv)
 	} else if (!std::strncmp(buf, "#gate", 5)) {
 	  if (get_gate(buf + 5, 0, n)) {
 		CPYSTR(cd[n].str, buf + 22);
-		std::snprintf(buf, sizeof(buf), "bad gate : %s ", cd[n].str);
+		snprintf(buf, sizeof(buf), "bad gate : %s ", cd[n].str);
 		log_print(buf);
 		close_connect(n);
 		cd[n].str[31]='\0';
@@ -1156,7 +1156,7 @@ int    main(int argc, char **argv)
 		write_companion(0, 0, buf, 1);
 	  } else {
 		CPYSTR(cd[n].str, buf + 22);
-		std::snprintf(buf, sizeof(buf), "gate     : %s ", cd[n].str);
+		snprintf(buf, sizeof(buf), "gate     : %s ", cd[n].str);
 		log_print(buf);
 		close_connect(n);
 		cd[n].str[31]='\0';
@@ -1167,7 +1167,7 @@ int    main(int argc, char **argv)
 	} else if (!std::strncmp(buf, "#g-close", 8)) {
 	  get_gate(buf + 8, 1, n);
 	  CPYSTR(cd[n].str, buf + 25);
-	  std::snprintf(buf, sizeof(buf), "g-close  : %s ", cd[n].str);
+	  snprintf(buf, sizeof(buf), "g-close  : %s ", cd[n].str);
 	  log_print(buf);
 	  close_connect(n);
 	  cd[n].str[31]='\0';
@@ -1183,7 +1183,7 @@ int    main(int argc, char **argv)
 		loadstr(nm.data(), &p, '\n', 32);
 	  }
 	  if (!authorize(nm.data())) {
-		std::snprintf(buf, sizeof(buf), "bad shut : %s", ip_domain_check(n));
+		snprintf(buf, sizeof(buf), "bad shut : %s", ip_domain_check(n));
 		log_print(buf);
 		/* psp5 fix ここから */
 		dmprintf(n, 0, buf, sizeof(buf),DMM_ILLEGAL_SHUTDOWN,cd[n].str);
@@ -1202,7 +1202,7 @@ int    main(int argc, char **argv)
 	  if (i != 0 && cd[n].cv == 0 && IS_CGCHGED(n) /* bug fix 20000321 fix2 0919 */
 		  ) {
 		if (i >= 5090152) {
-		  std::snprintf(buf, sizeof(buf),"#name %s\n",CHRGRA(n));  /* phiwin/Tphi 識別追加 added by Qajin 20000101 */
+		  snprintf(buf, sizeof(buf),"#name %s\n",CHRGRA(n));  /* phiwin/Tphi 識別追加 added by Qajin 20000101 */
 		  check_write(n,buf);
 		} else if (i >= 5085910)
 		  check_write(n,"#name __\n");
@@ -1211,7 +1211,7 @@ int    main(int argc, char **argv)
 	  if (!i)
 		check_write(n,"#code-sjis\n"); /* for old euc server ... 20010527 */
 	  ex_version_dm(n);
-   	  std::snprintf(buf, sizeof(buf), "#version-srv %s\n", PHI_PROT_VERS);
+   	  snprintf(buf, sizeof(buf), "#version-srv %s\n", PHI_PROT_VERS);
 	  check_write(n, buf);
 	} else if (!std::strncmp(buf,"#ex-register", 12)) {
 		if (ex_register(n, buf+12)) {
@@ -1423,7 +1423,7 @@ void   close_connect(int n)
 	  if(cd[i].angry == n){
 	cd[i].angry = -1;
 #ifdef DEBUG_ANGRY
-	std::snprintf(debug_buf, sizeof(debug_buf), "lost angry: %s(%d) ", cd[i].name,i);
+	snprintf(debug_buf, sizeof(debug_buf), "lost angry: %s(%d) ", cd[i].name,i);
 	log_print(debug_buf);
 #endif
 	  }
@@ -1438,7 +1438,7 @@ void   close_connect(int n)
 	  if(cd[i].vf2 == n){
 	cd[i].vf2 = -1; /* bug fix 20000727 */
 #ifdef DEBUG_ANGRY_SAMMON
-	std::snprintf(debug_buf, sizeof(debug_buf), "lost master: %s(%d) ", cd[i].name,i);
+	snprintf(debug_buf, sizeof(debug_buf), "lost master: %s(%d) ", cd[i].name,i);
 	log_print(debug_buf);
 #endif
 	  }
@@ -1538,7 +1538,7 @@ void   check_write(int n, char *mes)
 	 || cd[n].st == ST_TRYRESERVE
 	 || cd[n].st == ST_TRANSFAILE) && *mes != '#') return;
 #ifdef DEBUG_SEND_MSG
-	std::snprintf(debug_buf_msg,sizeof(debug_buf_msg),"send following message to cd[%d]",n);
+	snprintf(debug_buf_msg,sizeof(debug_buf_msg),"send following message to cd[%d]",n);
 	log_print(debug_buf_msg);
 	log_print(mes);
 #endif
@@ -1993,7 +1993,7 @@ void   print_map(int n, int f)
   if ((j = cd[n].view[4-y][x].chr[i] - 1) < 0) continue;
   if (j != n && ((cd[j].name[0] != ' ' && !TCN_VANISH(j))
 		   || cd[n].at == AT_VISIBLE)) {
-	std::snprintf(buf, sizeof(buf),
+	snprintf(buf, sizeof(buf),
 	  "#map C%02i:%01i %01i %c %-31s %02x %-15s %c %02x \n",
 	  k, x, y,
 	  kRdc[(4 + cd[j].d - cd[n].d) & 3] , cd[j].name ,
@@ -2017,7 +2017,7 @@ void   print_map(int n, int f)
 
   /* for change character graphic added by Qajin 19991224 changed 20000101 */
   if(cd[n].cv >= 5085910 && cd[n].cv < 5090152 && IS_CGCHGED(n)) {
-	std::snprintf(buf, sizeof(buf),
+	snprintf(buf, sizeof(buf),
 	  "#map C%02i:2 3 B                                 %02x %-15s %c 40 \n",
 	  k, (!(cd[n].st) && CN_GASIFY(n) >= 60 ? ST_GASIFY : cd[n].st),
 	  CHRGRA(n),
@@ -2086,7 +2086,7 @@ void   print_map(int n, int f)
 	  if ((od[obj].dir & OD_BOARD) && cd[n].cv < 5085910)
 		 continue;
 
-	  std::snprintf(buf, sizeof(buf),
+	  snprintf(buf, sizeof(buf),
 		"#map C%02i:%01i %01i %c %-31s 00 %-15s %c %02x \n",
 		k, x+2, 3-y,
 		(od[obj].dir & OD_TRACE) ?
@@ -2126,11 +2126,11 @@ void   print_map(int n, int f)
 	return;
   }
 #ifdef DEBUG_LAZY
-  std::snprintf(debug_buf, sizeof(debug_buf),"print map(%d)(print_map)",n);
+  snprintf(debug_buf, sizeof(debug_buf),"print map(%d)(print_map)",n);
   log_print(debug_buf);
 #endif
 
-  std::snprintf(buf, sizeof(buf), "#map M %c %08lx:",kDc[cd[n].d],time(nullptr)+tslide*60*60);
+  snprintf(buf, sizeof(buf), "#map M %c %08lx:",kDc[cd[n].d],time(nullptr)+tslide*60*60);
   for (j = 0, y = 0; y < 5; y++)
 	for (x = 0; x < 5; x++) {
 	  dd_char(buf + 18 + 50 + y * 10 + x * 2, cd[n].view[4 - y][x], 0x2);
@@ -2158,7 +2158,7 @@ void   print_map(int n, int f)
 	  list_item(n, 1);
 	}
   }
-  std::snprintf(buf, sizeof(buf), "#map .\n");
+  snprintf(buf, sizeof(buf), "#map .\n");
   check_write(n, buf);
   cd[n].m_wait_c = 0;
   return;
@@ -2172,7 +2172,7 @@ void   print_status(int n)
 
   if(n>=MAX_NTTYS || cd[n].fd==-1) return;
 
-  std::snprintf(buf.data(), buf.size(), "#status %-31s:% 5li:% 5li:% 5li:% 5li:% 9i:% 5i:% 5i:% 5i:% 5i:% 5i \n"
+  snprintf(buf.data(), buf.size(), "#status %-31s:% 5li:% 5li:% 5li:% 5li:% 9i:% 5i:% 5i:% 5i:% 5i:% 5i \n"
   /* changed by Qajin 19991224,19991228,20000101 */
   , (cd[n].cv < 5085910 || !IS_CGCHGED(n) || (cd[n].modef & (MD_M57 | MD_M81))) ? cd[n].name : (cd[n].cv >= 5090152 ? CHRGRA(n) : "__")
 	, cd[n].hp, cd[n].mhp, cd[n].mp, cd[n].mmp, cd[n].exp, cd[n].gp
@@ -2182,11 +2182,11 @@ void   print_status(int n)
 	CPYSTR(last_status[n], buf.data());
 	check_write(n, buf.data());
 #ifdef DEBUG_LAZY
-	std::snprintf(debug_buf, sizeof(debug_buf),"send status(%d)(print_status)",n);
+	snprintf(debug_buf, sizeof(debug_buf),"send status(%d)(print_status)",n);
 	log_print(debug_buf);
 #endif
   }
-  std::snprintf(buf.data(), buf.size(), "#cond %c%c%c%c%c%c%c\n",
+  snprintf(buf.data(), buf.size(), "#cond %c%c%c%c%c%c%c\n",
 	(TCN_POISON(n) ? '*' : '-'),
 	(TCN_PALSY(n) ? '*' : '-'),
 	(TCN_PANIC(n) ? '*' : '-'),
@@ -2198,7 +2198,7 @@ void   print_status(int n)
 	CPYSTR(last_cond[n], buf.data());
 	check_write(n, buf.data());
 #ifdef DEBUG_LAZY
-	std::snprintf(debug_buf, sizeof(debug_buf),"send cond(%d)(print_status)",n);
+	snprintf(debug_buf, sizeof(debug_buf),"send cond(%d)(print_status)",n);
 	log_print(debug_buf);
 #endif
   }
@@ -2214,7 +2214,7 @@ void   print_lists(int n)
 
   for (i = 1; i < MAX_NTTYS; i++) {
 	if (cd[i].type) {
-	  std::snprintf(buf.data(), buf.size(), "#user %04d %-31s\n", i, cd[i].name);
+	  snprintf(buf.data(), buf.size(), "#user %04d %-31s\n", i, cd[i].name);
 	  check_write(n, buf.data());
 	}
   }
@@ -2485,24 +2485,24 @@ void   set_chr(int n)
 
 	  /** mapsetの送信 **/
 		if (fld[map[cd[n].y][cd[n].x].area].mapset != nullptr) {  /* 定義済みの場所へ */
-		  std::snprintf(buf.data(), buf.size(), "#mapset %s\n", fld[map[cd[n].y][cd[n].x].area].mapset);
+		  snprintf(buf.data(), buf.size(), "#mapset %s\n", fld[map[cd[n].y][cd[n].x].area].mapset);
 		  check_write(n, buf.data());
 		} else {										   /* 未定義の場所へ */
 		  if (cd[n].by < 0 || cd[n].bx < 0 ||				   /* 初期アクセス時 */
 			  fld[map[cd[n].by][cd[n].bx].area].mapset != nullptr) {  /* 定義済みの場所から*/
-			std::snprintf(buf.data(), buf.size(), "#mapset default\n");
+			snprintf(buf.data(), buf.size(), "#mapset default\n");
 			check_write(n, buf.data());
 		  }
 		}
 
 	  /** bgm名の送信 **/
 		if (fld[map[cd[n].y][cd[n].x].area].bgm[0] != ' ') {  /* 定義済みの場所へ */
-		  std::snprintf(buf.data(), buf.size(), "#bgm %s\n", fld[map[cd[n].y][cd[n].x].area].bgm);
+		  snprintf(buf.data(), buf.size(), "#bgm %s\n", fld[map[cd[n].y][cd[n].x].area].bgm);
 		  check_write(n, buf.data());
 		} else {										   /* 未定義の場所へ */
 		  if (cd[n].by < 0 || cd[n].bx < 0 ||				/* 初期アクセス時 */
 			  fld[map[cd[n].by][cd[n].bx].area].bgm[0] != ' ') {  /* 定義済みの場所から*/
-			std::snprintf(buf.data(), buf.size(), "#bgm default\n");
+			snprintf(buf.data(), buf.size(), "#bgm default\n");
 			check_write(n, buf.data());
 		  }
 		}
@@ -2555,11 +2555,11 @@ void   func_analyze(int n, char *rbuf)
 	print_lists(n);
   else if (!std::strcmp(rbuf, "#enter-win")) {
 	cd[n].eye = 1;
-	std::snprintf(wbuf.data(), wbuf.size(), "#enter-win %s\n", cd[n].name);
+	snprintf(wbuf.data(), wbuf.size(), "#enter-win %s\n", cd[n].name);
 	write_companion(n, 0, wbuf.data(), 0);
   } else if (!std::strcmp(rbuf, "#leave-win")) {
 	cd[n].eye = 0;
-	std::snprintf(wbuf.data(), wbuf.size(), "#leave-win %s\n", cd[n].name);
+	snprintf(wbuf.data(), wbuf.size(), "#leave-win %s\n", cd[n].name);
 	write_companion(n, 0, wbuf.data(), 0);
   } else if (!std::strcmp(rbuf, "#end-lag")) {
 	if (n < MAX_NTTYS && CN_ALAG(n)) {
@@ -2581,7 +2581,7 @@ void   func_analyze(int n, char *rbuf)
 
 	if (i && cd[n].cv == 0 && IS_CGCHGED(n)) {
 	  if (i >= 5090152) {
-		std::snprintf(wbuf.data(), wbuf.size(), "#name %s\n", CHRGRA(n)); /* phiwin/Tphi 識別追加 added 20000101 */
+		snprintf(wbuf.data(), wbuf.size(), "#name %s\n", CHRGRA(n)); /* phiwin/Tphi 識別追加 added 20000101 */
 		check_write(n, wbuf.data());
 	  } else if (i >= 5085910)
 		check_write(n, "#name __\n");
@@ -2589,27 +2589,27 @@ void   func_analyze(int n, char *rbuf)
 
 	cd[n].cv = i;
 	ex_version_dm(n);
-	std::snprintf(wbuf.data(), wbuf.size(), "#version-srv %s\n", PHI_PROT_VERS);
+	snprintf(wbuf.data(), wbuf.size(), "#version-srv %s\n", PHI_PROT_VERS);
 	check_write(n, wbuf.data());
 
 	/** psp6 **/
 	if (cd[n].cv >= 5100006) {
 	  if (fld[map[cd[n].y][cd[n].x].area].mapset != nullptr) {  /* 定義済みの場所 */
-		std::snprintf(wbuf.data(), wbuf.size(), "#mapset %s\n", fld[map[cd[n].y][cd[n].x].area].mapset);
+		snprintf(wbuf.data(), wbuf.size(), "#mapset %s\n", fld[map[cd[n].y][cd[n].x].area].mapset);
 		check_write(n, wbuf.data());
 	  } else {											 /* 未定義の場所 */
-		std::snprintf(wbuf.data(), wbuf.size(), "#mapset default\n");
+		snprintf(wbuf.data(), wbuf.size(), "#mapset default\n");
 		check_write(n, wbuf.data());
 	  }
 	  if (fld[map[cd[n].y][cd[n].x].area].bgm[0] != ' ') {	/* 定義済みの場所へ */
-		std::snprintf(wbuf.data(), wbuf.size(), "#bgm %s\n", fld[map[cd[n].y][cd[n].x].area].bgm);
+		snprintf(wbuf.data(), wbuf.size(), "#bgm %s\n", fld[map[cd[n].y][cd[n].x].area].bgm);
 		check_write(n, wbuf.data());
 	  } else {											 /* 未定義の場所へ */
-		std::snprintf(wbuf.data(), wbuf.size(), "#bgm default\n");
+		snprintf(wbuf.data(), wbuf.size(), "#bgm default\n");
 		check_write(n, wbuf.data());
 	  }
 
-	  std::snprintf(wbuf.data(), wbuf.size(), "#remap\n");
+	  snprintf(wbuf.data(), wbuf.size(), "#remap\n");
 	  check_write(n, wbuf.data());
 	}
 	/** end **/
@@ -2623,7 +2623,7 @@ void   func_analyze(int n, char *rbuf)
 /*	  wbuf[4] = '\0';*/  /* PHI:0055 Bug Fix by EL */
 	i = std::atoi(wbuf.data());
 	if (i < MAX_NTTYS) { /* bug fix for over range 20030915 */
-		std::snprintf(wbuf.data(), wbuf.size(), "#priv %04d %s\n", n, rbuf + 11);
+		snprintf(wbuf.data(), wbuf.size(), "#priv %04d %s\n", n, rbuf + 11);
 		check_write(i, wbuf.data());
 	}
   } else if (!std::strncmp(rbuf, "#ex-",4)) {
@@ -2650,7 +2650,7 @@ void   input_analyze(int n, char *rbuf)
 	if (cd[n].parse > 0) {
 	  for(i=0;i<10;i++)
 		if (!std::strcmp(rbuf,kParsecom[i])) {
-		std::snprintf(rbuf, 1023,"%1x",i); /* main()のbufサイズに依存 */
+		snprintf(rbuf, 1023,"%1x",i); /* main()のbufサイズに依存 */
 		cd[n].parse = -1;
 		break;
 	  }
@@ -2715,7 +2715,7 @@ void   input_analyze(int n, char *rbuf)
   cd[n].vf = 0;
   check_write(n, "#list\n");
   if (!IS_CLIENT_RPHIWIN(n) && numbers[0] > 1) {
-	std::snprintf(wbuf.data(), wbuf.size(), "0) [%2i] ... previous\n",numbers[0] - 1);
+	snprintf(wbuf.data(), wbuf.size(), "0) [%2i] ... previous\n",numbers[0] - 1);
 	check_write(n, wbuf.data());
   }
   cd[n].vf2 = numbers[0];
@@ -2779,7 +2779,7 @@ void   input_analyze(int n, char *rbuf)
   cd[n].vf = 0;
   check_write(n, "#list\n");
   if (!IS_CLIENT_RPHIWIN(n) && i > 1) {
-	std::snprintf(wbuf.data(), wbuf.size(), "0) [%2i] ... previous\n",i - 1);
+	snprintf(wbuf.data(), wbuf.size(), "0) [%2i] ... previous\n",i - 1);
 	check_write(n, wbuf.data());
   }
   cd[n].vf2 = i;
@@ -2825,7 +2825,7 @@ void   input_analyze(int n, char *rbuf)
   cd[n].vf = 0;
   check_write(n, "#list\n");
   if (!IS_CLIENT_RPHIWIN(n) && i > 1) {
-	std::snprintf(wbuf.data(), wbuf.size(), "0) [%2i] ... previous\n",i - 1);
+	snprintf(wbuf.data(), wbuf.size(), "0) [%2i] ... previous\n",i - 1);
 	check_write(n, wbuf.data());
   }
   cd[n].vf2 = i;
@@ -2868,7 +2868,7 @@ void   input_analyze(int n, char *rbuf)
 		check_write(n, "#list\n");
 
 		if (!IS_CLIENT_RPHIWIN(n) && numbers[0] > 1) {
-		  std::snprintf(wbuf.data(), wbuf.size(), "0) [%2i] ... previous\n",numbers[0] - 1);
+		  snprintf(wbuf.data(), wbuf.size(), "0) [%2i] ... previous\n",numbers[0] - 1);
 		  check_write(n, wbuf.data());
 		}
 		cd[n].vf2 = numbers[0];
@@ -3100,11 +3100,11 @@ void   input_analyze(int n, char *rbuf)
 		|| cd[n].id[i].type == DT_NONE)
 	  continue;
 	j++;
-	std::snprintf(wbuf.data(), wbuf.size(), "[%2i] %s \n", j, cd[n].id[i].name);
+	snprintf(wbuf.data(), wbuf.size(), "[%2i] %s \n", j, cd[n].id[i].name);
 	check_write(n, wbuf.data());
   }
   j++;
-  std::snprintf(wbuf.data(), wbuf.size(), "[%2i] CANCEL \n", j);
+  snprintf(wbuf.data(), wbuf.size(), "[%2i] CANCEL \n", j);
   check_write(n, wbuf.data());
   check_write(n, "#end-list\n");
   dmcheck_write(n, DMM_CREATE_SELECT2);
@@ -3188,11 +3188,11 @@ void   input_analyze(int n, char *rbuf)
 	  if (cd[n].md[i].spell == nullptr)
   break;
 	  j++;
-	  std::snprintf(wbuf.data(), wbuf.size(), "[%2i] %s \n", j, cd[n].md[i].spell);
+	  snprintf(wbuf.data(), wbuf.size(), "[%2i] %s \n", j, cd[n].md[i].spell);
 	  check_write(n, wbuf.data());
 	}
 	j++;
-	std::snprintf(wbuf.data(), wbuf.size(), "[%2i] CANCEL \n", j);
+	snprintf(wbuf.data(), wbuf.size(), "[%2i] CANCEL \n", j);
 	check_write(n, wbuf.data());
 	check_write(n, "#end-list\n");
 	dmcheck_write(n, DMM_CHARGESPL_SELECTSPL);
@@ -3413,8 +3413,8 @@ void   input_analyze(int n, char *rbuf)
 	  if (std::sscanf(rbuf, "%i", &tm) == 1 && tm >= 1 && tm < MAX_NTTYS
 	      && tm != n && cd[tm].type) {
 	    std::array<char, 32> tname;
-	    std::snprintf(tname.data(), tname.size(), "%s", cd[tm].name);
-	    std::snprintf(wbuf.data(), wbuf.size(), "thunder  : %s -> %s \n", cd[n].name, tname.data());
+	    snprintf(tname.data(), tname.size(), "%s", cd[tm].name);
+	    snprintf(wbuf.data(), wbuf.size(), "thunder  : %s -> %s \n", cd[n].name, tname.data());
 	    log_print(wbuf.data());
 	    (void) hp_dmg(tm, -99999999, 1);
 	    dmprintf(n, 0, wbuf.data(), wbuf.size(), DMM_THUNDER, tname.data());
@@ -3431,8 +3431,8 @@ void   input_analyze(int n, char *rbuf)
 	  if (std::sscanf(rbuf, "%i", &tm) == 1 && tm >= 1 && tm < MAX_NTTYS
 	      && tm != n && cd[tm].type) {
 	    std::array<char, 32> tname;
-	    std::snprintf(tname.data(), tname.size(), "%s", cd[tm].name);
-	    std::snprintf(wbuf.data(), wbuf.size(), "hammer   : %s -> %s \n", cd[n].name, tname.data());
+	    snprintf(tname.data(), tname.size(), "%s", cd[tm].name);
+	    snprintf(wbuf.data(), wbuf.size(), "hammer   : %s -> %s \n", cd[n].name, tname.data());
 	    log_print(wbuf.data());
 	    dmprintf(n, 0, wbuf.data(), wbuf.size(), DMM_HAMMER, tname.data());
 	    check_write(n, wbuf.data());
@@ -3493,7 +3493,7 @@ void   input_analyze(int n, char *rbuf)
 	if (*rbuf == '.' && (*(rbuf + 1) == '!' || *(rbuf + 1) == 0)) {
 	  check_write(n, "#.\n");
   id2f(n,fid.data());
-  std::snprintf(wbuf.data(), wbuf.size(), "BoardTMP.%s", fid.data());
+  snprintf(wbuf.data(), wbuf.size(), "BoardTMP.%s", fid.data());
 	  switch (*(rbuf + 1)) {
 	  case '!':
   dmcheck_write(n, DMM_WRITE_STOP);
@@ -3506,12 +3506,12 @@ void   input_analyze(int n, char *rbuf)
   if ((fp = fopen(wbuf.data(), "rb")) != nullptr) {
 	fclose(fp);
 	abstime = time(nullptr);
-	std::snprintf(wbuf.data(), wbuf.size(), "BoardTMP.%s", fid.data());
-	std::snprintf(wbuf2.data(),wbuf2.size(), "phi_docs/B%08lx.%s", abstime, fid.data());
+	snprintf(wbuf.data(), wbuf.size(), "BoardTMP.%s", fid.data());
+	snprintf(wbuf2.data(),wbuf2.size(), "phi_docs/B%08lx.%s", abstime, fid.data());
 	if (!rename(wbuf.data(),wbuf2.data())) {
 /*		unlink(wbuf); delete for MINGW32 20050404 */
 	  dmcheck_write(n, DMM_WRITE);
-	  std::snprintf(wbuf.data(), wbuf.size(), "%08lx", abstime);
+	  snprintf(wbuf.data(), wbuf.size(), "%08lx", abstime);
 	  save_sd(n, cd[n].x, cd[n].y
 		,(map[cd[n].y][cd[n].x].tip & T_MESSAGE ? 'B' : 'T')
 		,wbuf.data(), 0);
@@ -3681,7 +3681,7 @@ void   input_analyze(int n, char *rbuf)
 	if (*(rbuf+1)=='\0' && *rbuf != 'Y' && *rbuf != 'y') {
 		CPYSTR(cd[n].adr,cd[n].str);
 	} else {
-		std::snprintf(wbuf.data(), wbuf.size(),"/*@NP:%s*/",cd[n].str);
+		snprintf(wbuf.data(), wbuf.size(),"/*@NP:%s*/",cd[n].str);
 		CPYSTR(cd[n].adr,wbuf.data());
 	}
 	dmcheck_write(n, DMM_ADDRESS);
@@ -3807,13 +3807,13 @@ void   itemlist(char *buf, int n, ItemData * id, int j, int siz)
 	}
   }
   l += 31 - std::strlen(id->name);
-  std::snprintf(buf, siz-1, "     [/*color=cyan*/%2i/*.*/] %s", j, id->name);
+  snprintf(buf, siz-1, "     [/*color=cyan*/%2i/*.*/] %s", j, id->name);
   m = std::strlen(buf);
   for (k = 0; k < l; k++) {
 	buf[m++] = ' ';
   }
   buf[m] = '\0';
-  std::snprintf(buf2, sizeof(buf2),"Wp  : %2d ", id->wp);
+  snprintf(buf2, sizeof(buf2),"Wp  : %2d ", id->wp);
   if (id == cd[n].oeq)
 	CATSTR(buf2, "[/*color=blue*/Acr/*.*/] ");
   else if (id == cd[n].aeq)
@@ -3866,7 +3866,7 @@ int    command_analyze(int n, char *com)
   return 0;
 	  }
 	}
-	std::snprintf(buf, sizeof(buf), "exit     : %s ", cd[n].name);
+	snprintf(buf, sizeof(buf), "exit     : %s ", cd[n].name);
 	log_print(buf);
 	dmcheck_write(n, DMM_SAVEDATA);
 	dmcheck_write(n, DMM_SEEYOU);
@@ -3901,7 +3901,7 @@ int    command_analyze(int n, char *com)
     readhomeland(n, homeland.data()); /*  出身地表示 by NEO 20111112 */
     
     /* 出身地表示 by NEO 20111112 */
-    std::snprintf(buf, sizeof(buf),DMM_CHECK_HLAND,homeland.data());
+    snprintf(buf, sizeof(buf),DMM_CHECK_HLAND,homeland.data());
     check_write(n, buf);
     /* ここまで */
     
@@ -3916,7 +3916,7 @@ int    command_analyze(int n, char *com)
         if (tlv > 999) {
       tlv = 999;
     }
-    std::snprintf(buf, sizeof(buf),DMM_TOTAL_LV,tlv);
+    snprintf(buf, sizeof(buf),DMM_TOTAL_LV,tlv);
     check_write(n, buf);
     /* by normal */
     dmprintf(n, 0, buf, sizeof(buf),DMM_CHECK_FLVWLV);
@@ -4023,7 +4023,7 @@ int    command_analyze(int n, char *com)
 	  if (cd[n].md[i].effect == EF_NONE)
   break;
 	  j++;
-	  std::snprintf(buf, sizeof(buf), "     [/*color=cyan*/%2i/*.*/] %s \n", j, cd[n].md[i].spell);
+	  snprintf(buf, sizeof(buf), "     [/*color=cyan*/%2i/*.*/] %s \n", j, cd[n].md[i].spell);
 	  check_write(n, buf);
 	}
 	return (0);
@@ -4431,7 +4431,7 @@ int    command_analyze(int n, char *com)
   if (cd[n].id[i].type == DT_NONE)
 	continue;
   j++;
-  std::snprintf(buf, sizeof(buf), "[%2i] %-31s ", j, cd[n].id[i].name);
+  snprintf(buf, sizeof(buf), "[%2i] %-31s ", j, cd[n].id[i].name);
   if(is_need_charge_time && cd[n].id[i].active_time > time(nullptr))
 	CATSTR(buf, "(charging) ");
   CATSTR(buf,"\n");
@@ -4588,7 +4588,7 @@ int    command_analyze(int n, char *com)
 	  if (cd[n].md[i].spell == nullptr)
   break;
 	  j++;
-	  std::snprintf(buf, sizeof(buf), "[%2i] %s \n", j, cd[n].md[i].spell);
+	  snprintf(buf, sizeof(buf), "[%2i] %s \n", j, cd[n].md[i].spell);
 	  check_write(n, buf);
 	}
 	check_write(n, "#end-list\n");
@@ -4717,7 +4717,7 @@ void   adduser(int n, char *rbuf)
 
   /* add for refuse co-addusers 20000706 */
   if (limit_addusers && !std::strcmp(cd[n].str,pre_adduser_ip)) {
-	std::snprintf(wbuf.data(), wbuf.size(), "adduser refused: (%i:%i) = %s",
+	snprintf(wbuf.data(), wbuf.size(), "adduser refused: (%i:%i) = %s",
 			n, fd_check(n), ip_domain_check(n));
 	log_print(wbuf.data());
 	write_line(n, "#x\n", 3, 0);
@@ -4732,7 +4732,7 @@ void   adduser(int n, char *rbuf)
 	close_connect(n);
 	return;
   }
-  std::snprintf(wbuf.data(),wbuf.size(),"You > %s\n",rbuf);
+  snprintf(wbuf.data(),wbuf.size(),"You > %s\n",rbuf);
   check_write(n, wbuf.data());
   /* add for reject unsurport character 20000627 */
   for(i = 0, p=rbuf; i < 256 && *p != '\0' && !(*p & 0x80); i++, p++);
@@ -4762,7 +4762,7 @@ void   adduser(int n, char *rbuf)
 	  check_write(n, "DM > Please re-enter your password (within 6 letters):\n");
 	  break;
 	}
-	std::snprintf(cd[n].uid,sizeof(cd[n].uid),"%s%05ld%s",addw,s_id,rbuf);
+	snprintf(cd[n].uid,sizeof(cd[n].uid),"%s%05ld%s",addw,s_id,rbuf);
 	check_write(n, "DM > Plese enter your E-Mail address:\n");
 	cd[n].st = ST_USERAD;
 	break;
@@ -4804,7 +4804,7 @@ void   adduser(int n, char *rbuf)
 	if (init_graph_n > 0) {
 		check_write(n, "#list");
 		for(i=0;i<init_graph_n;i++) {
-			std::snprintf(wbuf.data(), wbuf.size(), "[%02d] %s\n", i, init_graphic[i]);
+			snprintf(wbuf.data(), wbuf.size(), "[%02d] %s\n", i, init_graphic[i]);
 			check_write(n, wbuf.data());
 		}
 		check_write(n, "#end-list");
@@ -4828,14 +4828,14 @@ void   adduser(int n, char *rbuf)
 			cd[n].ocg = findstr(init_graphic[0]);
 		}
 	}
-	std::snprintf(wbuf.data(), wbuf.size(), "     ID    : %s\n", cd[n].uid);
+	snprintf(wbuf.data(), wbuf.size(), "     ID    : %s\n", cd[n].uid);
 	check_write(n, wbuf.data());
-	std::snprintf(wbuf.data(), wbuf.size(), "     Name  : %s\n", cd[n].str);
+	snprintf(wbuf.data(), wbuf.size(), "     Name  : %s\n", cd[n].str);
 	check_write(n, wbuf.data());
-	std::snprintf(wbuf.data(), wbuf.size(), "     E-mail: %s\n", cd[n].adr);
+	snprintf(wbuf.data(), wbuf.size(), "     E-mail: %s\n", cd[n].adr);
 	check_write(n, wbuf.data());
 	if (init_graph_n > 0) {
-		std::snprintf(wbuf.data(), wbuf.size(), "     figure: %s\n", cd[n].ocg);
+		snprintf(wbuf.data(), wbuf.size(), "     figure: %s\n", cd[n].ocg);
 		check_write(n, wbuf.data());
 	}
 	if (*rbuf != 'y' && *rbuf != 'Y') {
@@ -4957,10 +4957,10 @@ int new_user(int n)
 	cd[n].type = CT_NORMAL;
 	cd[n].md[0].spell = findstr("Cure");
 	cd[n].md[0].effect = EF_HEAL;
-	std::snprintf(wbuf, sizeof(wbuf), "new user : %s\n", cd[n].name);
+	snprintf(wbuf, sizeof(wbuf), "new user : %s\n", cd[n].name);
 	log_print(wbuf);
 	CPYSTR(pre_adduser_ip,ip_address_check(n)); /* add for refuse co-addusers 20000706 */
-	std::snprintf(wbuf, sizeof(wbuf), "#set-user-id %s\n", cd[n].uid);
+	snprintf(wbuf, sizeof(wbuf), "#set-user-id %s\n", cd[n].uid);
 	check_write(n, wbuf);
 	s_id++;
 	set_chr(n);
@@ -5019,7 +5019,7 @@ char *errnum_to_msg(int errnum){
   case EHOSTUNREACH: return "no route to host";
 #endif
   default:
-	std::snprintf(msg.data(), msg.size(),"fault No.%i", errnum);
+	snprintf(msg.data(), msg.size(),"fault No.%i", errnum);
 	return msg.data();
   }
 }
@@ -5032,7 +5032,7 @@ void	connection_error_process(int n, int errnum)
 
   switch(cd[n].st){
   case ST_CONNECTSERVER:
-	std::snprintf(buf.data(), buf.size(), "trs-err  : dead gate : %s (%s)",
+	snprintf(buf.data(), buf.size(), "trs-err  : dead gate : %s (%s)",
 		cd[n].name, errnum_to_msg(errnum));
 	log_print(buf.data());
 	if(!std::strcmp(cd[i=cd[n].vf].uid, cd[n].uid)){
@@ -5050,7 +5050,7 @@ void	connection_error_process(int n, int errnum)
 	 	gatedata[cn][7].dl = time(nullptr);
 	 } else if (time(nullptr)-gatedata[cn][7].dl > 60*60) { /* ゲート削除経過時間を１時間に変更　by NEO 20061014 old 60*60*24*30 */
 		/* cd[n].name には 世界名、.strにはIPとportがプロトコルと共に入っている */
-		std::snprintf(buf.data(), buf.size()," %03i %03i %03i %03i %-31s  %s \n",
+		snprintf(buf.data(), buf.size()," %03i %03i %03i %03i %-31s  %s \n",
 			  gatedata[cn][1].di,gatedata[cn][2].di,gatedata[cn][3].di,gatedata[cn][4].di,
 			  cd[n].name,cd[n].str+8);
 		/* get_gateはcd[].strにIPが入っている必要が有る */
@@ -5058,7 +5058,7 @@ void	connection_error_process(int n, int errnum)
 				cd[n].str[i] != '\n'; cd[n].str[i-8] = cd[n].str[i],i++);
 		cd[n].str[i-8] = '\0';
 		get_gate(buf.data(), 1, n);			   /* phi.td からも消す */
-		std::snprintf(buf.data(), buf.size(), "g-delete : %s", cd[n].name);
+		snprintf(buf.data(), buf.size(), "g-delete : %s", cd[n].name);
 		log_print(buf.data());
 		dmprintf(n, 0, buf.data(),buf.size(),DMM_GATE_DELETE,cd[n].name);
 		write_companion(0, 0, buf.data(), 1);
@@ -5071,14 +5071,14 @@ void	connection_error_process(int n, int errnum)
 	break;
   case ST_CONNECTSERVER_:
   case ST_SENDCHR: /* add for checking abnomal process sequence 20000725 */
-	std::snprintf(buf.data(), buf.size(), "trs-err  : %s (%s)", cd[n].name, errnum_to_msg(errnum));
+	snprintf(buf.data(), buf.size(), "trs-err  : %s (%s)", cd[n].name, errnum_to_msg(errnum));
 	log_print(buf.data());
 	/* クライアントが接続手続きに入ってしまっているため、*/
 	/* ST_TRANSFER 状態から解放できない。クライアントから情報待ち */
 	close_connect(n);
 	break;
   case ST_RESERVE:
-	std::snprintf(buf.data(), buf.size(), "rsv-err  : (%d:%d) (%s)",
+	snprintf(buf.data(), buf.size(), "rsv-err  : (%d:%d) (%s)",
 		n, cd[n].fd, errnum_to_msg(errnum));
 	log_print(buf.data());
 	close_connect(n);
@@ -5086,7 +5086,7 @@ void	connection_error_process(int n, int errnum)
   case ST_TRANSFER:
   case ST_TRYRESERVE:
   case ST_TRANSFAILE:
-	std::snprintf(buf.data(), buf.size(), "trs-err  : (%d:%d) %s (%s)",
+	snprintf(buf.data(), buf.size(), "trs-err  : (%d:%d) %s (%s)",
 		n, cd[n].fd, cd[n].name, errnum_to_msg(errnum));
 	log_print(buf.data());
 	dmprintf(n, 0, buf.data(), buf.size(),DMM_EXIT_WITH_ERR
@@ -5096,18 +5096,18 @@ void	connection_error_process(int n, int errnum)
 	break;
   case ST_WRITE: /* ディスク圧迫攻撃対策 20010215 */
 	id2f(n,fid.data());
-	std::snprintf(buf.data(), buf.size(), "BoardTMP.%s", fid.data());
+	snprintf(buf.data(), buf.size(), "BoardTMP.%s", fid.data());
 	unlink(buf.data());
   case ST_RECEIVECOMPLETE: /* 転送は完了しているので通常と同じ扱い */
   default:
 	if(cd[n].type == CT_NOEXIST){
-	  std::snprintf(buf.data(), buf.size(), "cli-err  : (%i:%i) (%s)",
+	  snprintf(buf.data(), buf.size(), "cli-err  : (%i:%i) (%s)",
 		  n, cd[n].fd, errnum_to_msg(errnum));
 	  log_print(buf.data());
 	  close_connect(n);
 	  break;
 	} else {
-	  std::snprintf(buf.data(), buf.size(), "cli-err  : (%d:%d) %s (%s)",
+	  snprintf(buf.data(), buf.size(), "cli-err  : (%d:%d) %s (%s)",
 		  n, cd[n].fd, cd[n].name, errnum_to_msg(errnum));
 	  log_print(buf.data());
 	  dmprintf(n, 0, buf.data(), buf.size(),DMM_EXIT_WITH_ERR,
@@ -5128,7 +5128,7 @@ void   charagra_set(int n, char *crgr) /*キャラグラセット用　by NEO 20
         cd[n].cg = cd[n].ocg = findstr(crgr);
         if (!(cd[n].modef & (MD_M57 | MD_M81))) {
 	        if (cd[n].cv >= 5090152) {
-    	      std::snprintf(buf.data(),buf.size(),"#name %s\n",cd[n].cg);
+    	      snprintf(buf.data(),buf.size(),"#name %s\n",cd[n].cg);
 			  check_write(n,buf.data());
 	        } else if (cd[n].cv >= 5085910)
     	      check_write(n,"#name __\n");
@@ -5208,7 +5208,7 @@ int save_mail(int n, char *mailto, char *msg) /* Add for メールシステム:�
 	int i,j;
 	std::array<char, 32> sp;
 
-	std::snprintf(buf.data(),buf.size(),"phi_mail/%s.md", mailto); /* ファイル準備 */
+	snprintf(buf.data(),buf.size(),"phi_mail/%s.md", mailto); /* ファイル準備 */
 	if ((fp = efopen(buf.data(), "ab")) == nullptr) {
 		log_print("DM > Can not write item data file [phi_mail/].\n");
 		return (-1);
@@ -5216,7 +5216,7 @@ int save_mail(int n, char *mailto, char *msg) /* Add for メールシステム:�
 
 	j = cmtstrcpy(nbuf.data(),nbuf.size(),cd[n].name,20);
 	nstr(sp.data(),' ',20-j);
-	std::snprintf(buf.data(),buf.size(),DMM_MAIL_WRITE, nbuf.data(), sp.data(), msg );
+	snprintf(buf.data(),buf.size(),DMM_MAIL_WRITE, nbuf.data(), sp.data(), msg );
 	fputs(buf.data(),fp); /* メール書き込み */
 
 	efclose(fp);
@@ -5233,7 +5233,7 @@ int read_mail(int n) /* Add for メールシステム:メールの読み込み b
     std::array<char, 256> wbuf;
     int i;
 
-    std::snprintf(rbuf.data(),rbuf.size(),"phi_mail/%s.md",cd[n].name); /* メール検索 */
+    snprintf(rbuf.data(),rbuf.size(),"phi_mail/%s.md",cd[n].name); /* メール検索 */
     if ((fp = efopen(rbuf.data(), "rb")) == nullptr) {
 		dmcheck_write(n, DMM_MAIL_NO);
 		return (0);
@@ -5243,7 +5243,7 @@ int read_mail(int n) /* Add for メールシステム:メールの読み込み b
 		if (efgets(rbuf.data(), rbuf.size(), fp) == nullptr) 
 		break;
 		i++;
-		std::snprintf(wbuf.data(), wbuf.size(),"[%2i] %s", i , rbuf.data()); /* メール表示 */
+		snprintf(wbuf.data(), wbuf.size(),"[%2i] %s", i , rbuf.data()); /* メール表示 */
 		check_write(n, wbuf.data());
 	}
 	efclose(fp);
@@ -5257,7 +5257,7 @@ int delete_mail(int n) /* Add for メールシステム:メールの消去 by NE
     std::array<char, 256> buf;
     int i;
 
-    std::snprintf(buf.data(),buf.size(),"phi_mail/%s.md",cd[n].name); /* メール検索 */
+    snprintf(buf.data(),buf.size(),"phi_mail/%s.md",cd[n].name); /* メール検索 */
     if ((fp = efopen(buf.data(), "rb")) == nullptr) {
 		dmcheck_write(n, DMM_MAIL_NO);
 		return (0);
@@ -5275,7 +5275,7 @@ int check_mail(int n) /* Add for メールシステム:メールのチェック 
     std::array<char, 256> buf;
     int i;
 
-    std::snprintf(buf.data(),buf.size(),"phi_mail/%s.md",cd[n].name); /* メール検索 */
+    snprintf(buf.data(),buf.size(),"phi_mail/%s.md",cd[n].name); /* メール検索 */
     if ((fp = efopen(buf.data(), "rb")) == nullptr)
 		return (0);
 
@@ -5285,7 +5285,7 @@ int check_mail(int n) /* Add for メールシステム:メールのチェック 
 		i++;
 	}
 	efclose(fp);
-	std::snprintf(buf.data(), buf.size(),DMM_MAIL_CHECK, i ); /* メール件数表示 */
+	snprintf(buf.data(), buf.size(),DMM_MAIL_CHECK, i ); /* メール件数表示 */
 	check_write(n, buf.data());
 	return (0);
 }
@@ -5311,7 +5311,7 @@ void readhomeland(int n, char *homeland) {
   std::array<char, 8> wid;
   char *p;
 
-  std::snprintf(homeland, 255, "Unknown");
+  snprintf(homeland, 255, "Unknown");
 
   if ((rfp = efopen("worldname.txt", "rb")) == nullptr) return;
 
@@ -5322,7 +5322,7 @@ void readhomeland(int n, char *homeland) {
 
     loadstr(wid.data(), &p, ' ', 5);
     if (!std::strncmp(wid.data(), cd[n].uid, 4)) {
-      std::snprintf(homeland, 255, "%s", p);
+      snprintf(homeland, 255, "%s", p);
       for (p=homeland;((*p != '\n')&&(*p != '\0'));p++) {
         if ((*p == '\r') || (*p == '\n')) {
           *p = '\0';

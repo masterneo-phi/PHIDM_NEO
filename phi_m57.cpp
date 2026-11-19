@@ -457,7 +457,7 @@ void   print_m57(int n, int f)
       if (od[obj].dir & OD_EFFECT)
          continue;
 
-      std::snprintf(buf.data(), buf.size(),
+      snprintf(buf.data(), buf.size(),
         "#m57 O B%04x:%01i %01i %c %-31s 00 %-15s %c %02x \n",
         obj, x+3, 6-sp-y,
         (od[obj].dir & OD_TRACE) ?
@@ -490,7 +490,7 @@ void   print_m57(int n, int f)
           continue;
         if (((cd[j].name[0] != ' ' && !TCN_VANISH(j))
                  || cd[n].at == AT_VISIBLE)) {
-          std::snprintf(buf.data(), buf.size(),
+          snprintf(buf.data(), buf.size(),
             "#m57 O C%04x:%01i %01i %c %-31s %02x %-15s %c %02x \n",
             j, x, y,
             rdc[(4 + cd[j].d - cmr) & 3] , cd[j].name ,
@@ -545,7 +545,7 @@ void   print_m57(int n, int f)
       if (!(od[obj].dir & OD_EFFECT))
          continue;
 
-      std::snprintf(buf.data(), buf.size(),
+      snprintf(buf.data(), buf.size(),
         "#m57 O F%04x:%01i %01i %c %-31s 00 %-15s %c %02x \n",
         obj, x+3, 6-sp-y,
         (od[obj].dir & OD_TRACE) ?
@@ -580,7 +580,7 @@ void   print_m57(int n, int f)
     return;
 
 #ifdef DEBUG_M57
-  std::snprintf(debug_buf, sizeof(debug_buf),"print m57(%d)(print_m57)",n);
+  snprintf(debug_buf, sizeof(debug_buf),"print m57(%d)(print_m57)",n);
   log_print(debug_buf);
 #endif
 
@@ -594,9 +594,9 @@ void   print_m57(int n, int f)
   if (i<4 && mapuse[i] != 0) {
     for(i=1;i<4 && mapuse[i] != 0;i++) {
 	  if (mapset[i] == nullptr) {
-        std::snprintf(buf.data(), buf.size(), "#mapset-define %1i default\n",i);
+        snprintf(buf.data(), buf.size(), "#mapset-define %1i default\n",i);
 	  } else {
-        std::snprintf(buf.data(), buf.size(), "#mapset-define %1i %s\n",i,mapset[i]);
+        snprintf(buf.data(), buf.size(), "#mapset-define %1i %s\n",i,mapset[i]);
       }
       check_write(n,buf.data());
       last_mapset[n][i-1] = mapset[i];
@@ -605,7 +605,7 @@ void   print_m57(int n, int f)
 
   /* 行頭 "#m57 M %c %08lx:" は 18 バイト。セルは 2 バイトずつ、
    * 行ごとに 14 バイトで 98 バイト。末尾に " \n" を付ける。 */
-  std::snprintf(buf.data(), buf.size(), "#m57 M %c %08lx:",dc[cd[n].d],std::time(nullptr)+tslide*60*60);
+  snprintf(buf.data(), buf.size(), "#m57 M %c %08lx:",dc[cd[n].d],std::time(nullptr)+tslide*60*60);
   for (int y = 0; y < 7; y++)
     for (int x = 0; x < 7; x++) {
       dd_m57(buf.data() + 18 + y * 14 + x * 2, &(view7[6 - y][x]), 0x8);
@@ -618,7 +618,7 @@ void   print_m57(int n, int f)
   for(k = 0; k<last_npc_num[n]; k++)
     check_write(n, last_npc[n][k]);
 
-  std::snprintf(buf.data(), buf.size(), "#m57 .\n");
+  snprintf(buf.data(), buf.size(), "#m57 .\n");
   check_write(n, buf.data());
 
   if (map[cd[n].y][cd[n].x].tip & T_MESSAGE) {
@@ -663,7 +663,7 @@ void eagleeye_m57(int n)
 
   for (int y = lo; y <= hi; y++) {
     /* 行頭 "#ex-eagleeye M %2.2d %2.2d " は 21 バイト。 */
-    std::snprintf(buf.data(),buf.size(),"#ex-eagleeye M %2.2d %2.2d ",size,y-lo);
+    snprintf(buf.data(),buf.size(),"#ex-eagleeye M %2.2d %2.2d ",size,y-lo);
     p = buf.data()+21;
     for (int x = lo; x <= hi; x++) {
 

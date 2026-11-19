@@ -63,7 +63,7 @@ static void cls_log_error(const char *what)
 {
   char buf[512];
   const char *msg = cls_L ? lua_tostring(cls_L, -1) : nullptr;
-  std::snprintf(buf, sizeof(buf), "class    : %s: %s", what,
+  snprintf(buf, sizeof(buf), "class    : %s: %s", what,
                 msg ? msg : "(no message)");
   log_print(buf);
 }
@@ -203,7 +203,7 @@ static int l_rand_range(lua_State *L)
 static int parse_item_def(const char *def, ItemData *out)
 {
   char buf[256];
-  std::snprintf(buf, sizeof(buf), "%s", def);
+  snprintf(buf, sizeof(buf), "%s", def);
   if (load_item(out, buf))
     return 1;
   std::string s(def);
@@ -224,7 +224,7 @@ static int parse_item_def(const char *def, ItemData *out)
   if (pos == std::string::npos)
     return 0;
   s.insert(pos, 1, ' ');
-  std::snprintf(buf, sizeof(buf), "%s", s.c_str());
+  snprintf(buf, sizeof(buf), "%s", s.c_str());
   return load_item(out, buf) != 0;
 }
 
@@ -333,7 +333,7 @@ static int l_log(lua_State *L)
 {
   const char *s = luaL_checkstring(L, 1);
   char buf[512];
-  std::snprintf(buf, sizeof(buf), "class    : %s", s);
+  snprintf(buf, sizeof(buf), "class    : %s", s);
   log_print(buf);
   return 0;
 }
@@ -445,7 +445,7 @@ void class_load(void)
   cls_ready = 1;
   {
     char buf[64];
-    std::snprintf(buf, sizeof(buf), "class    : %s loaded", cls_name);
+    snprintf(buf, sizeof(buf), "class    : %s loaded", cls_name);
     log_print(buf);
   }
 }
@@ -463,7 +463,7 @@ void class_call(int n, const char *prog, int sx, int sy)
   lua_getglobal(cls_L, prog);
   if (!lua_isfunction(cls_L, -1)) {
     char buf[256];
-    std::snprintf(buf, sizeof(buf),
+    snprintf(buf, sizeof(buf),
                   "class    : program not found: %s", prog);
     log_print(buf);
     lua_pop(cls_L, 1);
@@ -491,7 +491,7 @@ void class_call(int n, const char *prog, int sx, int sy)
   cls_cur = -1;
   if (rc != LUA_OK) {
     char buf[256];
-    std::snprintf(buf, sizeof(buf), "program %s failed", prog);
+    snprintf(buf, sizeof(buf), "program %s failed", prog);
     cls_log_error(buf);
     lua_pop(cls_L, 1);
   }

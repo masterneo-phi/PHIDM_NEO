@@ -39,7 +39,7 @@ void send_name_if_cg_changed(int n, const char *name)
 {
     if (IS_CGCHGED(n)) {
         std::array<char, 256> buf{};
-        std::snprintf(buf.data(), buf.size(), "#name %s\n", name);
+        snprintf(buf.data(), buf.size(), "#name %s\n", name);
         check_write(n, buf.data());
     }
 }
@@ -164,7 +164,7 @@ void ex_version_dm(int n)
     std::array<char, 256> buf{};
 
     if (cd[n].cv >= 5100000) { /* for old clients ... */
-        std::snprintf(buf.data(), buf.size(), "#version-dm %s\n", PHI_DM_VERS);
+        snprintf(buf.data(), buf.size(), "#version-dm %s\n", PHI_DM_VERS);
         check_write(n, buf.data());
     }
 }
@@ -224,7 +224,7 @@ int ex_adduser_v52(int n, char *p)
             /* ID は 世界識別子 + シリアル5桁 + パスワード6文字。
              * %-6.6s で6文字に詰められ、短い分は空白で埋まる
              * (finish 側で空白までの長さを見て弾く)。 */
-            std::snprintf(cd[n].uid, sizeof(cd[n].uid), "%s%05ld%-6.6s",
+            snprintf(cd[n].uid, sizeof(cd[n].uid), "%s%05ld%-6.6s",
                           addw, s_id, value.data());
         } else if (std::strcmp(property.data(), "image") == 0) {
             /* %li なので 10進・8進・16進のどれでも読める。
@@ -308,7 +308,7 @@ int ex_adduser_v52_finish(int n)
          * ソースでは " name" の直後にタブ文字が見えるが、あれ
          * は三項演算子の : の前の空白であって、文字列の一部
          * ではない (各欄は " name" のような形そのまま)。 */
-        std::snprintf(buf.data(), buf.size(), "#ex-register reject%s%s%s%s",
+        snprintf(buf.data(), buf.size(), "#ex-register reject%s%s%s%s",
                       f_name ? " name" : "",
                       f_pass ? " pass" : "",
                       f_image ? " image" : "",

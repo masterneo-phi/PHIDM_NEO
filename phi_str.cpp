@@ -91,7 +91,7 @@ struct FormatContext {
 template <typename... Args>
 std::string format_number(const char *fmt, Args... args) {
   char tmp[32];
-  std::snprintf(tmp, sizeof(tmp), fmt, args...);
+  snprintf(tmp, sizeof(tmp), fmt, args...);
   return std::string(tmp);
 }
 

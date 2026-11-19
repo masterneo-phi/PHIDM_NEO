@@ -148,7 +148,7 @@ int load_skills(int n,char *p)
     }
     if (i == MAX_SKILL_TYPES) {
         if (lcnt > 0) {
-            std::snprintf(buf.data(), sizeof(buf), "%s at line %d: no parameter.(load_skills)", pfname, lcnt);
+            snprintf(buf.data(), sizeof(buf), "%s at line %d: no parameter.(load_skills)", pfname, lcnt);
             log_print(buf.data());
         }
         return (-1);
@@ -172,7 +172,7 @@ int save_skl_type(int n,char *buf,int size,int type)
 	   必ずあるため結果は同じ。全て 0 のときは何も書かないが、
 	   返値 1 の場合呼び出し元は buf を読まない。元のまま。 */
 	bp = buf; bs = size;
-	std::snprintf(buf,size,":S%s",kSkillId[type]);
+	snprintf(buf,size,":S%s",kSkillId[type]);
 	l = 2+std::strlen(kSkillId[type]);
 	buf += l; size -= l;
 
@@ -182,7 +182,7 @@ int save_skl_type(int n,char *buf,int size,int type)
 	/* %.0i は 0 を空文字にするため、0 の項目は : だけになる。
 	   読み込み側は : の後が数字でなければ 0 と読む。 */
 	for (i=k=0;i<kSkillMax[type];i++) {
-		std::snprintf(buf,size,":%.0i",cd[n].skill[type][i]);
+		snprintf(buf,size,":%.0i",cd[n].skill[type][i]);
 		l = std::strlen(buf);
 		buf += l; size -= l;
 		if (cd[n].skill[type][i]==0)
@@ -212,7 +212,7 @@ int put_skills(int n,int m)
     std::array<char, 256> buf;
 
     /* 先頭の UID は対象ではなく常に cd[0] のもの。元の挙動のまま。 */
-    std::snprintf(buf.data(), sizeof(buf), "#chr-D %-15s VX", cd[0].uid);
+    snprintf(buf.data(), sizeof(buf), "#chr-D %-15s VX", cd[0].uid);
 
     for (int i = 0; i < MAX_SKILL_TYPES; i++) {
         if (!save_skl_type(n, buf.data() + 25, sizeof(buf) - 25, i))
@@ -257,7 +257,7 @@ int status_skills(int n,char *p)
 		CPYSTR(buf2,"  ");
 		for (i=0;i<SKL_WPN_MAX;i++) {
 			if ((j=cd[n].skill[SKL_WEAPON][i]/100) > 0) {
-				std::snprintf(buf,sizeof(buf)," %-6.6s : %2i ",wt_name[i],j);
+				snprintf(buf,sizeof(buf)," %-6.6s : %2i ",wt_name[i],j);
 				CATSTR(buf2,buf);
 			}
 			if (i % 4 == 3 && *(buf2+2) != '\0') {
@@ -272,7 +272,7 @@ int status_skills(int n,char *p)
 		CPYSTR(buf2,"  ");
 		for (i=0;i<SKL_MGAT_MAX;i++) {
 			if ((j=cd[n].skill[SKL_MAGIC_AT][i]/100) > 0) {
-				std::snprintf(buf,sizeof(buf)," %-9.9s : %2i ",kSkillMagicRegions[i],j);
+				snprintf(buf,sizeof(buf)," %-9.9s : %2i ",kSkillMagicRegions[i],j);
 				CATSTR(buf2,buf);
 			}
 			if ((i==2 || i==6 || i==9) && *(buf2+2) != '\0') {
@@ -287,7 +287,7 @@ int status_skills(int n,char *p)
 		   11〜39/46〜60/61〜93 に対応する。 */
 		for (i=k=0;i<SKL_MGEF1_MAX;i++) {
 			if ((j=cd[n].skill[SKL_MAGIC_EF1][i]/100) > 0) {
-				std::snprintf(buf,sizeof(buf)," %-13.13s: %2i ",use_effect[i+11],j);
+				snprintf(buf,sizeof(buf)," %-13.13s: %2i ",use_effect[i+11],j);
 				CATSTR(buf2,buf);
 				if(++k % 4 == 0) {
 					CATSTR(buf2,"\n");
@@ -298,7 +298,7 @@ int status_skills(int n,char *p)
 		}
 		for (i=0;i<SKL_MGEF2_MAX;i++) {
 			if ((j=cd[n].skill[SKL_MAGIC_EF2][i]/100) > 0) {
-				std::snprintf(buf,sizeof(buf)," %-13.13s: %2i ",use_effect[i+46],j);
+				snprintf(buf,sizeof(buf)," %-13.13s: %2i ",use_effect[i+46],j);
 				CATSTR(buf2,buf);
 				if(++k % 4 == 0) {
 					CATSTR(buf2,"\n");
@@ -309,7 +309,7 @@ int status_skills(int n,char *p)
 		}
 		for (i=0;i<SKL_MGEF3_MAX;i++) {
 			if ((j=cd[n].skill[SKL_MAGIC_EF3][i]/100) > 0) {
-				std::snprintf(buf,sizeof(buf)," %-13.13s: %2i ",use_effect[i+61],j);
+				snprintf(buf,sizeof(buf)," %-13.13s: %2i ",use_effect[i+61],j);
 				CATSTR(buf2,buf);
 				if(++k % 4 == 0) {
 					CATSTR(buf2,"\n");
@@ -325,7 +325,7 @@ int status_skills(int n,char *p)
 		}
 		for (i=0;i<SKL_MGSP_MAX;i++) {
 			if ((j=cd[n].skill[SKL_MAGIC_SP][i]/100) > 0) {
-				std::snprintf(buf,sizeof(buf)," %-12.12s : %2i ",kSkillMagicCommonSpells[i],j);
+				snprintf(buf,sizeof(buf)," %-12.12s : %2i ",kSkillMagicCommonSpells[i],j);
 				CATSTR(buf2,buf);
 			}
 			if (i % 4 == 3 && *(buf2+2) != '\0') {
@@ -343,7 +343,7 @@ int status_skills(int n,char *p)
 		dmcheck_write(n,DMM_SKILLS_FN);
 		for (i=0;i<SKL_MGFN_MAX;i++) {
 			if ((j=cd[n].skill[SKL_MAGIC_FN][i]/100) > 0) {
-				std::snprintf(buf,sizeof(buf)," %-7.7s : %2i ",fn_name[i],j);
+				snprintf(buf,sizeof(buf)," %-7.7s : %2i ",fn_name[i],j);
 				CATSTR(buf2,buf);
 			}
 			if (i % 3 == 0 && *(buf2+2) != '\0') {
@@ -360,7 +360,7 @@ int status_skills(int n,char *p)
 		CPYSTR(buf2,"    ");
 		for (i=k=0;i<SKL_DTIT_MAX;i++) {
 			if ((j=cd[n].skill[SKL_DETECT_IT][i]/100) > 0) {
-				std::snprintf(buf,sizeof(buf)," %-12.12s: %2i ",it_name[i],j);
+				snprintf(buf,sizeof(buf)," %-12.12s: %2i ",it_name[i],j);
 				CATSTR(buf2,buf);
 			}
 			if (i % 4 == 3 && *(buf2+4) != '\0') {
@@ -375,7 +375,7 @@ int status_skills(int n,char *p)
 		CPYSTR(buf2,"    ");
 		for (i=k=0;i<SKL_DTWP_MAX;i++) {
 			if ((j=cd[n].skill[SKL_DETECT_WT][i]/100) > 0) {
-				std::snprintf(buf,sizeof(buf)," %-6.6s : %2i ",wt_name[i],j);
+				snprintf(buf,sizeof(buf)," %-6.6s : %2i ",wt_name[i],j);
 				CATSTR(buf2,buf);
 			}
 			if (i % 4 == 3 && *(buf2+4) != '\0') {
@@ -390,7 +390,7 @@ int status_skills(int n,char *p)
 		CPYSTR(buf2,"    ");
 		for (i=k=0;i<SKL_DTMT_MAX;i++) {
 			if ((j=cd[n].skill[SKL_DETECT_MT][i]/100) > 0) {
-				std::snprintf(buf,sizeof(buf)," %-8.8s: %2i ",mt_name[i],j);
+				snprintf(buf,sizeof(buf)," %-8.8s: %2i ",mt_name[i],j);
 				CATSTR(buf2,buf);
 			}
 			if (i % 4 == 3 && *(buf2+4) != '\0') {
@@ -408,7 +408,7 @@ int status_skills(int n,char *p)
 		CPYSTR(buf2,"    ");
 		for (i=k=0;i<SKL_CRIT_MAX;i++) {
 			if ((j=cd[n].skill[SKL_CREATE_IT][i]/100) > 0) {
-				std::snprintf(buf,sizeof(buf)," %-12.12s: %2i ",it_name[i],j);
+				snprintf(buf,sizeof(buf)," %-12.12s: %2i ",it_name[i],j);
 				CATSTR(buf2,buf);
 			}
 			if (i % 4 == 3 && *(buf2+4) != '\0') {
@@ -423,7 +423,7 @@ int status_skills(int n,char *p)
 		CPYSTR(buf2,"    ");
 		for (i=k=0;i<SKL_CRWP_MAX;i++) {
 			if ((j=cd[n].skill[SKL_CREATE_WT][i]/100) > 0) {
-				std::snprintf(buf,sizeof(buf)," %-6.6s : %2i ",wt_name[i],j);
+				snprintf(buf,sizeof(buf)," %-6.6s : %2i ",wt_name[i],j);
 				CATSTR(buf2,buf);
 			}
 			if (i % 4 == 3 && *(buf2+4) != '\0') {
@@ -438,7 +438,7 @@ int status_skills(int n,char *p)
 		CPYSTR(buf2,"    ");
 		for (i=k=0;i<SKL_CRMT_MAX;i++) {
 			if ((j=cd[n].skill[SKL_CREATE_MT][i]/100) > 0) {
-				std::snprintf(buf,sizeof(buf)," %-8.8s: %2i ",mt_name[i],j);
+				snprintf(buf,sizeof(buf)," %-8.8s: %2i ",mt_name[i],j);
 				CATSTR(buf2,buf);
 			}
 			if (i % 4 == 3 && *(buf2+4) != '\0') {

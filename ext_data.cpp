@@ -176,12 +176,12 @@ int set_property(char *src, char *dst, int dsize, char *property, char *value)
     } else if (std::strstr(value, " ") != nullptr && value[0] != '"' &&
                value[0] != '\'') {
         if (std::strstr(value, "\"") == nullptr) {
-            std::snprintf(dst, dsize, "%s=\"%s\"", property, value);
+            snprintf(dst, dsize, "%s=\"%s\"", property, value);
         } else {
-            std::snprintf(dst, dsize, "%s='%s'", property, value);
+            snprintf(dst, dsize, "%s='%s'", property, value);
         }
     } else {
-        std::snprintf(dst, dsize, "%s=%s", property, value);
+        snprintf(dst, dsize, "%s=%s", property, value);
     }
     return 1;
 }

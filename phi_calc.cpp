@@ -261,7 +261,7 @@ void dead(int n)
     clear_chr(n);
     cd[n].x = cd[n].ix;
     cd[n].y = cd[n].iy;
-    std::snprintf(buf.data(), buf.size(), "dead     : %s ", cd[n].name);
+    snprintf(buf.data(), buf.size(), "dead     : %s ", cd[n].name);
     log_print(buf.data());
     dmcheck_write(n, DMM_DEAD);
     dmcheck_write(n, DMM_TRYAGAIN);
@@ -342,7 +342,7 @@ void dead(int n)
       clear_chr(n);
       cd[n].x = cd[n].ix;
       cd[n].y = cd[n].iy;
-      std::snprintf(buf.data(), buf.size(), "dead     : %s ", cd[n].name);
+      snprintf(buf.data(), buf.size(), "dead     : %s ", cd[n].name);
       log_print(buf.data());
       dmcheck_write(n, DMM_DEAD);
       dmcheck_write(n, DMM_TRYAGAIN);
@@ -450,7 +450,7 @@ void kill_other(int as, int ds, int lv)
   }
   lv_up(as, ds, lv, 1);
   if (log_op || ds < MAX_NTTYS) {
-    std::snprintf(buf.data(), buf.size(), "kill     : %s <- %s ", cd[ds].name, cd[as].name);
+    snprintf(buf.data(), buf.size(), "kill     : %s <- %s ", cd[ds].name, cd[as].name);
     log_print(buf.data());
   }
   if (as >= MAX_NTTYS) {
@@ -460,7 +460,7 @@ void kill_other(int as, int ds, int lv)
 #ifdef DEBUG_ANGRY
       /* 注意: debug_buf は DEBUG のときだけ定義される (このファイル先頭)。
        * DEBUG_ANGRY だけを定義したビルドでは未定義になる。元のまま。 */
-      std::snprintf(debug_buf, sizeof(debug_buf), "no angry : %s(%d) <- %s(%d) ", cd[ds].name, ds, cd[as].name, as);
+      snprintf(debug_buf, sizeof(debug_buf), "no angry : %s(%d) <- %s(%d) ", cd[ds].name, ds, cd[as].name, as);
       log_print(debug_buf);
 #endif
     }
@@ -475,7 +475,7 @@ void   kill_self_msg(int n, char *s)
   dmprintf(n, 0, buf.data(), buf.size(), DMM_KILL_SELF, s);
   write_companion(n, 0, buf.data(), (n < MAX_NTTYS ? access_dm : 0));
   if (log_op || n < MAX_NTTYS) {
-    std::snprintf(buf.data(), buf.size(), "kill self: %s ", cd[n].name);
+    snprintf(buf.data(), buf.size(), "kill self: %s ", cd[n].name);
     log_print(buf.data());
   }
 }

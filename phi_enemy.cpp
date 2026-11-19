@@ -780,7 +780,7 @@ int auto_action(int n)
     i=j;
     break;
   }
-      std::snprintf(buf, sizeof(buf), "use %s", cd[n].id[i].name);
+      snprintf(buf, sizeof(buf), "use %s", cd[n].id[i].name);
       input_analyze(n, buf);
       return (0);
     }
@@ -809,7 +809,7 @@ int auto_action(int n)
     i=j;
     break;
   }
-      std::snprintf(buf, sizeof(buf),"use %s",cd[n].id[i].name);
+      snprintf(buf, sizeof(buf),"use %s",cd[n].id[i].name);
       input_analyze(n,buf);
       return 0;
     }
@@ -988,7 +988,7 @@ int auto_action(int n)
   input_analyze(n, (char*)(50 > cd[n].align
         ? NTK_HELP_THX_LAW : NTK_HELP_THX_CHAOS));
   if (PER_DICE > cd[n].align + 50) {
-    std::snprintf(buf, sizeof(buf), "pay %i", (99 - cd[n].align) / 10 + 1);
+    snprintf(buf, sizeof(buf), "pay %i", (99 - cd[n].align) / 10 + 1);
     input_analyze(n, buf);
   }
   cd[n].vf &= ~(VF_DYING | VF_HEAL);
@@ -1002,7 +1002,7 @@ int auto_action(int n)
        && (flooritem=investigate_item_on_floor(n,IT_FOOD))!=nullptr){
       cd[n].vf &= ~VF_FOOD;
       item_name_on_floor(cd[n].str,flooritem,sizeof(cd[n].str));
-      std::snprintf(buf, sizeof(buf), "get %s", cd[n].str);
+      snprintf(buf, sizeof(buf), "get %s", cd[n].str);
       input_analyze(n, buf);
       if (PER_DICE < cd[n].align - 50) {
         cd[n].think = TH_GET_AWAY;
@@ -1016,7 +1016,7 @@ int auto_action(int n)
       else if(cd[n].at == AT_IRONSTOMACH)
         i = 1;
       else {
-        std::snprintf(buf, sizeof(buf), "put %s", cd[n].str);
+        snprintf(buf, sizeof(buf), "put %s", cd[n].str);
         input_analyze(n, buf);
         input_analyze(n
           ,(char*)(50 > cd[n].align
@@ -1029,12 +1029,12 @@ int auto_action(int n)
       if (i < 10)
         i = 10;
       if (cd[n].gp >= i) {
-        std::snprintf(buf, sizeof(buf), "pay %i", i);
+        snprintf(buf, sizeof(buf), "pay %i", i);
         input_analyze(n, buf);
         input_analyze(n, (char*)(50 > cd[n].align
         ? NTK_BUY_FOOD_THX_LAW : NTK_BUY_FOOD_THX_CHAOS));
       } else {
-        std::snprintf(buf, sizeof(buf), "put %s", cd[n].str); /* bug fix by Qajin 20000103 */
+        snprintf(buf, sizeof(buf), "put %s", cd[n].str); /* bug fix by Qajin 20000103 */
         input_analyze(n, buf);
         input_analyze(n, (char*)(50 > cd[n].align
         ? NTK_BUY_FOOD_POOR_LAW
@@ -1046,7 +1046,7 @@ int auto_action(int n)
         && (flooritem=investigate_item_on_floor(n, 0))!=nullptr){
       cd[n].vf &= ~VF_WEAPON;
       item_name_on_floor(cd[n].str, flooritem,sizeof(cd[n].str));
-      std::snprintf(buf, sizeof(buf), "get %s", cd[n].str);
+      snprintf(buf, sizeof(buf), "get %s", cd[n].str);
       input_analyze(n, buf);
       if (PER_DICE < cd[n].align - 50) {
         cd[n].think = TH_GET_AWAY;
@@ -1059,7 +1059,7 @@ int auto_action(int n)
         if (cd[n].id[j].type == DT_NONE || i == j)
     continue;
         if (cd[n].id[i].ATP <= cd[n].id[j].ATP) {
-    std::snprintf(buf, sizeof(buf), "put %s", cd[n].id[i].name);
+    snprintf(buf, sizeof(buf), "put %s", cd[n].id[i].name);
     input_analyze(n, buf);
     input_analyze(n
             ,(char*)(50 > cd[n].align
@@ -1074,12 +1074,12 @@ int auto_action(int n)
       if (i < 10)
         i = 10;
       if (cd[n].gp >= i) {
-        std::snprintf(buf, sizeof(buf), "pay %i", i);
+        snprintf(buf, sizeof(buf), "pay %i", i);
         input_analyze(n, buf);
         input_analyze(n, (char*)(50 > cd[n].align
         ? NTK_BUY_WPN_THX_LAW : NTK_BUY_WPN_THX_CHAOS));
       } else {
-        std::snprintf(buf, sizeof(buf), "put %s", cd[n].str);
+        snprintf(buf, sizeof(buf), "put %s", cd[n].str);
         input_analyze(n, buf);
         input_analyze(n, (char*)(50 > cd[n].align
         ? NTK_BUY_WPN_POOR_LAW
@@ -1091,7 +1091,7 @@ int auto_action(int n)
         &&(flooritem=investigate_item_on_floor(n, IT_ACCESSORY))!=nullptr){
       cd[n].vf &= ~VF_ACCESSORY;
       item_name_on_floor(cd[n].str, flooritem,sizeof(cd[n].str));
-      std::snprintf(buf, sizeof(buf), "get %s", cd[n].str);
+      snprintf(buf, sizeof(buf), "get %s", cd[n].str);
       input_analyze(n, buf);
       if (PER_DICE < cd[n].align - 50) {
         cd[n].think = TH_GET_AWAY;
@@ -1102,7 +1102,7 @@ int auto_action(int n)
         return (0);
       }
       if ((cd[n].oeq != nullptr) || (curse_check(n, cd[n].id[i].SE) < 0)) {
-        std::snprintf(buf, sizeof(buf), "put %s", cd[n].id[i].name);
+        snprintf(buf, sizeof(buf), "put %s", cd[n].id[i].name);
         input_analyze(n, buf);
         input_analyze(n
           ,(char*)(50 > cd[n].align
@@ -1116,13 +1116,13 @@ int auto_action(int n)
       if (i < 10)
         i = 10;
       if (cd[n].gp >= i) {
-        std::snprintf(buf, sizeof(buf), "pay %i", i);
+        snprintf(buf, sizeof(buf), "pay %i", i);
         input_analyze(n, buf);
         input_analyze(n, (char*)(50 > cd[n].align
         ? NTK_BUY_ACC_THX_LAW : NTK_BUY_ACC_THX_CHAOS));
         select_accessory(n);
       } else {
-        std::snprintf(buf, sizeof(buf), "put %s", cd[n].str);
+        snprintf(buf, sizeof(buf), "put %s", cd[n].str);
         input_analyze(n, buf);
         input_analyze(n, (char*)(50 > cd[n].align
         ? NTK_BUY_ACC_POOR_LAW
@@ -1134,7 +1134,7 @@ int auto_action(int n)
         && (flooritem=investigate_item_on_floor(n, IT_ARMOR))!=nullptr){
       cd[n].vf &= ~VF_ARMOR;
       item_name_on_floor(cd[n].str, flooritem,sizeof(cd[n].str));
-      std::snprintf(buf, sizeof(buf), "get %s", cd[n].str);
+      snprintf(buf, sizeof(buf), "get %s", cd[n].str);
       input_analyze(n, buf);
       if (PER_DICE < cd[n].align - 50) {
         cd[n].think = TH_GET_AWAY;
@@ -1149,7 +1149,7 @@ int auto_action(int n)
     continue;
         if (cd[n].id[i].DFP + cd[n].id[i].MRP
       <= cd[n].id[j].DFP + cd[n].id[j].MRP) {
-    std::snprintf(buf, sizeof(buf), "put %s", cd[n].id[i].name);
+    snprintf(buf, sizeof(buf), "put %s", cd[n].id[i].name);
     input_analyze(n, buf);
     input_analyze(n
             ,(char*)(50 > cd[n].align
@@ -1165,13 +1165,13 @@ int auto_action(int n)
       if (i < 10)
         i = 10;
       if (cd[n].gp >= i) {
-        std::snprintf(buf, sizeof(buf), "pay %i", i);
+        snprintf(buf, sizeof(buf), "pay %i", i);
         input_analyze(n, buf);
         input_analyze(n, (char*)(50 > cd[n].align
         ? NTK_BUY_ARM_THX_LAW : NTK_BUY_ARM_THX_CHAOS));
         select_armor(n);
       } else {
-        std::snprintf(buf, sizeof(buf), "put %s", cd[n].str);
+        snprintf(buf, sizeof(buf), "put %s", cd[n].str);
         input_analyze(n, buf);
         input_analyze(n, (char*)(50 > cd[n].align
         ? NTK_BUY_ARM_POOR_LAW
@@ -1183,7 +1183,7 @@ int auto_action(int n)
         && (flooritem=investigate_item_on_floor(n,IT_CHARGE))!=nullptr){
       cd[n].vf &= ~VF_CHARGE;
       item_name_on_floor(cd[n].str, flooritem,sizeof(cd[n].str));
-      std::snprintf(buf, sizeof(buf), "get %s", cd[n].str);
+      snprintf(buf, sizeof(buf), "get %s", cd[n].str);
       input_analyze(n, buf);
       if (PER_DICE < cd[n].align - 50) {
         cd[n].think = TH_GET_AWAY;
@@ -1202,12 +1202,12 @@ int auto_action(int n)
       if (i < 10)
         i = 10;
       if (cd[n].gp >= i) {
-        std::snprintf(buf, sizeof(buf), "pay %i", i);
+        snprintf(buf, sizeof(buf), "pay %i", i);
         input_analyze(n, buf);
         input_analyze(n, (char*)(50 > cd[n].align
         ? NTK_BUY_CHG_THX_LAW : NTK_BUY_CHG_THX_CHAOS));
       } else {
-        std::snprintf(buf, sizeof(buf), "put %s", cd[n].str);
+        snprintf(buf, sizeof(buf), "put %s", cd[n].str);
         input_analyze(n, buf);
         input_analyze(n, (char*)(50 > cd[n].align
         ? NTK_BUY_CHG_POOR_LAW
@@ -1299,7 +1299,7 @@ int auto_action(int n)
      && (flooritem->id.wp >= flooritem->id.ENTROP
          || cd[n].at == AT_IRONSTOMACH)){
     item_name_on_floor(cd[n].str, flooritem,sizeof(cd[n].str));
-    std::snprintf(buf, sizeof(buf), "get %s", cd[n].str);
+    snprintf(buf, sizeof(buf), "get %s", cd[n].str);
     input_analyze(n, buf);
     for (j = 0; j < MAX_ITEMS; j++)
       if (i != j
@@ -1317,7 +1317,7 @@ int auto_action(int n)
     i=k;
     break;
         }
-      std::snprintf(buf, sizeof(buf), "use %s", cd[n].id[i].name);
+      snprintf(buf, sizeof(buf), "use %s", cd[n].id[i].name);
       input_analyze(n, buf);
     }
     return 0;
@@ -1330,7 +1330,7 @@ int auto_action(int n)
         break;
     if(j>=MAX_ITEMS){
       item_name_on_floor(cd[n].str, flooritem,sizeof(cd[n].str));
-      std::snprintf(buf, sizeof(buf), "get %s", cd[n].str);
+      snprintf(buf, sizeof(buf), "get %s", cd[n].str);
       input_analyze(n, buf);
       return 0;
     }
@@ -1339,7 +1339,7 @@ int auto_action(int n)
     if(cd[n].type == CT_NORMAL
        && (flooritem=investigate_item_on_floor(n, IT_CHARGE))!=nullptr){
       item_name_on_floor(cd[n].str, flooritem,sizeof(cd[n].str));
-      std::snprintf(buf, sizeof(buf), "get %s", cd[n].str);
+      snprintf(buf, sizeof(buf), "get %s", cd[n].str);
       input_analyze(n, buf);
       return 0;
     }
@@ -1349,7 +1349,7 @@ int auto_action(int n)
    && (flooritem=investigate_item_on_floor(n, IT_JEWEL))!=nullptr
    && (i< MAX_ITEMS || is_gp(flooritem))){
   item_name_on_floor(cd[n].str, flooritem,sizeof(cd[n].str));
-  std::snprintf(buf, sizeof(buf), "get %s", cd[n].str);
+  snprintf(buf, sizeof(buf), "get %s", cd[n].str);
   input_analyze(n, buf);
   return 0;
       }
@@ -1358,7 +1358,7 @@ int auto_action(int n)
      && (flooritem=investigate_item_on_floor(n, 0))!=nullptr){
     item_name_on_floor(cd[n].str, flooritem,sizeof(cd[n].str));
     j = cd[n].gp;
-    std::snprintf(buf, sizeof(buf), "get %s", cd[n].str);
+    snprintf(buf, sizeof(buf), "get %s", cd[n].str);
     input_analyze(n, buf);
     if (cd[n].gp > j) {
       dmprintf(n,0,buf, sizeof(buf),DMM_DESTRUCT_MONEY
@@ -2289,7 +2289,7 @@ int    use_charged_item_check(int n, int m)
     i=j;
     break;
   }
-      std::snprintf(buf.data(), buf.size(), "use %s", cd[n].id[i].name);
+      snprintf(buf.data(), buf.size(), "use %s", cd[n].id[i].name);
       input_analyze(n, buf.data());
       return 1;
     }
@@ -2313,7 +2313,7 @@ int    use_charged_item_check(int n, int m)
       ff = j;
       break;
     }
-  std::snprintf(buf.data(), buf.size(), "use %s", cd[n].id[ff].name);
+  snprintf(buf.data(), buf.size(), "use %s", cd[n].id[ff].name);
   input_analyze(n, buf.data());
   return 1;
 }
@@ -2690,7 +2690,7 @@ void  angry_check(int as, int ds)
      PER_DICE < cd[ds].cooldown) return;
   cd[ds].angry=as;
 #ifdef DEBUG_ANGRY
-  std::snprintf(debug_buf, sizeof(debug_buf), "angry    : %s(%d) <- %s(%d) ", cd[as].name,as,cd[ds].name,ds);
+  snprintf(debug_buf, sizeof(debug_buf), "angry    : %s(%d) <- %s(%d) ", cd[as].name,as,cd[ds].name,ds);
   log_print(debug_buf);
 #endif
 
@@ -2743,7 +2743,7 @@ void  cooldown_check()
    || cd[cd[n].angry].think == TH_GET_AWAY){
   if(PER_DICE <= cd[n].cooldown){
 #ifdef DEBUG_ANGRY
-    std::snprintf(debug_buf, sizeof(debug_buf),"cool down: %s(%d) <- %s(%d) (%d %%)",
+    snprintf(debug_buf, sizeof(debug_buf),"cool down: %s(%d) <- %s(%d) (%d %%)",
       cd[cd[n].angry].name,cd[n].angry,
       cd[n].name,n,cd[n].cooldown);
     log_print(debug_buf);
@@ -2754,7 +2754,7 @@ void  cooldown_check()
   if(n<cd[n].angry
      && PER_DICE <= (cd[n].cooldown+cd[cd[n].angry].cooldown)/2){
 #ifdef DEBUG_ANGRY
-    std::snprintf(debug_buf, sizeof(debug_buf),"cool down: %s(%d) <-> %s(%d) (%d %%)",
+    snprintf(debug_buf, sizeof(debug_buf),"cool down: %s(%d) <-> %s(%d) (%d %%)",
       cd[cd[n].angry].name,cd[n].angry,
       cd[n].name, n,
       (cd[n].cooldown+cd[cd[n].angry].cooldown)/2);

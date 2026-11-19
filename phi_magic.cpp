@@ -380,11 +380,11 @@ void spell_analyze(int n, char *spell)
       if (cd[n].id[i].type == DT_NONE)
   continue;
       j++;
-      std::snprintf(buf, sizeof(buf), "[%2i] %s \n", j, cd[n].id[i].name);
+      snprintf(buf, sizeof(buf), "[%2i] %s \n", j, cd[n].id[i].name);
       check_write(n, buf);
     }
     j++;
-    std::snprintf(buf, sizeof(buf), "[%2i] CANCEL \n", j);
+    snprintf(buf, sizeof(buf), "[%2i] CANCEL \n", j);
     check_write(n, buf);
     check_write(n, "#end-list\n");
     dmcheck_write(n, DMM_CREATE_SELECT);
@@ -406,11 +406,11 @@ void spell_analyze(int n, char *spell)
       if ((cd[n].id[i].type & IT_MASK) != IT_JEWEL)
         continue;
       j++;
-      std::snprintf(buf, sizeof(buf), "[%2i] %s \n", j, cd[n].id[i].name);
+      snprintf(buf, sizeof(buf), "[%2i] %s \n", j, cd[n].id[i].name);
       check_write(n, buf);
     }
     j++;
-    std::snprintf(buf, sizeof(buf), "[%2i] CANCEL \n", j);
+    snprintf(buf, sizeof(buf), "[%2i] CANCEL \n", j);
     check_write(n, buf);
     check_write(n, "#end-list\n");
     dmcheck_write(n, DMM_CHARGESPL_SELECTJWL);
@@ -431,11 +431,11 @@ void spell_analyze(int n, char *spell)
       if (cd[n].id[i].type == DT_NONE)
   continue;
       j++;
-      std::snprintf(buf, sizeof(buf), "[%2i] %s \n", j, cd[n].id[i].name);
+      snprintf(buf, sizeof(buf), "[%2i] %s \n", j, cd[n].id[i].name);
       check_write(n, buf);
     }
     j++;
-    std::snprintf(buf, sizeof(buf), "[%2i] CANCEL \n", j);
+    snprintf(buf, sizeof(buf), "[%2i] CANCEL \n", j);
     check_write(n, buf);
     check_write(n, "#end-list\n");
     dmcheck_write(n, DMM_DETECT_SELECT);
@@ -449,11 +449,11 @@ void spell_analyze(int n, char *spell)
       if (cd[n].md[i].spell == nullptr)
   break;
       j++;
-      std::snprintf(buf, sizeof(buf), "[%2i] %s \n", j, cd[n].md[i].spell);
+      snprintf(buf, sizeof(buf), "[%2i] %s \n", j, cd[n].md[i].spell);
       check_write(n, buf);
     }
     j++;
-    std::snprintf(buf, sizeof(buf), "[%2i] CANCEL \n", j);
+    snprintf(buf, sizeof(buf), "[%2i] CANCEL \n", j);
     check_write(n, buf);
     check_write(n, "#end-list\n");
     dmcheck_write(n, DMM_ANALYZE_SELECT);
@@ -467,11 +467,11 @@ void spell_analyze(int n, char *spell)
       if (cd[n].md[i].spell == nullptr)
   break;
       j++;
-      std::snprintf(buf, sizeof(buf), "[%2i] %s \n", j, cd[n].md[i].spell);
+      snprintf(buf, sizeof(buf), "[%2i] %s \n", j, cd[n].md[i].spell);
       check_write(n, buf);
     }
     j++;
-    std::snprintf(buf, sizeof(buf), "[%2i] CANCEL \n", j);
+    snprintf(buf, sizeof(buf), "[%2i] CANCEL \n", j);
     check_write(n, buf);
     check_write(n, "#end-list\n");
     dmcheck_write(n, DMM_FORGET_SELECT);
@@ -501,10 +501,10 @@ void spell_analyze(int n, char *spell)
     for (i = 0, j = 0; i < MAX_ITEMS; i++) {
       if (cd[n].id[i].type == DT_NONE)
   continue;
-      std::snprintf(buf, sizeof(buf), "[%2i] %s \n", ++j, cd[n].id[i].name);
+      snprintf(buf, sizeof(buf), "[%2i] %s \n", ++j, cd[n].id[i].name);
       check_write(n, buf);
     }
-    std::snprintf(buf, sizeof(buf), "[%2i] CANCEL \n", ++j);
+    snprintf(buf, sizeof(buf), "[%2i] CANCEL \n", ++j);
     check_write(n, buf);
     check_write(n, "#end-list\n");
     dmcheck_write(n, DMM_DESTROY_SELECT);
@@ -814,7 +814,7 @@ void spell_analyze(int n, char *spell)
     if (!std::strcmp(spell, "Evil wind from Hyades") && (i=have_authority(n,MS_SHUTDOWN,0,0))) {
       for (i = 1; i < MAX_NTTYS; i++) {
   if (cd[i].type) {
-    std::snprintf(buf, sizeof(buf), "shut     : %s ", cd[i].name);
+    snprintf(buf, sizeof(buf), "shut     : %s ", cd[i].name);
     log_print(buf);
     dmcheck_write(i, DMM_SHUT_CLIENTS);
     dmcheck_write(i, DMM_SAVEDATA);
@@ -827,7 +827,7 @@ void spell_analyze(int n, char *spell)
       return;
     } else if(!std::strncmp(spell, "Evil wind to ", 13) && (i=have_authority(n,MS_KICK,0,0))) {
       if((i=std::atoi(spell+13))<MAX_NTTYS && cd[i].type){
-        std::snprintf(buf, sizeof(buf), "kick     : %s ", cd[i].name);
+        snprintf(buf, sizeof(buf), "kick     : %s ", cd[i].name);
         log_print(buf);
         dmcheck_write(i, DMM_KICK);
         dmcheck_write(i, DMM_SAVEDATA);
@@ -846,7 +846,7 @@ void spell_analyze(int n, char *spell)
         CN_BLIND(i) = -0x10000;
         CN_CONFUSE(i) = 0x10000;
         write_companion(n, i, buf, 0);
-        std::snprintf(buf, sizeof(buf), "freeze   : %s ", cd[i].name);
+        snprintf(buf, sizeof(buf), "freeze   : %s ", cd[i].name);
         log_print(buf);
       }
       return;
@@ -923,7 +923,7 @@ void spell_analyze(int n, char *spell)
           if (*p == '-') {
 			id_ban_add(cd[i].uid);
 		  }
-          std::snprintf(buf, sizeof(buf), "banned   : %s(%s:%s) ", cd[i].name,ip_domain_check(i),ip_address_check(i));
+          snprintf(buf, sizeof(buf), "banned   : %s(%s:%s) ", cd[i].name,ip_domain_check(i),ip_address_check(i));
           log_print(buf);
           dmcheck_write(i, DMM_KICK);
           dmcheck_write(i, DMM_SAVEDATA);
@@ -960,7 +960,7 @@ void spell_analyze(int n, char *spell)
       check_write(n, "#more\n");
       for (i = 0; i < GFLAG_MAX; i++) {
   if (generic_flag[i] == FLAG_ON) {
-    std::snprintf(buf, sizeof(buf), "%x\n", i);
+    snprintf(buf, sizeof(buf), "%x\n", i);
     check_write(n, buf);
   }
       }
@@ -971,7 +971,7 @@ void spell_analyze(int n, char *spell)
       check_write(n, "#more\n");
       for (i = 0; i < GVAR_MAX; i++) {
   if (generic_variable[i]) {
-    std::snprintf(buf, sizeof(buf), "x%.2x=%4i\n",i, generic_variable[i]);
+    snprintf(buf, sizeof(buf), "x%.2x=%4i\n",i, generic_variable[i]);
     check_write(n, buf);
   }
       }
@@ -983,12 +983,12 @@ void spell_analyze(int n, char *spell)
       for (i = 1, j = 0; i < enmax; i++)
   if (cd[i].type) {
     j++;
-    std::snprintf(buf, sizeof(buf), " [%+3iW,%+3iN] %-31s \n"
+    snprintf(buf, sizeof(buf), " [%+3iW,%+3iN] %-31s \n"
       ,cd[n].x - cd[i].x, cd[n].y - cd[i].y, cd[i].name);
     fprintf(fp, buf);
     check_write(n, buf);
   }
-      std::snprintf(buf, sizeof(buf), " total %3i \n", j);
+      snprintf(buf, sizeof(buf), " total %3i \n", j);
       fprintf(fp, buf);
       check_write(n, buf);
       check_write(n, "#end-more\n");
@@ -1176,7 +1176,7 @@ void spell_analyze(int n, char *spell)
       check_write(n, buf);
       return;
     } else if (!std::strcmp(spell, "Dumapic") && (i=have_authority(n,MS_TRANS,cd[n].x,cd[n].y))) {
-      std::snprintf(buf, sizeof(buf), "  Position [ %3d, %3d]\n", cd[n].x, cd[n].y);
+      snprintf(buf, sizeof(buf), "  Position [ %3d, %3d]\n", cd[n].x, cd[n].y);
       check_write(n, buf);
       return;
     } else if (!std::strncmp(spell, "Resource", 8) && (i=have_authority(n,MS_RESOURCE,X_FORE(n),Y_FORE(n)))) {  /* リソース魔法 */
@@ -1344,10 +1344,10 @@ void spell_analyze(int n, char *spell)
       for (i = 0, j = 0; i < MAX_ITEMS; i++) {
   if (cd[n].id[i].type == DT_NONE)
     continue;
-  std::snprintf(buf, sizeof(buf), "[%2i] %s \n", ++j, cd[n].id[i].name);
+  snprintf(buf, sizeof(buf), "[%2i] %s \n", ++j, cd[n].id[i].name);
   check_write(n, buf);
       }
-      std::snprintf(buf, sizeof(buf), "[%2i] CANCEL \n", ++j);
+      snprintf(buf, sizeof(buf), "[%2i] CANCEL \n", ++j);
       check_write(n, buf);
       check_write(n, "#end-list\n");
       dmcheck_write(n, DMM_DUP_SELECT);
@@ -1388,13 +1388,13 @@ void spell_analyze(int n, char *spell)
   cd[n].gp = 0;
   dmcheck_write(n, DMM_CACHE_TAX);
       }
-      std::snprintf(buf, sizeof(buf), "tax      : %li ", tax);
+      snprintf(buf, sizeof(buf), "tax      : %li ", tax);
       log_print(buf);
       return;
     } else if (!std::strcmp(spell, "Evil wind from Malaika") && (i=have_authority(n,MS_SHUTDOWN,0,0))) {
       for (i = 1; i < MAX_NTTYS; i++) {
   if (cd[i].type) {
-    std::snprintf(buf, sizeof(buf), "shut     : %s ", cd[i].name);
+    snprintf(buf, sizeof(buf), "shut     : %s ", cd[i].name);
     log_print(buf);
     dmcheck_write(i, DMM_SHUT_SERVER);
     dmcheck_write(i, DMM_SAVEDATA);
@@ -1730,7 +1730,7 @@ void   user_lists(int n)
   l = 0;/*  add for 接続者数表示　20060107 by NEO */
 
   /* トータルレベル表示 20050302 by NEO */
-  std::snprintf(buf.data(), buf.size(), "No.  Name                            Total Lv\n");
+  snprintf(buf.data(), buf.size(), "No.  Name                            Total Lv\n");
   check_write(n, buf.data());
   
   for (i = 1; i < MAX_NTTYS; i++) {
@@ -1740,7 +1740,7 @@ void   user_lists(int n)
       l += 1; /*  add for 接続者数表示　20060107 by NEO */
       nstr(sp.data(),' ',32-k);
         if (cd[i].exp == 99999999)
-          std::snprintf(buf.data(), buf.size(), "%4d %s/*.*/%s /*color=+mp*/Master/*.*/  %c %c %c\n",
+          snprintf(buf.data(), buf.size(), "%4d %s/*.*/%s /*color=+mp*/Master/*.*/  %c %c %c\n",
           i,cd[i].name,sp.data(),
           (cd[i].eye ? ' ' : '*'),
           (cd[i].modef & MD_CHAT ? 'c' : ' '),
@@ -1749,7 +1749,7 @@ void   user_lists(int n)
           tlv = (cd[i].lv[LV_FIGHTER] + cd[i].lv[LV_WIZARD] + cd[i].lv[LV_MERCHANT] + cd[i].lv[LV_CREATER] + cd[i].exp / 10) / 2000;
 	        if (tlv > 999)
 	        tlv = 999;
-          std::snprintf(buf.data(), buf.size(), "%4d %s/*.*/%s Lv.%3i  %c %c %c\n",
+          snprintf(buf.data(), buf.size(), "%4d %s/*.*/%s Lv.%3i  %c %c %c\n",
           i,cd[i].name,sp.data(),tlv,
           (cd[i].eye ? ' ' : '*'),
           (cd[i].modef & MD_CHAT ? 'c' : ' '),
@@ -1758,7 +1758,7 @@ void   user_lists(int n)
       check_write(n, buf.data());
     }
   }
-  std::snprintf(buf.data(), buf.size(),DMM_CHECK_ACCESS, l ); /* add for 接続者数表示　20060107 by NEO */
+  snprintf(buf.data(), buf.size(),DMM_CHECK_ACCESS, l ); /* add for 接続者数表示　20060107 by NEO */
   check_write(n, buf.data());
   return;
 }
@@ -1770,14 +1770,14 @@ void   master_lists(int n)
   int    i, j, k;
   std::array<char, 32> sp;
 
-  std::snprintf(buf.data(), buf.size(), "No.  Name                            IP address       User ID\n");
+  snprintf(buf.data(), buf.size(), "No.  Name                            IP address       User ID\n");
   check_write(n, buf.data());
   
   for (i = 1; i < MAX_NTTYS; i++) {
     if (cd[i].type) {
       k = mgstrlen(cd[i].name);
       nstr(sp.data(),' ',32-k);
-      std::snprintf(buf.data(), buf.size(), "%4d %s/*.*/%s %-15s  %s %c %c %c\n",
+      snprintf(buf.data(), buf.size(), "%4d %s/*.*/%s %-15s  %s %c %c %c\n",
       i,cd[i].name,sp.data(),ip_address_check(i),cd[i].uid,
       (cd[i].eye ? ' ' : '*'),
       (cd[i].modef & MD_CHAT ? 'c' : ' '),
@@ -1799,16 +1799,16 @@ void wizard_light(int n)
     return;
   }
 
-  std::snprintf(buf.data(), buf.size(), " Name                            Address                         Idling  Lag\n");
+  snprintf(buf.data(), buf.size(), " Name                            Address                         Idling  Lag\n");
   check_write(n, buf.data());
 /*  check_write(n, "----------------------------------------------------------------------------\n");*/
   j = mgstrlen(cd[n].name);
   nstr(sp.data(),' ',32-j);
   if ((j = CN_LAG(n)) < 0)
-    std::snprintf(buf.data(), buf.size(), " %s/*.*/%s %-31s %04i\'%02i ---\n",
+    snprintf(buf.data(), buf.size(), " %s/*.*/%s %-31s %04i\'%02i ---\n",
       cd[n].name,sp.data(), cd[n].adr, CN_IDLE(n) / 60, CN_IDLE(n) % 60);
   else
-    std::snprintf(buf.data(), buf.size(), " %s/*.*/%s %-31s %04i\'%02i %01i.%01i\n",
+    snprintf(buf.data(), buf.size(), " %s/*.*/%s %-31s %04i\'%02i %01i.%01i\n",
       cd[n].name,sp.data(), cd[n].adr, CN_IDLE(n) / 60, CN_IDLE(n) % 60, j / 10, j % 10);
   check_write(n, buf.data());
   for (i = 1; i < MAX_NTTYS; i++) {
@@ -1818,10 +1818,10 @@ void wizard_light(int n)
       j = mgstrlen(cd[i].name);
       nstr(sp.data(),' ',32-j);
       if ((j = CN_LAG(i)) < 0)
-  std::snprintf(buf.data(), buf.size(), " %s/*.*/%s %-31s %04i\'%02i ---\n", cd[i].name,sp.data(),
+  snprintf(buf.data(), buf.size(), " %s/*.*/%s %-31s %04i\'%02i ---\n", cd[i].name,sp.data(),
     cd[i].adr, CN_IDLE(i) / 60, CN_IDLE(i) % 60);
       else
-  std::snprintf(buf.data(), buf.size(), " %s/*.*/%s %-31s %04i\'%02i %01i.%01i\n", cd[i].name,sp.data(),
+  snprintf(buf.data(), buf.size(), " %s/*.*/%s %-31s %04i\'%02i %01i.%01i\n", cd[i].name,sp.data(),
     cd[i].adr, CN_IDLE(i) / 60, CN_IDLE(i) % 60, j / 10, j % 10);
       check_write(n, buf.data());
     }
@@ -1843,7 +1843,7 @@ void wizard_eye_f(int n, int f)
   int    ars;
 #endif
 
-  std::snprintf(buf.data(), buf.size(), " Name                Area                              Position  Idling  Lag\n");
+  snprintf(buf.data(), buf.size(), " Name                Area                              Position  Idling  Lag\n");
   check_write(n, buf.data());
   ar1 = (int) (unsigned int) map[cd[n].y][cd[n].x].area;
 #ifdef AREA_SUB
@@ -1859,7 +1859,7 @@ void wizard_eye_f(int n, int f)
 #endif
   nstr(sp2.data(),' ',32-l);
   if ((j = CN_LAG(n)) < 0)
-    std::snprintf(buf.data(), buf.size(), " %s/*.*/%s %s/*.*/%s [ +0W, +0N] %04i\'%02i --- %c %c %c\n",
+    snprintf(buf.data(), buf.size(), " %s/*.*/%s %s/*.*/%s [ +0W, +0N] %04i\'%02i --- %c %c %c\n",
 #ifndef AREA_SUB
       nbuf.data(),sp1.data(),fld[ar1].name,sp2.data(),
 #else
@@ -1869,7 +1869,7 @@ void wizard_eye_f(int n, int f)
       (cd[n].eye ? ' ' : '*'),(cd[n].modef & MD_CHAT ? 'c' : ' '),
       (cd[n].party ? 'P' : ' '));
   else
-    std::snprintf(buf.data(), buf.size(), " %s/*.*/%s %s/*.*/%s [ +0W, +0N] %04i\'%02i %01i.%01i %c %c %c\n",
+    snprintf(buf.data(), buf.size(), " %s/*.*/%s %s/*.*/%s [ +0W, +0N] %04i\'%02i %01i.%01i %c %c %c\n",
 #ifndef AREA_SUB
       nbuf.data(),sp1.data(),fld[ar1].name,sp2.data(),
 #else
@@ -1900,13 +1900,13 @@ void wizard_eye_f(int n, int f)
 #endif
       nstr(sp2.data(),' ',32-l);
       if (fld[ar1].floor == fld[ar2].floor) {
-  std::snprintf(psbuf.data(), psbuf.size(),"[%+3iW,%+3iN] ",
+  snprintf(psbuf.data(), psbuf.size(),"[%+3iW,%+3iN] ",
     cd[n].x - cd[i].x, cd[n].y - cd[i].y);
       } else {
         nstr(psbuf.data(),' ',13);
       }
       if ((j = CN_LAG(i)) < 0)
-  std::snprintf(buf.data(), buf.size(), " %s/*.*/%s %s/*.*/%s %s%04i\'%02i --- %c %c %c\n",
+  snprintf(buf.data(), buf.size(), " %s/*.*/%s %s/*.*/%s %s%04i\'%02i --- %c %c %c\n",
 #ifndef AREA_SUB
     nbuf.data(),sp1.data(),fld[ar2].name,sp2.data(),psbuf.data(),
 #else
@@ -1916,7 +1916,7 @@ void wizard_eye_f(int n, int f)
     (cd[i].eye ? ' ' : '*'),(cd[i].modef & MD_CHAT ? 'c' : ' '),
     (cd[i].party ? (cd[n].party==cd[i].party ? 'P' : 'p') : ' '));
       else
-  std::snprintf(buf.data(), buf.size(), " %s/*.*/%s %s/*.*/%s %s%04i\'%02i %01i.%01i %c %c %c\n",
+  snprintf(buf.data(), buf.size(), " %s/*.*/%s %s/*.*/%s %s%04i\'%02i %01i.%01i %c %c %c\n",
 #ifndef AREA_SUB
     nbuf.data(),sp1.data(),fld[ar2].name,sp2.data(),psbuf.data(),
 #else
@@ -2045,13 +2045,13 @@ void create_item(int n, int in1)
     cd[n].id[in1].DFP = (cd[n].id[in1].wp + 1);
     cd[n].id[in1].DFP *= kMtDfp[0][(cd[n].id[in1].type & MT_MASK) / MT_PLACE];
     cd[n].id[in1].MRP = kMtMrp[0][(cd[n].id[in1].type & MT_MASK) / MT_PLACE];
-    std::snprintf(name, sizeof(name),"%s cloth"
+    snprintf(name, sizeof(name),"%s cloth"
       ,mt_name[(cd[n].id[in1].type & MT_MASK) / MT_PLACE]);
   } else if (cd[n].id[in1].wp < 50) {
     cd[n].id[in1].DFP = (cd[n].id[in1].wp + 1) / 2;
     cd[n].id[in1].DFP *= kMtDfp[1][(cd[n].id[in1].type & MT_MASK) / MT_PLACE];
     cd[n].id[in1].MRP = kMtMrp[1][(cd[n].id[in1].type & MT_MASK) / MT_PLACE];
-    std::snprintf(name,sizeof(name), "%s plate"
+    snprintf(name,sizeof(name), "%s plate"
       ,mt_name[(cd[n].id[in1].type & MT_MASK) / MT_PLACE]);
   } else {
     if (cd[n].id[in1].wp > 99)
@@ -2059,12 +2059,12 @@ void create_item(int n, int in1)
     cd[n].id[in1].DFP = (cd[n].id[in1].wp - 49) / 2 + 25;
     cd[n].id[in1].DFP *= kMtDfp[1][(cd[n].id[in1].type & MT_MASK) / MT_PLACE];
     cd[n].id[in1].MRP = kMtMrp[1][(cd[n].id[in1].type & MT_MASK) / MT_PLACE];
-    std::snprintf(name, sizeof(name), "%s armor"
+    snprintf(name, sizeof(name), "%s armor"
       ,mt_name[(cd[n].id[in1].type & MT_MASK) / MT_PLACE]);
   }
   break;
       case IT_FOOD:
-  std::snprintf(name, sizeof(name), "%s armor"
+  snprintf(name, sizeof(name), "%s armor"
     ,mt_name[(cd[n].id[in1].type & MT_MASK) / MT_PLACE]);
   break;
       case IT_RESOURCE:
@@ -2077,7 +2077,7 @@ void create_item(int n, int in1)
         && cd[n].id[in1].name[i - 1] == '+')
       CPYSTR(name, cd[n].id[in1].name);
     else if (i < 30)
-      std::snprintf(name, sizeof(name), "%s +", cd[n].id[in1].name);
+      snprintf(name, sizeof(name), "%s +", cd[n].id[in1].name);
     else
       CPYSTR(name, "Enhance armor");
   } else
@@ -2127,7 +2127,7 @@ void create_item(int n, int in1)
           cd[n].id[in1].fn = frand(6) + 1;
       }
   }
-  std::snprintf(name, sizeof(name), "%s armor", (cd[n].id[in1].fn != FN_NONE && cd[n].id[in1].fn <= FN_NORMAL) ?
+  snprintf(name, sizeof(name), "%s armor", (cd[n].id[in1].fn != FN_NONE && cd[n].id[in1].fn <= FN_NORMAL) ?
         fn_name[cd[n].id[in1].fn] : mt_name[(cd[n].id[in1].type & MT_MASK) / MT_PLACE]);
   break;
       }
@@ -2146,28 +2146,28 @@ void create_item(int n, int in1)
     cd[n].id[in1].AT = AT_NONE;
 
   if ((cd[n].id[in1].AT != AT_NONE) && (cd[n].id[in1].AT != AT_ABSORB))
-    std::snprintf(name, sizeof(name), "%s %s", at_name[cd[n].id[in1].AT], wt_aname[(cd[n].id[in1].type & WT_MASK) / WT_PLACE]);
+    snprintf(name, sizeof(name), "%s %s", at_name[cd[n].id[in1].AT], wt_aname[(cd[n].id[in1].type & WT_MASK) / WT_PLACE]);
   else if (cd[n].id[in1].fn != FN_NONE && cd[n].id[in1].fn <= FN_NORMAL)
     if (cd[n].id[in1].AT == AT_ABSORB)
-      std::snprintf(name, sizeof(name), "%s absorber", fn_name[cd[n].id[in1].fn]);
+      snprintf(name, sizeof(name), "%s absorber", fn_name[cd[n].id[in1].fn]);
     else
-      std::snprintf(name, sizeof(name), "%s %s", fn_name[cd[n].id[in1].fn], wt_aname[(cd[n].id[in1].type & WT_MASK) / WT_PLACE]);
+      snprintf(name, sizeof(name), "%s %s", fn_name[cd[n].id[in1].fn], wt_aname[(cd[n].id[in1].type & WT_MASK) / WT_PLACE]);
   else
-    std::snprintf(name, sizeof(name), "%s %s", mt_name[(cd[n].id[in1].type & MT_MASK) / MT_PLACE], wt_aname[(cd[n].id[in1].type & WT_MASK) / WT_PLACE]);
+    snprintf(name, sizeof(name), "%s %s", mt_name[(cd[n].id[in1].type & MT_MASK) / MT_PLACE], wt_aname[(cd[n].id[in1].type & WT_MASK) / WT_PLACE]);
   break;
       case IT_FOOD:
   if (fn(cd[n].id[in2].fn, cd[n].id[in1].fn, 100) == 200)
     cd[n].id[in1].AT = AT_NONE;
 
   if ((cd[n].id[in1].AT != AT_NONE) && (cd[n].id[in1].AT != AT_ABSORB))
-    std::snprintf(name, sizeof(name), "%s %s", at_name[cd[n].id[in1].AT], wt_aname[(cd[n].id[in1].type & WT_MASK) / WT_PLACE]);
+    snprintf(name, sizeof(name), "%s %s", at_name[cd[n].id[in1].AT], wt_aname[(cd[n].id[in1].type & WT_MASK) / WT_PLACE]);
   else if (cd[n].id[in1].fn != FN_NONE && cd[n].id[in1].fn <= FN_NORMAL)
     if (cd[n].id[in1].AT == AT_ABSORB)
-      std::snprintf(name, sizeof(name), "%s absorber", fn_name[cd[n].id[in1].fn]);
+      snprintf(name, sizeof(name), "%s absorber", fn_name[cd[n].id[in1].fn]);
     else
-      std::snprintf(name, sizeof(name), "%s %s", fn_name[cd[n].id[in1].fn], wt_aname[(cd[n].id[in1].type & WT_MASK) / WT_PLACE]);
+      snprintf(name, sizeof(name), "%s %s", fn_name[cd[n].id[in1].fn], wt_aname[(cd[n].id[in1].type & WT_MASK) / WT_PLACE]);
   else
-    std::snprintf(name, sizeof(name), "%s %s", mt_name[(cd[n].id[in1].type & MT_MASK) / MT_PLACE], wt_aname[(cd[n].id[in1].type & WT_MASK) / WT_PLACE]);
+    snprintf(name, sizeof(name), "%s %s", mt_name[(cd[n].id[in1].type & MT_MASK) / MT_PLACE], wt_aname[(cd[n].id[in1].type & WT_MASK) / WT_PLACE]);
   break;
       case IT_RESOURCE:
   cd[n].id[in1].type = ((cd[n].id[in1].type & ~IT_MASK & ~WD_MASK) | IT_CHARGE);
@@ -2175,7 +2175,7 @@ void create_item(int n, int in1)
     cd[n].id[in1].fn = frand(6) + 1;
   cd[n].id[in1].CHARGE = 10;
   cd[n].id[in1].UE = frand(0x24) + 1; /* bug(?)fix & add 20010126 1231 */
-  std::snprintf(name, sizeof(name), "%s %s", ((cd[n].id[in1].UE < 9 && cd[n].id[in1].fn <= FN_NORMAL)
+  snprintf(name, sizeof(name), "%s %s", ((cd[n].id[in1].UE < 9 && cd[n].id[in1].fn <= FN_NORMAL)
         ? fn_name[cd[n].id[in1].fn] : ci_name[cd[n].id[in1].UE])
     ,wt_name[(cd[n].id[in1].type & WT_MASK) / WT_PLACE]);
   break;
@@ -2228,14 +2228,14 @@ void create_item(int n, int in1)
   }
 
   if ((cd[n].id[in1].AT != AT_NONE) && (cd[n].id[in1].AT != AT_ABSORB))
-    std::snprintf(name, sizeof(name), "%s %s", at_name[cd[n].id[in1].AT], wt_aname[(cd[n].id[in1].type & WT_MASK) / WT_PLACE]);
+    snprintf(name, sizeof(name), "%s %s", at_name[cd[n].id[in1].AT], wt_aname[(cd[n].id[in1].type & WT_MASK) / WT_PLACE]);
   else if (cd[n].id[in1].fn != FN_NONE && cd[n].id[in1].fn <= FN_NORMAL)
     if (cd[n].id[in1].AT == AT_ABSORB)
-      std::snprintf(name, sizeof(name), "%s absorber", fn_name[cd[n].id[in1].fn]);
+      snprintf(name, sizeof(name), "%s absorber", fn_name[cd[n].id[in1].fn]);
     else
-      std::snprintf(name, sizeof(name), "%s %s", fn_name[cd[n].id[in1].fn], wt_aname[(cd[n].id[in1].type & WT_MASK) / WT_PLACE]);
+      snprintf(name, sizeof(name), "%s %s", fn_name[cd[n].id[in1].fn], wt_aname[(cd[n].id[in1].type & WT_MASK) / WT_PLACE]);
   else
-    std::snprintf(name, sizeof(name), "%s %s", mt_name[(cd[n].id[in1].type & MT_MASK) / MT_PLACE], wt_aname[(cd[n].id[in1].type & WT_MASK) / WT_PLACE]);
+    snprintf(name, sizeof(name), "%s %s", mt_name[(cd[n].id[in1].type & MT_MASK) / MT_PLACE], wt_aname[(cd[n].id[in1].type & WT_MASK) / WT_PLACE]);
   break;
       case IT_ACCESSORY:
   if (cd[n].id[in1].SE == cd[n].id[in2].SE) {
@@ -2279,16 +2279,16 @@ void create_item(int n, int in1)
     cd[n].id[in1].AT = AT_NONE;
 
   if (cd[n].id[in1].SE != SE_NONE)
-    std::snprintf(name, sizeof(name), "%s %s", se_name[cd[n].id[in1].SE], wt_aname[(cd[n].id[in1].type & WT_MASK) / WT_PLACE]);
+    snprintf(name, sizeof(name), "%s %s", se_name[cd[n].id[in1].SE], wt_aname[(cd[n].id[in1].type & WT_MASK) / WT_PLACE]);
   else if ((cd[n].id[in1].AT != AT_NONE) && (cd[n].id[in1].AT != AT_ABSORB))
-    std::snprintf(name, sizeof(name), "%s %s", at_name[cd[n].id[in1].AT], wt_aname[(cd[n].id[in1].type & WT_MASK) / WT_PLACE]);
+    snprintf(name, sizeof(name), "%s %s", at_name[cd[n].id[in1].AT], wt_aname[(cd[n].id[in1].type & WT_MASK) / WT_PLACE]);
   else if (cd[n].id[in1].fn != FN_NONE && cd[n].id[in1].fn <= FN_NORMAL)
     if (cd[n].id[in1].AT == AT_ABSORB)
-      std::snprintf(name, sizeof(name), "%s absorber", fn_name[cd[n].id[in1].fn]);
+      snprintf(name, sizeof(name), "%s absorber", fn_name[cd[n].id[in1].fn]);
     else
-      std::snprintf(name, sizeof(name), "%s %s", fn_name[cd[n].id[in1].fn], wt_aname[(cd[n].id[in1].type & WT_MASK) / WT_PLACE]);
+      snprintf(name, sizeof(name), "%s %s", fn_name[cd[n].id[in1].fn], wt_aname[(cd[n].id[in1].type & WT_MASK) / WT_PLACE]);
   else
-    std::snprintf(name, sizeof(name), "%s %s", mt_name[(cd[n].id[in1].type & MT_MASK) / MT_PLACE], wt_aname[(cd[n].id[in1].type & WT_MASK) / WT_PLACE]);
+    snprintf(name, sizeof(name), "%s %s", mt_name[(cd[n].id[in1].type & MT_MASK) / MT_PLACE], wt_aname[(cd[n].id[in1].type & WT_MASK) / WT_PLACE]);
   break;
       }
       break;
@@ -2311,13 +2311,13 @@ void create_item(int n, int in1)
   cd[n].id[in1].AE = ((cd[n].id[in1].type & MT_MASK) == MT_MAGICAL
        && (cd[n].id[in2].type & MT_MASK) == MT_MAGICAL ? frand(13)
           : AE_NONE);
-  std::snprintf(name, sizeof(name), "%s %s", (cd[n].id[in1].AE == AE_NONE
+  snprintf(name, sizeof(name), "%s %s", (cd[n].id[in1].AE == AE_NONE
            ? mt_name[(cd[n].id[in1].type & MT_MASK) / MT_PLACE]
         : ae_name[cd[n].id[in1].AE])
     ,wt_name[(cd[n].id[in1].type & WT_MASK) / WT_PLACE]);
   break;
       case IT_FOOD:
-  std::snprintf(name, sizeof(name), "%s %s", (cd[n].id[in1].AE == AE_NONE
+  snprintf(name, sizeof(name), "%s %s", (cd[n].id[in1].AE == AE_NONE
            ? mt_name[(cd[n].id[in1].type & MT_MASK) / MT_PLACE]
         : ae_name[cd[n].id[in1].AE])
     ,wt_name[(cd[n].id[in1].type & WT_MASK) / WT_PLACE]);
@@ -2333,7 +2333,7 @@ void create_item(int n, int in1)
   else
     cd[n].id[in1].SE = SE_HITISUSE;
   sef = 1;
-  std::snprintf(name, sizeof(name), "%s %s", ((cd[n].id[in1].UE < 9 && cd[n].id[in1].fn <= FN_NORMAL)
+  snprintf(name, sizeof(name), "%s %s", ((cd[n].id[in1].UE < 9 && cd[n].id[in1].fn <= FN_NORMAL)
         ? fn_name[cd[n].id[in1].fn] : ci_name[cd[n].id[in1].UE])
     ,wt_name[(cd[n].id[in1].type & WT_MASK) / WT_PLACE]);
   break;
@@ -2381,7 +2381,7 @@ void create_item(int n, int in1)
           cd[n].id[in1].fn = frand(6) + 1;
       }
   }
-  std::snprintf(name, sizeof(name), "%s %s",  (cd[n].id[in1].fn != FN_NONE && cd[n].id[in1].fn <= FN_NORMAL) ?
+  snprintf(name, sizeof(name), "%s %s",  (cd[n].id[in1].fn != FN_NONE && cd[n].id[in1].fn <= FN_NORMAL) ?
         fn_name[cd[n].id[in1].fn] : mt_name[(cd[n].id[in1].type & MT_MASK) / MT_PLACE]
     ,wt_name[(cd[n].id[in1].type & WT_MASK) / WT_PLACE]);
   break;
@@ -2394,14 +2394,14 @@ void create_item(int n, int in1)
   i = in1;
   in1 = in2;
   in2 = i;
-  std::snprintf(name, sizeof(name), "%s armor"
+  snprintf(name, sizeof(name), "%s armor"
     ,mt_name[(cd[n].id[in1].type & MT_MASK) / MT_PLACE]);
   break;
       case IT_WEAPON:
   i = in1;
   in1 = in2;
   in2 = i;
-  std::snprintf(name, sizeof(name), "%s %s", (cd[n].id[in1].AE == AE_NONE
+  snprintf(name, sizeof(name), "%s %s", (cd[n].id[in1].AE == AE_NONE
            ? mt_name[(cd[n].id[in1].type & MT_MASK) / MT_PLACE]
         : ae_name[cd[n].id[in1].AE])
     ,wt_name[(cd[n].id[in1].type & WT_MASK) / WT_PLACE]);
@@ -2421,7 +2421,7 @@ void create_item(int n, int in1)
   if (cd[n].id[in1].fn == FN_NONE) {
     cd[n].id[in1].fn = frand(6) + 1;
   }
-  std::snprintf(name, sizeof(name), "%s %s", (cd[n].id[in1].UE < 9 && cd[n].id[in1].fn <= FN_NORMAL
+  snprintf(name, sizeof(name), "%s %s", (cd[n].id[in1].UE < 9 && cd[n].id[in1].fn <= FN_NORMAL
         ? fn_name[cd[n].id[in1].fn] : ci_name[cd[n].id[in1].UE])
     ,wt_name[(cd[n].id[in1].type & WT_MASK) / WT_PLACE]);
   break;
@@ -2472,14 +2472,14 @@ void create_item(int n, int in1)
     cd[n].id[in1].AT = AT_NONE;
 
   if ((cd[n].id[in1].AT != AT_NONE) && (cd[n].id[in1].AT != AT_ABSORB))
-    std::snprintf(name, sizeof(name), "%s %s", at_name[cd[n].id[in1].AT], wt_aname[(cd[n].id[in1].type & WT_MASK) / WT_PLACE]);
+    snprintf(name, sizeof(name), "%s %s", at_name[cd[n].id[in1].AT], wt_aname[(cd[n].id[in1].type & WT_MASK) / WT_PLACE]);
   else if (cd[n].id[in1].fn != FN_NONE && cd[n].id[in1].fn <= FN_NORMAL)
     if (cd[n].id[in1].AT == AT_ABSORB)
-      std::snprintf(name, sizeof(name), "%s absorber", fn_name[cd[n].id[in1].fn]);
+      snprintf(name, sizeof(name), "%s absorber", fn_name[cd[n].id[in1].fn]);
     else
-      std::snprintf(name, sizeof(name), "%s %s", fn_name[cd[n].id[in1].fn], wt_aname[(cd[n].id[in1].type & WT_MASK) / WT_PLACE]);
+      snprintf(name, sizeof(name), "%s %s", fn_name[cd[n].id[in1].fn], wt_aname[(cd[n].id[in1].type & WT_MASK) / WT_PLACE]);
   else
-    std::snprintf(name, sizeof(name), "%s %s", mt_name[(cd[n].id[in1].type & MT_MASK) / MT_PLACE], wt_aname[(cd[n].id[in1].type & WT_MASK) / WT_PLACE]);
+    snprintf(name, sizeof(name), "%s %s", mt_name[(cd[n].id[in1].type & MT_MASK) / MT_PLACE], wt_aname[(cd[n].id[in1].type & WT_MASK) / WT_PLACE]);
   break;
       }
       break;
@@ -2540,7 +2540,7 @@ void create_item(int n, int in1)
           cd[n].id[in1].fn = frand(6) + 1;
       }
   }
-  std::snprintf(name, sizeof(name), "%s armor",  (cd[n].id[in1].fn != FN_NONE && cd[n].id[in1].fn <= FN_NORMAL) ?
+  snprintf(name, sizeof(name), "%s armor",  (cd[n].id[in1].fn != FN_NONE && cd[n].id[in1].fn <= FN_NORMAL) ?
         fn_name[cd[n].id[in1].fn] : mt_name[(cd[n].id[in1].type & MT_MASK) / MT_PLACE]);
   break;
       case IT_WEAPON:
@@ -2600,14 +2600,14 @@ void create_item(int n, int in1)
   }
 
   if ((cd[n].id[in1].AT != AT_NONE) && (cd[n].id[in1].AT != AT_ABSORB))
-    std::snprintf(name, sizeof(name), "%s %s", at_name[cd[n].id[in1].AT], wt_aname[(cd[n].id[in1].type & WT_MASK) / WT_PLACE]);
+    snprintf(name, sizeof(name), "%s %s", at_name[cd[n].id[in1].AT], wt_aname[(cd[n].id[in1].type & WT_MASK) / WT_PLACE]);
   else if (cd[n].id[in1].fn != FN_NONE && cd[n].id[in1].fn <= FN_NORMAL)
     if (cd[n].id[in1].AT == AT_ABSORB)
-      std::snprintf(name, sizeof(name), "%s absorber", fn_name[cd[n].id[in1].fn]);
+      snprintf(name, sizeof(name), "%s absorber", fn_name[cd[n].id[in1].fn]);
     else
-      std::snprintf(name, sizeof(name), "%s %s", fn_name[cd[n].id[in1].fn], wt_aname[(cd[n].id[in1].type & WT_MASK) / WT_PLACE]);
+      snprintf(name, sizeof(name), "%s %s", fn_name[cd[n].id[in1].fn], wt_aname[(cd[n].id[in1].type & WT_MASK) / WT_PLACE]);
   else
-    std::snprintf(name, sizeof(name), "%s %s", mt_name[(cd[n].id[in1].type & MT_MASK) / MT_PLACE], wt_aname[(cd[n].id[in1].type & WT_MASK) / WT_PLACE]);
+    snprintf(name, sizeof(name), "%s %s", mt_name[(cd[n].id[in1].type & MT_MASK) / MT_PLACE], wt_aname[(cd[n].id[in1].type & WT_MASK) / WT_PLACE]);
   break;
       case IT_CHARGE:
   i = in1;
@@ -2615,7 +2615,7 @@ void create_item(int n, int in1)
   in2 = i;
   if ((cd[n].id[in1].SE == SE_HITISUSE) || (cd[n].id[in1].SE == SE_HITTOUSE))
     sef = 1;
-  std::snprintf(name, sizeof(name), "%s %s", (cd[n].id[in1].UE < 9 && cd[n].id[in1].fn <= FN_NORMAL
+  snprintf(name, sizeof(name), "%s %s", (cd[n].id[in1].UE < 9 && cd[n].id[in1].fn <= FN_NORMAL
         ? fn_name[cd[n].id[in1].fn] : ci_name[cd[n].id[in1].UE])
     ,wt_name[(cd[n].id[in1].type & WT_MASK) / WT_PLACE]);
   /* add for new fn 20000327*/
@@ -2677,7 +2677,7 @@ void create_item(int n, int in1)
   cd[n].id[in1].UE = frand(0x24) + 1; /* bug(?)fix & add 20010126 1231 */
   if (cd[n].id[in1].fn == FN_NONE)
     cd[n].id[in1].fn = frand(6) + 1;
-  std::snprintf(name, sizeof(name), "%s %s", (cd[n].id[in1].UE < 9 && cd[n].id[in1].fn <= FN_NORMAL
+  snprintf(name, sizeof(name), "%s %s", (cd[n].id[in1].UE < 9 && cd[n].id[in1].fn <= FN_NORMAL
         ? fn_name[cd[n].id[in1].fn] : ci_name[cd[n].id[in1].UE]), wt_aname[(cd[n].id[in1].type & WT_MASK) / WT_PLACE]);
   break;
       }
@@ -2696,7 +2696,7 @@ void create_item(int n, int in1)
   cd[n].id[in1].AE = ((cd[n].id[in1].type & MT_MASK) == MT_MAGICAL
        && (cd[n].id[in2].type & MT_MASK) == MT_MAGICAL ? frand(13)
           : AE_NONE);
-  std::snprintf(name, sizeof(name), "%s %s", (cd[n].id[in1].AE == AE_NONE
+  snprintf(name, sizeof(name), "%s %s", (cd[n].id[in1].AE == AE_NONE
            ? mt_name[(cd[n].id[in1].type & MT_MASK) / MT_PLACE]
         : ae_name[cd[n].id[in1].AE])
     ,wt_name[(cd[n].id[in1].type & WT_MASK) / WT_PLACE]);
@@ -2706,7 +2706,7 @@ void create_item(int n, int in1)
     sef = 1;
   if (cd[n].id[in1].fn == FN_NONE)
     cd[n].id[in1].fn = frand(6) + 1;
-  std::snprintf(name, sizeof(name), "%s %s", (cd[n].id[in1].UE < 9 && cd[n].id[in1].fn <= FN_NORMAL
+  snprintf(name, sizeof(name), "%s %s", (cd[n].id[in1].UE < 9 && cd[n].id[in1].fn <= FN_NORMAL
         ? fn_name[cd[n].id[in1].fn] : ci_name[cd[n].id[in1].UE])
     ,wt_name[(cd[n].id[in1].type & WT_MASK) / WT_PLACE]);
   break;
@@ -2769,7 +2769,7 @@ void create_item(int n, int in1)
           cd[n].id[in1].fn = frand(6) + 1;
       }
   }
-  std::snprintf(name, sizeof(name), "%s %s", (cd[n].id[in1].UE < 9 && cd[n].id[in1].fn <= FN_NORMAL
+  snprintf(name, sizeof(name), "%s %s", (cd[n].id[in1].UE < 9 && cd[n].id[in1].fn <= FN_NORMAL
         ? fn_name[cd[n].id[in1].fn] : ci_name[cd[n].id[in1].UE])
     ,wt_name[(cd[n].id[in1].type & WT_MASK) / WT_PLACE]);
   break;
@@ -2936,7 +2936,7 @@ int detect_fn(int n,int fn,int vsfn,char *fmt)
    }
 #endif
 
-   std::snprintf(buf.data(), buf.size(), fmt, (fn >= 0 ? fn_name[fn] : "????" ));
+   snprintf(buf.data(), buf.size(), fmt, (fn >= 0 ? fn_name[fn] : "????" ));
 
    check_write(n, buf.data());
    return (fn);
@@ -2973,23 +2973,23 @@ void detect_item(int n, int in)
 #ifndef NO_SKILL
     ok = (PER_DICE < 10 + 45 * std::log10(cd[n].skill[SKL_DETECT_IT][id->type & IT_MASK]/100+1.0));
 #endif
-    std::snprintf(buf, sizeof(buf), "  Name  : %-31s   Wp  : %2i \n", id->name, id->wp);
+    snprintf(buf, sizeof(buf), "  Name  : %-31s   Wp  : %2i \n", id->name, id->wp);
     check_write(n, buf);
 #ifdef NO_SKILL
-    std::snprintf(buf, sizeof(buf), "  Type  : %-15s \n", it_name[cd[n].id[in].type & IT_MASK]);
+    snprintf(buf, sizeof(buf), "  Type  : %-15s \n", it_name[cd[n].id[in].type & IT_MASK]);
     check_write(n, buf);
-    std::snprintf(buf, sizeof(buf), "        : %-15s \n", mt_name[(cd[n].id[in].type & MT_MASK) / 0x100]);
+    snprintf(buf, sizeof(buf), "        : %-15s \n", mt_name[(cd[n].id[in].type & MT_MASK) / 0x100]);
     check_write(n, buf);
-    std::snprintf(buf, sizeof(buf), "        : %-15s \n", wt_name[(cd[n].id[in].type & WT_MASK) / 0x10]);
+    snprintf(buf, sizeof(buf), "        : %-15s \n", wt_name[(cd[n].id[in].type & WT_MASK) / 0x10]);
     check_write(n, buf);
 #else
-    std::snprintf(buf, sizeof(buf), "  Type  : %-15s \n", (ok ? it_name[id->type & IT_MASK] : "????"));
+    snprintf(buf, sizeof(buf), "  Type  : %-15s \n", (ok ? it_name[id->type & IT_MASK] : "????"));
     check_write(n, buf);
-    std::snprintf(buf, sizeof(buf), "        : %-15s \n", 
+    snprintf(buf, sizeof(buf), "        : %-15s \n", 
       (PER_DICE < 10+45*std::log10(cd[n].skill[SKL_DETECT_MT][(id->type & MT_MASK)/MT_PLACE]/100+1.0) ?
        mt_name[(id->type & MT_MASK) / MT_PLACE] : "????"));
     check_write(n, buf);
-    std::snprintf(buf, sizeof(buf), "        : %-15s \n", 
+    snprintf(buf, sizeof(buf), "        : %-15s \n", 
       (PER_DICE < 10+45*std::log10(cd[n].skill[SKL_DETECT_WT][(id->type & WT_MASK)/WT_PLACE]/100+1.0) ?
        wt_name[(id->type & WT_MASK) / WT_PLACE] : "????"));
     check_write(n, buf);
@@ -2997,12 +2997,12 @@ void detect_item(int n, int in)
     /* change for master detect 20000607 for skill 20020527 */
     dtfn = detect_fn(n, id->fn, -1, "   Fn   : %-15s \n");
 #ifdef NO_SKILL
-      std::snprintf(buf, sizeof(buf), "   ATP  : %2i \n", id->ATP);
+      snprintf(buf, sizeof(buf), "   ATP  : %2i \n", id->ATP);
 #else
     if (PER_DICE < 10+45*std::log10(cd[n].skill[SKL_DETECT_IT][IT_WEAPON]/100+1.0))
-      std::snprintf(buf, sizeof(buf), "   ATP  : %2i \n", id->ATP);
+      snprintf(buf, sizeof(buf), "   ATP  : %2i \n", id->ATP);
     else
-      std::snprintf(buf, sizeof(buf), "   ATP  : ?? \n");
+      snprintf(buf, sizeof(buf), "   ATP  : ?? \n");
 #endif
     check_write(n, buf);
     if ((id->type & WD_MASK) == WD_FORE)
@@ -3034,11 +3034,11 @@ void detect_item(int n, int in)
     switch (id->type & IT_MASK) {
     case IT_ARMOR:
 #ifdef NO_SKILL
-        std::snprintf(buf, sizeof(buf), "   DFP  : %2i%%  MRP  : %2i%% \n"
+        snprintf(buf, sizeof(buf), "   DFP  : %2i%%  MRP  : %2i%% \n"
           ,id->DFP, id->MRP);
 #else
       if (PER_DICE < 10+45*std::log10(cd[n].skill[SKL_DETECT_IT][IT_ARMOR]/100+1.0))
-        std::snprintf(buf, sizeof(buf), "   DFP  : %2i%%  MRP  : %2i%% \n"
+        snprintf(buf, sizeof(buf), "   DFP  : %2i%%  MRP  : %2i%% \n"
           ,id->DFP, id->MRP);
       else
         CPYSTR(buf, "   DFP  : ??%  MRP  : ??% \n");
@@ -3047,19 +3047,19 @@ void detect_item(int n, int in)
       break;
     case IT_WEAPON:
 #ifdef NO_SKILL
-        std::snprintf(buf, sizeof(buf), "   ER   : %2i%% \n", id->ER);
+        snprintf(buf, sizeof(buf), "   ER   : %2i%% \n", id->ER);
 #else
       if (PER_DICE < 10+45*std::log10(cd[n].skill[SKL_DETECT_IT][IT_WEAPON]/100+1.0))
-        std::snprintf(buf, sizeof(buf), "   ER   : %2i%% \n", id->ER);
+        snprintf(buf, sizeof(buf), "   ER   : %2i%% \n", id->ER);
       else
         CPYSTR(buf, "   ER   : ??% \n");
 #endif
       check_write(n, buf);
 #ifdef NO_SKILL
-        std::snprintf(buf, sizeof(buf), " Effect : %-15s \n", ae_name[id->AE]);
+        snprintf(buf, sizeof(buf), " Effect : %-15s \n", ae_name[id->AE]);
 #else
       if (PER_DICE < 10+45*std::log10(cd[n].skill[SKL_DETECT_IT][IT_WEAPON]/100+1.0))
-        std::snprintf(buf, sizeof(buf), " Effect : %-15s \n", ae_name[id->AE]);
+        snprintf(buf, sizeof(buf), " Effect : %-15s \n", ae_name[id->AE]);
       else
         CPYSTR(buf, " Effect : ???? \n");
 #endif
@@ -3070,10 +3070,10 @@ void detect_item(int n, int in)
       i = cd[n].skill[SKL_DETECT_IT][IT_FOOD]/100;
       if (PER_DICE < 100 - (id->VALUE2 - i)) {
 #endif
-        std::snprintf(buf, sizeof(buf), "  Value : %2i \n", id->VALUE);
+        snprintf(buf, sizeof(buf), "  Value : %2i \n", id->VALUE);
         check_write(n, buf);
         if (id->VALUE2 > 0) {
-    std::snprintf(buf, sizeof(buf), "Food Lv : %2d \n", id->VALUE2);
+    snprintf(buf, sizeof(buf), "Food Lv : %2d \n", id->VALUE2);
     check_write(n, buf);
         }
 #ifndef NO_SKILL
@@ -3099,7 +3099,7 @@ void detect_item(int n, int in)
 #ifndef NO_SKILL
       if (PER_DICE < 10+45*std::log10(cd[n].skill[SKL_DETECT_IT][IT_RESOURCE]/100+1.0))
 #endif
-      std::snprintf(buf, sizeof(buf), " Effect : %-15s \n", rs_effect[id->VALUE]);
+      snprintf(buf, sizeof(buf), " Effect : %-15s \n", rs_effect[id->VALUE]);
       check_write(n, buf);
       break;
     case IT_JEWEL:
@@ -3109,36 +3109,36 @@ void detect_item(int n, int in)
       i = id->VALUE * 100 + id->VALUE2;
 	  i *= cirate;
 	  i /= 100;
-      std::snprintf(buf, sizeof(buf), "  Value : %10i %s \n", i, cirunit);
+      snprintf(buf, sizeof(buf), "  Value : %10i %s \n", i, cirunit);
 #ifndef NO_SKILL
       } else
-        std::snprintf(buf, sizeof(buf), "  Value : ???? %s \n", cirunit);
+        snprintf(buf, sizeof(buf), "  Value : ???? %s \n", cirunit);
 #endif
       check_write(n, buf);
       break;
     case IT_SPELL_JEWEL:
-      std::snprintf(buf, sizeof(buf), "  Spell : %-31s \n", id->name);
+      snprintf(buf, sizeof(buf), "  Spell : %-31s \n", id->name);
       check_write(n, buf);
-      std::snprintf(buf, sizeof(buf), "  Power : %3i \n", mgstrlen(id->name));
+      snprintf(buf, sizeof(buf), "  Power : %3i \n", mgstrlen(id->name));
       check_write(n, buf);
 
 #ifdef NO_SKILL
       detect_fn(n, id->fn, -1,   "  Fn    : %-31s \n");
 #else
       /* detect skill bug fix 20021119 */
-      std::snprintf(buf, sizeof(buf), "  Fn    : %-31s \n", (dtfn >= 0 ? fn_name[dtfn] : "????" ));
+      snprintf(buf, sizeof(buf), "  Fn    : %-31s \n", (dtfn >= 0 ? fn_name[dtfn] : "????" ));
       check_write(n, buf);
 #endif
       i = (cd[n].skill[SKL_DETECT_IT][IT_SPELL_JEWEL] +
            cd[n].skill[SKL_MAGIC_SP][SKL_MGSP_CHARGE] +
            cd[n].lv[LV_WIZARD])/3;
       if (PER_DICE < 10+45*std::log10(i/100+1.0)) {
-        std::snprintf(buf, sizeof(buf), " Effect : %-31s \n", use_effect[id->UE]);
+        snprintf(buf, sizeof(buf), " Effect : %-31s \n", use_effect[id->UE]);
         skillup(n,SKL_MAGIC_SP,SKL_MGSP_ANALYZE,0,30,1);
         skillup(n,SKL_MAGIC_SP,SKL_MGSP_CHARGE,0,30,1);
       } else
 #ifdef NO_SKILL
-      std::snprintf(buf, sizeof(buf), " Effect : %-31s \n", use_effect[id->UE]);
+      snprintf(buf, sizeof(buf), " Effect : %-31s \n", use_effect[id->UE]);
 #else
         CPYSTR(buf, " Effect : ???? \n");
 #endif
@@ -3152,9 +3152,9 @@ void detect_item(int n, int in)
       else
 #endif
       if (id->CHARGE > 0)
-  std::snprintf(buf, sizeof(buf), " Charge : %2i \n", id->CHARGE);
+  snprintf(buf, sizeof(buf), " Charge : %2i \n", id->CHARGE);
       else
-  std::snprintf(buf, sizeof(buf), " Charge : Infinity \n");
+  snprintf(buf, sizeof(buf), " Charge : Infinity \n");
       check_write(n, buf);
 #ifndef NO_SKILL
       if (!i) {
@@ -3166,7 +3166,7 @@ void detect_item(int n, int in)
       } else if (id->UE == EF_DISAPPEAR) {
   check_write(n, " Effect : Disappear\n");
       } else {
-  std::snprintf(buf, sizeof(buf), " Effect : %-31s \n", use_effect[id->UE]);
+  snprintf(buf, sizeof(buf), " Effect : %-31s \n", use_effect[id->UE]);
       }
   check_write(n, buf);
       break;
@@ -3177,16 +3177,16 @@ void detect_item(int n, int in)
       else
 #endif
       if (id->AT > MAX_AT)
-  std::snprintf(buf, sizeof(buf), " Effect : None \n");
+  snprintf(buf, sizeof(buf), " Effect : None \n");
       else
-  std::snprintf(buf, sizeof(buf), " Effect : %-15s \n", at_name[id->AT]);
+  snprintf(buf, sizeof(buf), " Effect : %-15s \n", at_name[id->AT]);
       check_write(n, buf);
       break;
     case IT_FOREIGN:
 #ifndef NO_SKILL
       if (PER_DICE < 10+45*std::log10(cd[n].skill[SKL_DETECT_IT][IT_FOREIGN]/100+1.0))
 #endif
-      std::snprintf(buf, sizeof(buf), "  Value : %4i gp \n",
+      snprintf(buf, sizeof(buf), "  Value : %4i gp \n",
         id->VALUE * 100 + id->VALUE2);
       check_write(n, buf);
       break;
@@ -3204,9 +3204,9 @@ void detect_item(int n, int in)
        || (id->SE != SE_PASSWALL
      && id->SE != SE_NOMOVE))){
     if (curse_check(n, id->SE) < 0)
-      std::snprintf(buf, sizeof(buf), "  Curse : %-15s \n", se_name[id->SE]);
+      snprintf(buf, sizeof(buf), "  Curse : %-15s \n", se_name[id->SE]);
     else
-      std::snprintf(buf, sizeof(buf), "   S.E. : %-15s \n", se_name[id->SE]);
+      snprintf(buf, sizeof(buf), "   S.E. : %-15s \n", se_name[id->SE]);
     check_write(n, buf);
   } else if (id->SE == SE_APPEAR) {
     check_write(n,
@@ -3268,17 +3268,17 @@ void   detect_magic(int n, int in)
   {
     dmcheck_write(n, DMM_ANALYZE_NO);
   } else {
-    std::snprintf(buf.data(), buf.size(), "  Spell : %-31s \n", m->spell);
+    snprintf(buf.data(), buf.size(), "  Spell : %-31s \n", m->spell);
     check_write(n, buf.data());
-    std::snprintf(buf.data(), buf.size(), "  Power : %3i \n", mgstrlen(m->spell));
+    snprintf(buf.data(), buf.size(), "  Power : %3i \n", mgstrlen(m->spell));
     check_write(n, buf.data());
     /* add for new fn 20000327 change for master detect 20000607 */
 #ifdef NO_SKILL
     detect_fn(n, m->fn, -2, "  Fn    : %-31s \n");
-    std::snprintf(buf.data(), buf.size(), " Effect : %-31s \n", use_effect[m->effect]);
+    snprintf(buf.data(), buf.size(), " Effect : %-31s \n", use_effect[m->effect]);
 #else
     detect_fn(n, m->fn, -1, "  Fn    : %-31s \n");
-    std::snprintf(buf.data(), buf.size(), " Effect : %-31s \n",
+    snprintf(buf.data(), buf.size(), " Effect : %-31s \n",
         (cd[n].exp != 99999999 &&
          PER_DICE < 100-100/(skill_mg_calc(n,&(cd[n].md[in]))+1) ? use_effect[(int)(m->effect)] : "????"));
 #endif
@@ -3340,61 +3340,61 @@ void   ident_to(int n, int m)
     return;
   }
 
-  std::snprintf(buf, sizeof(buf), " Name  : %s \n", cd[m].name);
+  snprintf(buf, sizeof(buf), " Name  : %s \n", cd[m].name);
   check_write(n, buf);
   if (l >= IN_HPMP) {
     if ((cd[m].undetect & ID_HP) && (cd[m].undetect & ID_MP) && !is_master)
-      std::snprintf(buf, sizeof(buf), "   Hp : ???? / ????   Mp  : ???? / ???? \n");
+      snprintf(buf, sizeof(buf), "   Hp : ???? / ????   Mp  : ???? / ???? \n");
     else if ((cd[m].undetect & ID_HP) && !is_master)
-      std::snprintf(buf, sizeof(buf), "   Hp : ???? / ????   Mp  : %4li / %4li \n", cd[m].mp, cd[m].mmp);
+      snprintf(buf, sizeof(buf), "   Hp : ???? / ????   Mp  : %4li / %4li \n", cd[m].mp, cd[m].mmp);
     else if ((cd[m].undetect & ID_MP) && !is_master)
-      std::snprintf(buf, sizeof(buf), "   Hp : %4li / %4li   Mp  : ???? / ???? \n", cd[m].hp, cd[m].mhp);
+      snprintf(buf, sizeof(buf), "   Hp : %4li / %4li   Mp  : ???? / ???? \n", cd[m].hp, cd[m].mhp);
     else
-      std::snprintf(buf, sizeof(buf), "   Hp : %4li / %4li   Mp  : %4li / %4li \n", cd[m].hp, cd[m].mhp, cd[m].mp, cd[m].mmp);
+      snprintf(buf, sizeof(buf), "   Hp : %4li / %4li   Mp  : %4li / %4li \n", cd[m].hp, cd[m].mhp, cd[m].mp, cd[m].mmp);
     check_write(n, buf);
   }
   if (l >= IN_LEVEL) {
     check_write(n, " Level :\n");
     if ((cd[m].undetect & ID_LEVEL) && !is_master)
-      std::snprintf(buf, sizeof(buf), "    Fighter  ????    Wizard   ???? \n");
+      snprintf(buf, sizeof(buf), "    Fighter  ????    Wizard   ???? \n");
     else
-      std::snprintf(buf, sizeof(buf), "    Fighter  %4i    Wizard   %4i \n", cd[m].lv[LV_FIGHTER], cd[m].lv[LV_WIZARD]);
+      snprintf(buf, sizeof(buf), "    Fighter  %4i    Wizard   %4i \n", cd[m].lv[LV_FIGHTER], cd[m].lv[LV_WIZARD]);
     check_write(n, buf);
   }
   if (l >= IN_ATP) {
     if ((cd[m].undetect & ID_ATP) && !is_master)
-      std::snprintf(buf, sizeof(buf), " ATP   : ??? \n");
+      snprintf(buf, sizeof(buf), " ATP   : ??? \n");
     else
-      std::snprintf(buf, sizeof(buf), " ATP   : %3i \n", (cd[m].weq != nullptr ? cd[m].weq->ATP : 0));
+      snprintf(buf, sizeof(buf), " ATP   : %3i \n", (cd[m].weq != nullptr ? cd[m].weq->ATP : 0));
     check_write(n, buf);
   }
   if (l >= IN_AFN) {
     if ((cd[m].undetect & ID_AFN) && !is_master) {
-      std::snprintf(buf, sizeof(buf), " ATT Fn: ???? \n");
+      snprintf(buf, sizeof(buf), " ATT Fn: ???? \n");
       check_write(n, buf);
     } else {
       /* change for master detect 20000607 */
       detect_fn(n, cd[m].afn, cd[n].dfn, " ATT Fn: %s \n");
       if (cd[m].weq != nullptr)
   if ((cd[m].weq->type & IT_MASK) == IT_WEAPON) {
-    std::snprintf(buf, sizeof(buf), " Effect: %s \n", ae_name[cd[m].weq->AE]);
+    snprintf(buf, sizeof(buf), " Effect: %s \n", ae_name[cd[m].weq->AE]);
     check_write(n, buf);
   }
     }
   }
   if (l >= IN_DEFMRP) {
     if ((cd[m].undetect & ID_DEFMRP) && !is_master)
-      std::snprintf(buf, sizeof(buf), " DFP   : ??? \n MRP    : ??? \n");
+      snprintf(buf, sizeof(buf), " DFP   : ??? \n MRP    : ??? \n");
     else {
-      std::snprintf(buf, sizeof(buf), " DFP   : %3i \n", (cd[m].aeq != nullptr ? cd[m].aeq->DFP : 0));
+      snprintf(buf, sizeof(buf), " DFP   : %3i \n", (cd[m].aeq != nullptr ? cd[m].aeq->DFP : 0));
       check_write(n, buf);
-      std::snprintf(buf, sizeof(buf), " MRP   : %3i \n", (cd[m].aeq != nullptr ? cd[m].aeq->MRP : 0));
+      snprintf(buf, sizeof(buf), " MRP   : %3i \n", (cd[m].aeq != nullptr ? cd[m].aeq->MRP : 0));
     }
     check_write(n, buf);
   }
   if (l >= IN_DFN) {
     if ((cd[m].undetect & ID_DFN) && !is_master) {
-      std::snprintf(buf, sizeof(buf), " DEF Fn: ???? \n");
+      snprintf(buf, sizeof(buf), " DEF Fn: ???? \n");
       check_write(n, buf);
     } else {
       /* change for master detect 20000607 */
@@ -3403,33 +3403,33 @@ void   ident_to(int n, int m)
   }
   if (l >= IN_KARMA) {
     if (is_master)
-      std::snprintf(buf, sizeof(buf), " Karma : %s (%2i)\n", (cd[m].align < 50 ? "Law" : "Chaos"),cd[m].align);
+      snprintf(buf, sizeof(buf), " Karma : %s (%2i)\n", (cd[m].align < 50 ? "Law" : "Chaos"),cd[m].align);
     else if ((cd[m].undetect & ID_KARMA))
-      std::snprintf(buf, sizeof(buf), " Karma : ???? \n");
+      snprintf(buf, sizeof(buf), " Karma : ???? \n");
     else
-      std::snprintf(buf, sizeof(buf), " Karma : %s \n", (cd[m].align < 50 ? "Law" : "Chaos"));
+      snprintf(buf, sizeof(buf), " Karma : %s \n", (cd[m].align < 50 ? "Law" : "Chaos"));
     check_write(n, buf);
   }
   if (m >= MAX_NTTYS)
     if (l >= IN_SPEED) {
       if ((cd[m].undetect & ID_SPEED) && !is_master)
-  std::snprintf(buf, sizeof(buf), " Speed : ?? \n");
+  snprintf(buf, sizeof(buf), " Speed : ?? \n");
       else
-  std::snprintf(buf, sizeof(buf), " Speed : %2i \n", cd[m].sp);
+  snprintf(buf, sizeof(buf), " Speed : %2i \n", cd[m].sp);
       check_write(n, buf);
     }
   if (l >= IN_STATUS) {
     if ((cd[m].undetect & ID_STATUS) && !is_master)
-      std::snprintf(buf, sizeof(buf), " Status: ???? \n");
+      snprintf(buf, sizeof(buf), " Status: ???? \n");
     else {
       if (cd[m].type < CT_MAGICAL)
-  std::snprintf(buf, sizeof(buf), " Status: %s \n", at_name[cd[m].at]);
+  snprintf(buf, sizeof(buf), " Status: %s \n", at_name[cd[m].at]);
       else if ((cd[m].at < AT_VISIBLE) || (cd[m].at == AT_IMMORTAL))
-  std::snprintf(buf, sizeof(buf), " Status: Immortal \n"); /* 結局これ */
+  snprintf(buf, sizeof(buf), " Status: Immortal \n"); /* 結局これ */
       else
-  std::snprintf(buf, sizeof(buf), " Status: Immortal %s \n", at_name[cd[m].at]);
+  snprintf(buf, sizeof(buf), " Status: Immortal %s \n", at_name[cd[m].at]);
       check_write(n, buf);
-      std::snprintf(buf, sizeof(buf), "Special: ");
+      snprintf(buf, sizeof(buf), "Special: ");
       i = 0;
       if (cd[m].weq != nullptr)
   if (((cd[m].weq->type) & IT_MASK) != IT_FOOD)
@@ -3493,37 +3493,37 @@ void   ident_to(int n, int m)
   if (l == 20000) {
     /* insert master detective data */
     check_write(n, "debug: \n");
-    std::snprintf(buf, sizeof(buf), "afn: %i dfn: %i sfn: %i \n", cd[m].afn, cd[m].dfn, cd[m].sfn);
+    snprintf(buf, sizeof(buf), "afn: %i dfn: %i sfn: %i \n", cd[m].afn, cd[m].dfn, cd[m].sfn);
     check_write(n, buf);
-    std::snprintf(buf, sizeof(buf), "wd: %04x IA: %04x UD: %04x AT: %i \n", cd[m].wd, cd[m].innate, cd[m].undetect, cd[m].at);
+    snprintf(buf, sizeof(buf), "wd: %04x IA: %04x UD: %04x AT: %i \n", cd[m].wd, cd[m].innate, cd[m].undetect, cd[m].at);
     check_write(n, buf);
-    std::snprintf(buf, sizeof(buf), "wSE: %i aSE: %i oSE: %i \n", cd[m].wsep, cd[m].asep, cd[m].osep);
+    snprintf(buf, sizeof(buf), "wSE: %i aSE: %i oSE: %i \n", cd[m].wsep, cd[m].asep, cd[m].osep);
     check_write(n, buf);
-    std::snprintf(buf, sizeof(buf), "regene:  %4i will:     %4i \n", TCN_REGENE(m), TCN_WILL(m));
+    snprintf(buf, sizeof(buf), "regene:  %4i will:     %4i \n", TCN_REGENE(m), TCN_WILL(m));
     check_write(n, buf);
-    std::snprintf(buf, sizeof(buf), "coat:    %4i spell:    %4i \n", TCN_COAT(m), TCN_SPELL(m));
+    snprintf(buf, sizeof(buf), "coat:    %4i spell:    %4i \n", TCN_COAT(m), TCN_SPELL(m));
     check_write(n, buf);
-    std::snprintf(buf, sizeof(buf), "protect: %4i shell:    %4i \n", TCN_PROTECT(m), TCN_SHELL(m));
+    snprintf(buf, sizeof(buf), "protect: %4i shell:    %4i \n", TCN_PROTECT(m), TCN_SHELL(m));
     check_write(n, buf);
-    std::snprintf(buf, sizeof(buf), "haste:   %4i illusion: %4i \n", TCN_HASTE(m), TCN_ILLUSION(m));
+    snprintf(buf, sizeof(buf), "haste:   %4i illusion: %4i \n", TCN_HASTE(m), TCN_ILLUSION(m));
     check_write(n, buf);
-    std::snprintf(buf, sizeof(buf), "poison:  %4i palsy:    %4i \n", TCN_POISON(m), TCN_PALSY(m));
+    snprintf(buf, sizeof(buf), "poison:  %4i palsy:    %4i \n", TCN_POISON(m), TCN_PALSY(m));
     check_write(n, buf);
-    std::snprintf(buf, sizeof(buf), "panic:   %4i confuse:  %4i \n", TCN_PANIC(m), TCN_CONFUSE(m));
+    snprintf(buf, sizeof(buf), "panic:   %4i confuse:  %4i \n", TCN_PANIC(m), TCN_CONFUSE(m));
     check_write(n, buf);
-    std::snprintf(buf, sizeof(buf), "berserk: %4i silence:  %4i \n", TCN_BERSERK(m), TCN_SILENCE(m));
+    snprintf(buf, sizeof(buf), "berserk: %4i silence:  %4i \n", TCN_BERSERK(m), TCN_SILENCE(m));
     check_write(n, buf);
-    std::snprintf(buf, sizeof(buf), "karma:   %4i vanish:   %4i \n", TCN_KARMA(m), TCN_VANISH(m));
+    snprintf(buf, sizeof(buf), "karma:   %4i vanish:   %4i \n", TCN_KARMA(m), TCN_VANISH(m));
     check_write(n, buf);
-    std::snprintf(buf, sizeof(buf), "blind:   %4i mirror:   %4i \n", TCN_BLIND(m), TCN_MIRROR(m));
+    snprintf(buf, sizeof(buf), "blind:   %4i mirror:   %4i \n", TCN_BLIND(m), TCN_MIRROR(m));
     check_write(n, buf);
-    std::snprintf(buf, sizeof(buf), "paswall: %4i gigant:   %4i \n", TCN_PASSWALL(m), TCN_GIGANT(m));
+    snprintf(buf, sizeof(buf), "paswall: %4i gigant:   %4i \n", TCN_PASSWALL(m), TCN_GIGANT(m));
     check_write(n, buf);
-    std::snprintf(buf, sizeof(buf), "nomove:  %4i raise:    %4i \n", TCN_NOMOVE(m), TCN_RAISEDEAD(m));
+    snprintf(buf, sizeof(buf), "nomove:  %4i raise:    %4i \n", TCN_NOMOVE(m), TCN_RAISEDEAD(m));
     check_write(n, buf);
 
     /* add for personal flags 20010627 */
-    std::snprintf(buf, sizeof(buf), "flags: \n");
+    snprintf(buf, sizeof(buf), "flags: \n");
     check_write(n, buf);
     CPYSTR(buf,"  P:");
     p = buf + 4;
@@ -5427,7 +5427,7 @@ int   list_inv(int n)
       if (cd[n].id[i].type == DT_NONE)
         continue;
       j++;
-      std::snprintf(buf.data(), buf.size(), "[%2i] %s \n", j, cd[n].id[i].name);
+      snprintf(buf.data(), buf.size(), "[%2i] %s \n", j, cd[n].id[i].name);
       check_write(n, buf.data());
     }
     check_write(n, "#end-list\n");
@@ -5516,7 +5516,7 @@ void    mg_save_life(int n, MagicData * m, int f)
     dmprintf(n, 0, buf.data(), buf.size(),DMM_SACRIFICE);
     write_companion(n, 0, buf.data(), (n < MAX_NTTYS ? access_dm : 0));
     if (log_op || n < MAX_NTTYS) {
-      std::snprintf(buf.data(), buf.size(), "sacrifice: %s ", cd[n].name);
+      snprintf(buf.data(), buf.size(), "sacrifice: %s ", cd[n].name);
       log_print(buf.data());
     }
     dead(n);
@@ -5663,7 +5663,7 @@ int hammer_step(int n)
 
   for (i = 0; i < MAX_ITEMS; i++) {
     if (cd[n].id[i].type != DT_NONE) {
-      std::snprintf(name, sizeof(name), "%s", cd[n].id[i].name);
+      snprintf(name, sizeof(name), "%s", cd[n].id[i].name);
       delete_item(&(cd[n].id[i]));
       dmprintf(n, 0, buf, sizeof(buf), DMM_HAMMER_BREAK, name);
       check_write(n, buf);
@@ -5671,7 +5671,7 @@ int hammer_step(int n)
     }
   }
   if (cd[n].md[0].effect != EF_NONE) {
-    std::snprintf(name, sizeof(name), "%s", cd[n].md[0].spell);
+    snprintf(name, sizeof(name), "%s", cd[n].md[0].spell);
     forget_magic(n, 0);
     dmprintf(n, 0, buf, sizeof(buf), DMM_HAMMER_BREAK, name);
     check_write(n, buf);
@@ -5793,7 +5793,7 @@ void   charge_spell(int n, int m)
         /* 2026-11-16 修正：以前は cd[n].md[n]（キャラ番号 n）と
            書かれており、他人の呪文の extension が混ざっていた。
            呪文番号 m が正しい。 */
-        std::snprintf(buf.data(), buf.size(),"%s %s",cd[n].weq->extension,cd[n].md[m].extension);
+        snprintf(buf.data(), buf.size(),"%s %s",cd[n].weq->extension,cd[n].md[m].extension);
         cd[n].weq->extension = findstr(buf.data());
       } else {
         cd[n].weq->extension = cd[n].md[m].extension;
@@ -5817,7 +5817,7 @@ int    create_special_item(int n, int in1, int in2, int is_success)
 
   if (!(i=match_special_item(n, in1, in2, &item, is_success))) return 0;
 #ifdef DEBUG
-  std::snprintf(debug_buf, sizeof(debug_buf),"special create %s and %s to %s",cd[n].id[in1].name,cd[n].id[in2].name,item->name);
+  snprintf(debug_buf, sizeof(debug_buf),"special create %s and %s to %s",cd[n].id[in1].name,cd[n].id[in2].name,item->name);
   log_print(debug_buf);
 #endif
   cd[n].id[in1].name = item->name;
