@@ -496,6 +496,8 @@
 #define DMM_SAVEOD_COMP         "%dm > Complete.\n"
 #define DMM_LOADTD              "%dm > Now loading [phi.td]...\n"
 #define DMM_LOADTD_COMP         "%dm > Complete.\n"
+#define DMM_LOADCLASS           "%dm > Now loading [phi.class]...\n"
+#define DMM_LOADCLASS_COMP      "%dm > Complete.\n"
 #define DMM_LOADGATE            "%dm > Now loading [phi.td]...\n"
 #define DMM_LOADGATE_COMP       "%dm > Complete.\n"
 #define DMM_CLOSEGATE           "%dm > Now closing gates...\n"

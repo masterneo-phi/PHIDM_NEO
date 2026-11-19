@@ -15,6 +15,7 @@
 #include  "phi_calc.h"
 #include  "phi_data.h"
 #include  "phi_magic.h"
+#include  "phi_class.h" /* PHIDM NEO extension */
 #include  "phi_enemy.h"
 #include  "phi_use.h"
 #include  "phi_str.h"
@@ -1639,6 +1640,13 @@ void spell_analyze(int n, char *spell)
       str_gc();
       log_send = 0;
       dmprintf(n, 0, buf, sizeof(buf),DMM_LOADSD_COMP);
+      check_write(n, buf);
+      return;
+    } else if (!std::strcmp(spell, "Load class") && (i=have_authority(n,MS_LOAD,0,0))) {
+      dmprintf(n, 0, buf, sizeof(buf),DMM_LOADCLASS);
+      check_write(n, buf);
+      class_load();
+      dmprintf(n, 0, buf, sizeof(buf),DMM_LOADCLASS_COMP);
       check_write(n, buf);
       return;
     } else if (!std::strcmp(spell, kCthulhu) && (i=have_authority(n,MS_SHUTDOWN,0,0))) {

@@ -496,6 +496,8 @@
 #define DMM_SAVEOD_COMP         "%dm > 完了しました.\n"
 #define DMM_LOADTD              "%dm > [phi.td] をロードします...\n"
 #define DMM_LOADTD_COMP         "%dm > 完了しました.\n"
+#define DMM_LOADCLASS           "%dm > [phi.class] をロードします...\n"
+#define DMM_LOADCLASS_COMP      "%dm > 完了しました.\n"
 #define DMM_LOADGATE            "%dm > [phi.td] をロードします...\n"
 #define DMM_LOADGATE_COMP       "%dm > 完了しました.\n"
 #define DMM_CLOSEGATE           "%dm > 外世界行ゲートを閉じています...\n"

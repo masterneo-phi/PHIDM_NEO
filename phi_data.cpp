@@ -22,6 +22,7 @@
 #include  "phi_enemy.h"
 #include  "phi_use.h"
 #include  "phi_str.h" /* add for dmprintf 20000907 */
+#include  "phi_class.h" /* PHIDM NEO extension: phi.class (Lua) */
 #include  "phi_obj.h"
 #include  "phi_m57.h"
 #include  "ext_data.h"
@@ -4122,6 +4123,7 @@ void   load_td_swt()
   break;
       case 60:    /* 刻印スイッチ (PHIDM NEO extension) */
       case 61:    /* 刻印表示スイッチ (PHIDM NEO extension) */
+      case 62:    /* プログラム実行スイッチ (PHIDM NEO extension) */
   SKIP_SPACE(p);
   if (*p == '\"') {
     p++;
@@ -6535,6 +6537,9 @@ int   load_switch(int n, int sx, int sy, int f)
     case 61:    /* 刻印表示スイッチ (PHIDM NEO extension) */
       hall_show(n, swtd[cn][lpt++].dp);
       break;
+    case 62:    /* プログラム実行スイッチ (PHIDM NEO extension) */
+      class_call(n, swtd[cn][lpt++].dp, sx, sy);
+      break;
     case 16:         /* 特殊範囲メッセージ added by Qajin 20000102 */
       switch (swtd[cn][lpt++].di) {
         case 0:
@@ -7995,6 +8000,7 @@ void   str_gc()
   case 33:  /* ADD スイッチデータ追加 2005/12/29 Savarl.F */
   case 60:  /* 刻印スイッチ (PHIDM NEO extension) */
   case 61:  /* 刻印表示スイッチ (PHIDM NEO extension) */
+  case 62:  /* プログラム実行スイッチ (PHIDM NEO extension) */
     if ((dp = swtd[i][j++].dp) != nullptr) {
       findstrdata(dp)->c = -1;
     }

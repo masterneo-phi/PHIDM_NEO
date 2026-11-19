@@ -26,6 +26,7 @@
 
 #include  "tcp.h"
 #include  "phi_dm.h"
+#include  "phi_class.h" /* PHIDM NEO extension */
 #include  "phi_attack.h"
 #include  "phi_calc.h"
 #include  "phi_data.h"
@@ -247,6 +248,7 @@ int    main(int argc, char **argv)
 	/* しないで欲しいため、先に行う。*/
   }
   load_dd();
+  class_load();  /* PHIDM NEO extension: phi.class (Lua) */
   oldh = hour = (int) (timestr[11] - '0') * 10 + (int) (timestr[12] - '0') + tslide;
   log_print("start    : Dungeon Master ");
   std::snprintf(buf, sizeof(buf),"version  : %s ", PHI_VERSION);
