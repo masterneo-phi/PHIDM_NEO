@@ -1,7 +1,8 @@
 # bsd/ compatibility helpers (strlcpy/strlcat) built as C++.
 
 CXX	= g++
-CXXFLAGS = -std=c++17 -DBSD -O2 -Wall -finput-charset=UTF-8 -fexec-charset=CP932
+CXXSTD	= -std=c++17
+CXXFLAGS = $(CXXSTD) -DBSD -O2 -Wall -finput-charset=UTF-8 -fexec-charset=CP932
 BSDOBJ  = strlcpy.o strlcat.o
 BSDSRC 	= strlcpy.cpp strlcat.cpp
 BSDARC  = bsd.o

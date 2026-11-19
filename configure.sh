@@ -1,6 +1,7 @@
 #!/bin/sh
 
 cc="cc"
+cxx="g++"
 ccflag=""
 cflags=""
 libs="-lm"
@@ -605,8 +606,10 @@ DISTDIR	= $destdir
 MAKEOPT	=
 
 SHELL	= /bin/sh
+CXX	= $cxx
+CXXSTD	= -std=c++17
+CXXFLAGS = $cflags $ccflag \$(CXXSTD) -Inames -Wall -finput-charset=UTF-8 -fexec-charset=CP932 \$(MAKEOPT)
 CC	= $cc
-CCFLAG	= -c $cflags $ccflag \$(MAKEOPT) -Inames 
 LIBS	= $libs
 
 BSDDIR  = $bsddir
@@ -614,53 +617,116 @@ BSDARC  = $bsdarc
 
 OBJS	= phi_dm.o phi_data.o phi_enemy.o \\
 		phi_magic.o phi_attack.o phi_use.o phi_calc.o \\
-		phi_str.o phi_m57.o new_proto.o ext_data.o new_command.o \\
-		expression_op.o ext_skills.o ext_party.o\\
+		phi_str.o phi_m57.o phi_m81.o new_proto.o ext_data.o new_command.o \\
+		expression_op.o ext_skills.o ext_party.o \\
 		\$(BSDARC) \\
-		tcp.o
-SRCS	= phi_dm.c phi_data.c phi_enemy.c \\
-		phi_magic.c phi_attack.c phi_use.c phi_calc.c \\
-		phi_str.c phi_m57.c new_proto.c ext_data.c new_command.c \\
-		expression_op.c ext_skills.c ext_party.c\\
-		tcp.c
+		tcp.o phi_class.o \$(LUAOBJS)
+SRCS	= phi_dm.cpp phi_data.cpp phi_enemy.cpp \\
+		phi_magic.cpp phi_attack.cpp phi_use.cpp phi_calc.cpp \\
+		phi_str.cpp phi_m57.cpp phi_m81.cpp new_proto.cpp ext_data.cpp new_command.cpp \\
+		expression_op.cpp ext_skills.cpp ext_party.cpp \\
+		tcp.cpp phi_class.cpp
 PROGRAM	= $target
 DOCS	= phi.dat README.sjis
 
+HEADERS	= \$(wildcard *.h) \$(wildcard names/*.h) phi_dm.cnf
+
 all:	\$(PROGRAM)
 
-.c.o:
-	\$(CC) \$< \$(CCFLAG)
+\$(OBJS) cdcnv.o: \$(HEADERS)
+
+.cpp.o:
+	\$(CXX) \$< \$(CXXFLAGS) -c -o \$@
+
+LUAOBJS	= lua/lapi.o lua/lcode.o lua/lctype.o lua/ldebug.o lua/ldo.o \
+		lua/ldump.o lua/lfunc.o lua/lgc.o lua/llex.o lua/lmem.o \
+		lua/lobject.o lua/lopcodes.o lua/lparser.o lua/lstate.o lua/lstring.o \
+		lua/ltable.o lua/ltm.o lua/lundump.o lua/lvm.o lua/lzio.o \
+		lua/lauxlib.o lua/lbaselib.o lua/lmathlib.o lua/lstrlib.o lua/ltablib.o
+
+lua/lapi.o: lua/lapi.c
+	\$(CC) -O2 -c -o \$@ lua/lapi.c
+lua/lcode.o: lua/lcode.c
+	\$(CC) -O2 -c -o \$@ lua/lcode.c
+lua/lctype.o: lua/lctype.c
+	\$(CC) -O2 -c -o \$@ lua/lctype.c
+lua/ldebug.o: lua/ldebug.c
+	\$(CC) -O2 -c -o \$@ lua/ldebug.c
+lua/ldo.o: lua/ldo.c
+	\$(CC) -O2 -c -o \$@ lua/ldo.c
+lua/ldump.o: lua/ldump.c
+	\$(CC) -O2 -c -o \$@ lua/ldump.c
+lua/lfunc.o: lua/lfunc.c
+	\$(CC) -O2 -c -o \$@ lua/lfunc.c
+lua/lgc.o: lua/lgc.c
+	\$(CC) -O2 -c -o \$@ lua/lgc.c
+lua/llex.o: lua/llex.c
+	\$(CC) -O2 -c -o \$@ lua/llex.c
+lua/lmem.o: lua/lmem.c
+	\$(CC) -O2 -c -o \$@ lua/lmem.c
+lua/lobject.o: lua/lobject.c
+	\$(CC) -O2 -c -o \$@ lua/lobject.c
+lua/lopcodes.o: lua/lopcodes.c
+	\$(CC) -O2 -c -o \$@ lua/lopcodes.c
+lua/lparser.o: lua/lparser.c
+	\$(CC) -O2 -c -o \$@ lua/lparser.c
+lua/lstate.o: lua/lstate.c
+	\$(CC) -O2 -c -o \$@ lua/lstate.c
+lua/lstring.o: lua/lstring.c
+	\$(CC) -O2 -c -o \$@ lua/lstring.c
+lua/ltable.o: lua/ltable.c
+	\$(CC) -O2 -c -o \$@ lua/ltable.c
+lua/ltm.o: lua/ltm.c
+	\$(CC) -O2 -c -o \$@ lua/ltm.c
+lua/lundump.o: lua/lundump.c
+	\$(CC) -O2 -c -o \$@ lua/lundump.c
+lua/lvm.o: lua/lvm.c
+	\$(CC) -O2 -c -o \$@ lua/lvm.c
+lua/lzio.o: lua/lzio.c
+	\$(CC) -O2 -c -o \$@ lua/lzio.c
+lua/lauxlib.o: lua/lauxlib.c
+	\$(CC) -O2 -c -o \$@ lua/lauxlib.c
+lua/lbaselib.o: lua/lbaselib.c
+	\$(CC) -O2 -c -o \$@ lua/lbaselib.c
+lua/lmathlib.o: lua/lmathlib.c
+	\$(CC) -O2 -c -o \$@ lua/lmathlib.c
+lua/lstrlib.o: lua/lstrlib.c
+	\$(CC) -O2 -c -o \$@ lua/lstrlib.c
+lua/ltablib.o: lua/ltablib.c
+	\$(CC) -O2 -c -o \$@ lua/ltablib.c
 
 \$(PROGRAM): \$(OBJS)
-	\$(CC) -o \$@ \$(OBJS) \$(LIBS)
+	\$(CXX) -o \$@ \$(OBJS) \$(LIBS)
 
 \$(BSDARC):
-	cd \$(BSDDIR);make
+	cd \$(BSDDIR); \$(MAKE)
 
 install: \$(PROGRAM)
 	cp \$(PROGRAM) phi_dm.cnf \$(DOCS) \$(DISTDIR)
 	rm \$(PROGRAM)
 	chmod $chmodf og-rwx \$(DISTDIR) \$(DISTDIR)/phi_docs \$(DISTDIR)/backup
 clean:
-	rm -f *.o \$(PROGRAM)
-	cd \$(BSDDIR);make clean
+	rm -f *.o lua/*.o \$(PROGRAM)
+	cd \$(BSDDIR); \$(MAKE) clean
 
 cdcnv: cdcnv.o \$(BSDARC)
-	\$(CC) -o cdcnv cdcnv.o \$(BSDARC)
+	\$(CXX) -o cdcnv cdcnv.o \$(BSDARC)
+
 EOT
 
 echo " "
 echo " Setting Makefile(./$bsddir). "
 cat > $bsddir/Makefile <<EOT
 
-CC	= $cc
-CCFLAG	= -c $cflags $ccflag
+CXX	= $cxx
+CXXSTD	= -std=c++17
+CXXFLAGS = $cflags $ccflag \$(CXXSTD) -Wall -finput-charset=UTF-8 -fexec-charset=CP932
 BSDOBJ  = strlcpy.o strlcat.o
-BSDSRC 	= strlcpy.c strlcat.c
+BSDSRC 	= strlcpy.cpp strlcat.cpp
 BSDARC  = $bsdarc
 
-.c.o:
-	\$(CC) \$< \$(CCFLAG)
+.cpp.o:
+	\$(CXX) \$< \$(CXXFLAGS) -c -o \$@
 
 \$(BSDARC): \$(BSDOBJ)
 	ar -r ../\$@ \$(BSDOBJ)
@@ -670,7 +736,7 @@ clean:
 
 EOT
 
-rm -f *.o
+rm -f *.o lua/*.o
 
 echo " "
 echo " Please 'make', 'make install' and execute 'phi_dm' as background process. "

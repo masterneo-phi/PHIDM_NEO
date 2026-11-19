@@ -8,9 +8,13 @@
 # live world directory (DISTDIR). It is intentionally disabled here so a
 # build can never overwrite a running server. Copy the binary by hand.
 
+DISTDIR	= ..
+MAKEOPT	=
+
 SHELL	= /bin/sh
 CXX	= g++
-CXXFLAGS = -std=c++17 -DBSD -O2 -Inames -Wall -finput-charset=UTF-8 -fexec-charset=CP932
+CXXSTD	= -std=c++17
+CXXFLAGS = $(CXXSTD) -DBSD -O2 -Inames -Wall -finput-charset=UTF-8 -fexec-charset=CP932 $(MAKEOPT)
 LIBS	= -lm
 
 BSDDIR  = bsd
