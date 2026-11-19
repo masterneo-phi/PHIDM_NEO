@@ -26,9 +26,9 @@
 /* GCC 4.6 の libstdc++ では C++11 の単調時計が旧名 monotonic_clock
  * (標準化の過程で steady_clock に改名された。4.7 以降は steady_clock)。 */
 #if defined(__GNUC__) && __GNUC__ == 4 && __GNUC_MINOR__ < 7
-using SteadyClock = std::chrono::monotonic_clock;
+typedef std::chrono::monotonic_clock SteadyClock;
 #else
-using SteadyClock = std::chrono::steady_clock;
+typedef std::chrono::steady_clock SteadyClock;
 #endif
 #include <cstdio>
 #include <cstdlib>
