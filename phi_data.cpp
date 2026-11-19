@@ -4120,6 +4120,17 @@ void   load_td_swt()
   abf[lpt++].di = hexadecimal_load(1, &p); /* changed 20000102 */
   abf[lpt++].di = decimal_load(4, &p);
   break;
+      case 60:    /* 刻印スイッチ (PHIDM NEO extension) */
+      case 61:    /* 刻印表示スイッチ (PHIDM NEO extension) */
+  SKIP_SPACE(p);
+  if (*p == '\"') {
+    p++;
+    loadstr(buf2, &p, '\"', 256);
+    abf[lpt++].dp = findstr(buf2);
+  } else {
+    abf[lpt++].dp = nullptr;
+  }
+  break;
       case 9:     /* メッセージスイッチ */
       case 19:    /* メッセージスイッチ2 */
   abf[lpt++].di = decimal_load(4, &p);
@@ -5973,6 +5984,96 @@ void   send_down()
   return;
 }
 
+/* Hall of fame switch (PHIDM NEO extension): phi.hall records */
+static int hall_parse_line(char *p, char *cat, char *uid, char *name, char *date)
+{
+  if (p[0] != ':' || p[1] != 'H')
+    return (0);
+  p += 2;
+  SKIP_SPACE(p);
+  if (*p != '\"')
+    return (0);
+  p++;
+  loadstr(cat, &p, '\"', 128);
+  SKIP_SPACE(p);
+  loadstr(uid, &p, ' ', 16);
+  SKIP_SPACE(p);
+  if (*p != '\"')
+    return (0);
+  p++;
+  loadstr(name, &p, '\"', 64);
+  SKIP_SPACE(p);
+  loadstr(date, &p, '\n', 16);
+  return (1);
+}
+
+static void hall_engrave(int n, const char *cat)
+{
+  FILE *fp;
+  char buf[256], hcat[128], huid[16], hname[64], hdate[16];
+  char wbuf[256];
+  time_t t;
+  struct tm *lt;
+
+  if (n >= MAX_NTTYS)
+    return;
+  if (cat == nullptr)
+    cat = "";
+  if ((fp = efopen((char *) "phi.hall", (char *) "r")) != nullptr) {
+    while (efgets(buf, sizeof(buf), fp) != nullptr) {
+      if (hall_parse_line(buf, hcat, huid, hname, hdate)
+          && !std::strcmp(hcat, cat) && !std::strcmp(huid, cd[n].uid)) {
+        efclose(fp);
+        dmprintf(n, 0, wbuf, sizeof(wbuf), DMM_HALL_ALREADY, cd[n].name);
+        check_write(n, wbuf);
+        return;
+      }
+    }
+    efclose(fp);
+  }
+  time(&t);
+  lt = localtime(&t);
+  std::snprintf(hdate, sizeof(hdate), "%04d-%02d-%02d",
+                lt->tm_year + 1900, lt->tm_mon + 1, lt->tm_mday);
+  if ((fp = efopen((char *) "phi.hall", (char *) "a")) != nullptr) {
+    std::fprintf(fp, ":H \"%s\" %s \"%s\" %s\n", cat, cd[n].uid, cd[n].name, hdate);
+    efclose(fp);
+  }
+  dmprintf(n, 0, wbuf, sizeof(wbuf), DMM_HALL_ENGRAVED, cd[n].name);
+  check_write(n, wbuf);
+}
+
+static void hall_show(int n, const char *cat)
+{
+  FILE *fp;
+  char buf[256], hcat[128], huid[16], hname[64], hdate[16];
+  char wbuf[256];
+  int cnt = 0;
+
+  if (cat == nullptr)
+    cat = "";
+  dmprintf(n, 0, wbuf, sizeof(wbuf), DMM_HALL_TITLE, cat);
+  check_write(n, wbuf);
+  if ((fp = efopen((char *) "phi.hall", (char *) "r")) != nullptr) {
+    while (efgets(buf, sizeof(buf), fp) != nullptr) {
+      if (hall_parse_line(buf, hcat, huid, hname, hdate)
+          && !std::strcmp(hcat, cat)) {
+        cnt++;
+        dmprintf(n, 0, wbuf, sizeof(wbuf), DMM_HALL_NAME, cnt, hname, hdate);
+        check_write(n, wbuf);
+      }
+    }
+    efclose(fp);
+  }
+  if (cnt == 0) {
+    dmprintf(n, 0, wbuf, sizeof(wbuf), DMM_HALL_EMPTY);
+    check_write(n, wbuf);
+  } else {
+    dmprintf(n, 0, wbuf, sizeof(wbuf), DMM_HALL_END, cnt);
+    check_write(n, wbuf);
+  }
+}
+
 int   load_switch(int n, int sx, int sy, int f)
 {
   ItemData id;
@@ -6427,6 +6528,12 @@ int   load_switch(int n, int sx, int sy, int f)
     case 90: /* add for recording log 20020112 */
       dmprintf(n, 0, wbuf,sizeof(wbuf),swtd[cn][lpt++].dp);
       log_print(wbuf);
+      break;
+    case 60:    /* 刻印スイッチ (PHIDM NEO extension) */
+      hall_engrave(n, swtd[cn][lpt++].dp);
+      break;
+    case 61:    /* 刻印表示スイッチ (PHIDM NEO extension) */
+      hall_show(n, swtd[cn][lpt++].dp);
       break;
     case 16:         /* 特殊範囲メッセージ added by Qajin 20000102 */
       switch (swtd[cn][lpt++].di) {
@@ -7886,6 +7993,8 @@ void   str_gc()
   case 22: /* オブジェクト非表示 */
   case 25: /* show 20010621 */
   case 33:  /* ADD スイッチデータ追加 2005/12/29 Savarl.F */
+  case 60:  /* 刻印スイッチ (PHIDM NEO extension) */
+  case 61:  /* 刻印表示スイッチ (PHIDM NEO extension) */
     if ((dp = swtd[i][j++].dp) != nullptr) {
       findstrdata(dp)->c = -1;
     }
