@@ -105,6 +105,9 @@ int hp_dmg(int n, int p, int f)
 {
   int    c;
 
+  if (p < 0 && n < MAX_NTTYS && TCN_AEGIS(n)) /* add for Aegis of Athena */
+    p = 0;
+
   cd[n].hp += p;
   if (cd[n].hp < 0)
     cd[n].hp = 0;

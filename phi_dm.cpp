@@ -478,6 +478,8 @@ int    main(int argc, char **argv)
 		if (i < MAX_NCN && cd[n].cn[i] == 0) /* add 20000725 */
 		  cd[n].ncn[i] = 1;
 	  }
+		if (CN_AEGIS(n) > 0 && CN_AEGIS(n) < 0x10000) /* add for Aegis of Athena */
+		  CN_AEGIS(n)--;
 		CN_IDLE(n)++;
 		if (CN_IDLE(n) >= 60) {
 		  CN_GASIFY(n) = 60; /* change for checkable idle 20010222 change 20020822 */
@@ -3337,6 +3339,84 @@ void   input_analyze(int n, char *rbuf)
 	  dmcheck_write(n, DMM_MALOR_NO);
 	cd[n].st = ST_COMMAND;
 	CN_GASIFY(n) = 0;
+	break;
+  case ST_REMOTE_LOCK:
+  case ST_REMOTE_UNLOCK:
+  case ST_REMOTE_BOARDS:
+  case ST_REMOTE_ERASE:
+	{
+	  int rx = -1, ry = -1, rop = cd[n].st;
+	  cd[n].st = ST_COMMAND;
+	  CN_GASIFY(n) = 0;
+	  if (std::sscanf(rbuf, "%i %i", &rx, &ry) != 2
+	      || rx < 0 || rx >= MAX_X || ry < 0 || ry >= MAX_Y) {
+	    dmcheck_write(n, DMM_REMOTE_NO_POS);
+	    break;
+	  }
+	  if (rop == ST_REMOTE_LOCK) {
+	    if ((fld[map[ry][rx].area].flag) & FF_LOCK) {
+	      dmcheck_write(n, DMM_LOCK_NO);
+	    } else if ((map[ry][rx].tip & TMASK) != T_BOX
+		&& (map[ry][rx].tip & TMASK) != T_GATE
+		&& (map[ry][rx].tip & TMASK) != T_SGATE
+		&& (map[ry][rx].tip & TMASK) != T_MSGATE) {
+	      dmcheck_write(n, DMM_LOCK_NO);
+	    } else if (save_sd(n, rx, ry, 'L', nullptr, 0) < 0)
+	      dmcheck_write(n, DMM_LOCK);
+	    else
+	      dmcheck_write(n, DMM_LOCK_FAIL);
+	  } else if (rop == ST_REMOTE_UNLOCK) {
+	    if ((map[ry][rx].tip & TMASK) != T_LBOX
+		&& (map[ry][rx].tip & TMASK) != T_LGATE
+		&& (map[ry][rx].tip & TMASK) != T_LSGATE
+		&& (map[ry][rx].tip & TMASK) != T_LMSGATE) {
+	      dmcheck_write(n, DMM_UNLOCK_NO);
+	    } else if (save_sd(n, rx, ry, 'L', nullptr, 1) < 0)
+	      dmcheck_write(n, DMM_UNLOCK);
+	    else
+	      dmcheck_write(n, DMM_UNLOCK_FAIL);
+	  } else if (rop == ST_REMOTE_BOARDS) {
+	    j = 0;
+	    for (i = 1; i <= 10; i++) {
+	      if (load_sd(n, rx, ry, 'B', i))
+		j++;
+	      else
+		break;
+	    }
+	    for (i = 1; i <= 10; i++) {
+	      if (load_sd(n, rx, ry, 'T', i))
+		j++;
+	      else
+		break;
+	    }
+	    if (!j)
+	      dmcheck_write(n, DMM_REMOTE_BOARD_NO);
+	  } else {
+	    if (save_sd(n, rx, ry, 'B', nullptr, 1) < 0
+		|| save_sd(n, rx, ry, 'T', nullptr, 1) < 0)
+	      dmcheck_write(n, DMM_REMOTE_ERASE);
+	    else
+	      dmcheck_write(n, DMM_REMOTE_BOARD_NO);
+	  }
+	}
+	break;
+  case ST_THUNDER:
+	{
+	  int tm = 0;
+	  cd[n].st = ST_COMMAND;
+	  CN_GASIFY(n) = 0;
+	  if (std::sscanf(rbuf, "%i", &tm) == 1 && tm >= 1 && tm < MAX_NTTYS
+	      && tm != n && cd[tm].type) {
+	    std::array<char, 32> tname;
+	    std::snprintf(tname.data(), tname.size(), "%s", cd[tm].name);
+	    std::snprintf(wbuf.data(), wbuf.size(), "thunder  : %s -> %s \n", cd[n].name, tname.data());
+	    log_print(wbuf.data());
+	    (void) hp_dmg(tm, -99999999, 1);
+	    dmprintf(n, 0, wbuf.data(), wbuf.size(), DMM_THUNDER, tname.data());
+	    check_write(n, wbuf.data());
+	  } else
+	    dmcheck_write(n, DMM_THUNDER_NO);
+	}
 	break;
 /* added by Qajin 19991021 */
   case ST_BAN:

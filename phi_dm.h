@@ -210,6 +210,11 @@
 #define ST_MENU 0x81  /* added by Qajin 20041212 */
 #define ST_JOIN_INVITE 0x90  /* add 20020823 */
 #define ST_JOIN_ANSWER 0x91  /* add 20020823 */
+#define ST_REMOTE_LOCK 0x6a /* add for Remote lock */
+#define ST_REMOTE_UNLOCK 0x6b /* add for Remote unlock */
+#define ST_REMOTE_BOARDS 0x6c /* add for Remote boards */
+#define ST_REMOTE_ERASE 0x6d /* add for Remote erase */
+#define ST_THUNDER 0x6e /* add for Thunder of Zeus */
 
 /* 注意: a-f の数を使うと今のところ phiwin でエラーが発生します。*/
 
@@ -540,6 +545,7 @@
 #define CNN_RAISEDEAD  19
 #define CNN_IDLE  20 /* change 20020822 */
 #define CNN_LAG 21
+#define CNN_AEGIS 22 /* add for Aegis of Athena */
 
 /* Condition */
 
@@ -568,10 +574,12 @@
 #define CN_IDLE(n)  (cd[n].cn[CNN_IDLE]) /* add 20020822 */
 #define CN_GASIFY(n)  (cd[n].gasify) /* change 20020822 */
 #define CN_LAG(n) (cd[n].cn[CNN_LAG])
+#define CN_AEGIS(n) (cd[n].cn[CNN_AEGIS]) /* add for Aegis of Athena */
+#define TCN_AEGIS(n) ( CN_AEGIS(n) )
 #define CN_ALAG(n)  (cd[n].et)
 #define CN_DLAG(n)  (cd[n].ec)  /* add for lag attack 20020115 */
 
-#define MAX_CN    22  /* cn の個数 */
+#define MAX_CN    23  /* cn の個数 */
 
 /* add 20000707 */
 /* xN Condition */

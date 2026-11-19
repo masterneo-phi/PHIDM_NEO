@@ -104,6 +104,64 @@ void pow_mg_msg(int n, MagicData md)
     dmcheck_write(n, DMM_HARMONY_MINUS);
 }
 
+static void master_search(int n)
+/* phi.sd の最新 100 件 (看板・ロック) を表示する。phi.sd は新しい記録が
+   先頭に書かれるので、先頭から数える。 */
+{
+  FILE *fp;
+  std::array<char, 256> buf;
+  std::array<char, 256> out;
+  std::array<char, 32> nm;
+  std::array<char, 25> tstr;
+  char *p;
+  int x, y, cnt, i;
+  time_t abstime;
+  struct tm *sttime;
+
+  if ((fp = efopen("phi.sd", "rb")) == nullptr) {
+    dmcheck_write(n, DMM_MSEARCH_NONE);
+    return;
+  }
+  cnt = 0;
+  while (cnt < 100) {
+    if (efgets(buf.data(), 255, fp) == nullptr)
+      break;
+    if (*buf.data() != ':')
+      break;
+    if (buf[1] != 'B' && buf[1] != 'T' && buf[1] != 'L')
+      continue;
+    p = buf.data() + 2;
+    x = decimal_load(3, &p);
+    y = decimal_load(3, &p);
+    if (buf[1] == 'L') {
+      if (std::strlen(buf.data()) < 67)
+        continue;
+      std::strncpy(nm.data(), buf.data() + 27, 31);
+      nm[31] = 0;
+      for (i = 30; i >= 0 && fisspace(nm[i]); nm[i--] = 0)
+        ;
+      abstime = (time_t) std::strtol(buf.data() + 59, nullptr, 16);
+      sttime = std::localtime(&abstime);
+      std::strftime(tstr.data(), tstr.size(), "%Y/%m/%d %H:%M", sttime);
+      dmprintf(n, 0, out.data(), out.size(), DMM_MSEARCH_L, x, y, nm.data(), tstr.data());
+    } else {
+      if (std::strlen(buf.data()) <= 36)
+        continue;
+      p = buf.data() + 36;
+      for (i = 0; p[i]; i++)
+        if (p[i] == '\n' || p[i] == '\r')
+          p[i] = 0;
+      dmprintf(n, 0, out.data(), out.size(), DMM_MSEARCH_B, x, y, p);
+    }
+    check_write(n, out.data());
+    cnt++;
+  }
+  efclose(fp);
+  dmprintf(n, 0, out.data(), out.size(), DMM_MSEARCH_END, cnt);
+  check_write(n, out.data());
+  return;
+}
+
 void spell_analyze(int n, char *spell)
 {
   /* buf は CPYSTR/CATSTR (sizeof(d) を使うマクロ) で使うため C 配列のまま */
@@ -1351,6 +1409,44 @@ void spell_analyze(int n, char *spell)
       CN_PASSWALL(n) = mdp;
       dmprintf(n, 0, buf, sizeof(buf),DMM_PASSWALL, mdp);
       check_write(n, buf);
+      return;
+    } else if (!std::strcmp(spell, "Aegis of Athena") && (i=have_authority(n,MS_TRANS,0,0))) {
+      CN_AEGIS(n) = mgstrlen((char *)"Pass wall") + 4; /* 持続時間は Pass wall と同一 */
+      dmprintf(n, 0, buf, sizeof(buf),DMM_AEGIS, CN_AEGIS(n));
+      check_write(n, buf);
+      return;
+    } else if (!std::strcmp(spell, "Remote lock") && (i=have_authority(n,MS_UNLOCK,0,0))) {
+      dmcheck_write(n, DMM_REMOTE_INPUT);
+      cd[n].st = ST_REMOTE_LOCK;
+      CN_GASIFY(n) = 0x10000;
+      check_write(n, "#s-edit\n");
+      return;
+    } else if (!std::strcmp(spell, "Remote unlock") && (i=have_authority(n,MS_UNLOCK,0,0))) {
+      dmcheck_write(n, DMM_REMOTE_INPUT);
+      cd[n].st = ST_REMOTE_UNLOCK;
+      CN_GASIFY(n) = 0x10000;
+      check_write(n, "#s-edit\n");
+      return;
+    } else if (!std::strcmp(spell, "Remote boards") && (i=have_authority(n,MS_LOAD,0,0))) {
+      dmcheck_write(n, DMM_REMOTE_INPUT);
+      cd[n].st = ST_REMOTE_BOARDS;
+      CN_GASIFY(n) = 0x10000;
+      check_write(n, "#s-edit\n");
+      return;
+    } else if (!std::strcmp(spell, "Remote erase") && (i=have_authority(n,MS_DELETE,0,0))) {
+      dmcheck_write(n, DMM_REMOTE_INPUT);
+      cd[n].st = ST_REMOTE_ERASE;
+      CN_GASIFY(n) = 0x10000;
+      check_write(n, "#s-edit\n");
+      return;
+    } else if (!std::strcmp(spell, "Thunder of Zeus") && (i=have_authority(n,MS_KICK,0,0))) {
+      dmcheck_write(n, DMM_THUNDER_INPUT);
+      cd[n].st = ST_THUNDER;
+      CN_GASIFY(n) = 0x10000;
+      check_write(n, "#s-edit\n");
+      return;
+    } else if (!std::strcmp(spell, "Master search") && (i=have_authority(n,MS_LOAD,0,0))) {
+      master_search(n);
       return;
     } else if (!std::strcmp(spell, "Save id") && (i=have_authority(n,MS_LOAD,0,0))) {
       dmprintf(n, 0, buf, sizeof(buf), DMM_SAVEID);
