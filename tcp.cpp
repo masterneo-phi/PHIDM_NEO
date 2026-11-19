@@ -23,6 +23,13 @@
 
 #include <array>
 #include <chrono>
+/* GCC 4.6 の libstdc++ では C++11 の単調時計が旧名 monotonic_clock
+ * (標準化の過程で steady_clock に改名された。4.7 以降は steady_clock)。 */
+#if defined(__GNUC__) && __GNUC__ == 4 && __GNUC_MINOR__ < 7
+using SteadyClock = std::chrono::monotonic_clock;
+#else
+using SteadyClock = std::chrono::steady_clock;
+#endif
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -274,9 +281,9 @@ void drop_write_timed_out() {
 
 /* select() に渡す残り時間を timeval にする。
  * 0 未満は 0 に切り詰める (即時復帰のポーリングになる)。 */
-timeval to_timeval(std::chrono::steady_clock::duration d) {
+timeval to_timeval(SteadyClock::duration d) {
   using namespace std::chrono;
-  if (d < steady_clock::duration::zero()) d = steady_clock::duration::zero();
+  if (d < SteadyClock::duration::zero()) d = SteadyClock::duration::zero();
   const auto sec = duration_cast<seconds>(d);
   const auto usec = duration_cast<microseconds>(d - sec);
   timeval tv{};
@@ -543,14 +550,14 @@ int new_connect_check(void){
 void connect_check(int t){ /* バッファの書き込み／読み込み */
   /* 終了期限まで select() を繰り返す。期限の判定には単調時計を使い、
    * 壁時計のずれに影響されないようにしている (従来は gettimeofday)。 */
-  const auto deadline = std::chrono::steady_clock::now()
+  const auto deadline = SteadyClock::now()
     + std::chrono::milliseconds(t);
   fd_set rfds, wfds, efds;
   do {
     FD_ZERO(&rfds); FD_ZERO(&wfds); FD_ZERO(&efds);
     /* vv change for anti cpu exhausted 20050802 */
     if (collect_fd_sets(&rfds, &wfds, &efds) && IS_VALID_SOCKET(listen_fd)) {
-      timeval timeout = to_timeval(deadline - std::chrono::steady_clock::now());
+      timeval timeout = to_timeval(deadline - SteadyClock::now());
       if (select(NTTYS, &rfds, &wfds, &efds, &timeout) > 0) {
         close_exceptional(efds); fill_readable(rfds); flush_writable(wfds);
       }
@@ -559,7 +566,7 @@ void connect_check(int t){ /* バッファの書き込み／読み込み */
       usleep(1);
     }
     /* ^^ end */
-  } while (std::chrono::steady_clock::now() < deadline);
+  } while (SteadyClock::now() < deadline);
   drop_write_timed_out();
 }
 
@@ -569,17 +576,17 @@ int nfflush(int n, int t){
   Client &c = clients[n];
   if (!c.reference || !c.connecting) return 0;
   if (c.wbuf_len == 0) return 1;
-  const auto deadline = std::chrono::steady_clock::now()
+  const auto deadline = SteadyClock::now()
     + std::chrono::milliseconds(t);
   fd_set wfds;
   do {
     FD_ZERO(&wfds); FD_SET(c.fd, &wfds);
-    timeval timeout = to_timeval(deadline - std::chrono::steady_clock::now());
+    timeval timeout = to_timeval(deadline - SteadyClock::now());
     if (select(NTTYS, NULL, &wfds, NULL, &timeout) <= 0) break;
     flush_writable(wfds);
     if (c.wbuf_len == 0) return 1;
     if (!c.connecting) break;
-  } while (std::chrono::steady_clock::now() < deadline);
+  } while (SteadyClock::now() < deadline);
   return 0;
 }
 
