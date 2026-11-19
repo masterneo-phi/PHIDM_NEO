@@ -87,7 +87,7 @@ int show_file(int n, char *p)
         return 0;
     }
 
-    bulletin_board_dm(n, path.data());
+    bulletin_board_dm(n, &path[0]);
     return 1;
 }
 
