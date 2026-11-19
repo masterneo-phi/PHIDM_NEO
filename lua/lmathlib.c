@@ -173,7 +173,9 @@ static int math_log (lua_State *L) {
     res = l_mathop(log)(x);
   else {
     lua_Number base = luaL_checknumber(L, 2);
-#if !defined(LUA_USE_C89)
+/* PHIDM_NEO: FreeBSD 9 and earlier libm has no log2(); use the
+   log/log(2) fallback there (math.log with base 2). */
+#if !defined(LUA_USE_C89) && !(defined(__FreeBSD__) && __FreeBSD__ < 10)
     if (base == l_mathop(2.0))
       res = l_mathop(log2)(x);
     else
