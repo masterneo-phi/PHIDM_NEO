@@ -659,6 +659,10 @@ void   load_mesg(int n)
           l = msgd[i].data.flag;
           change_flag(n,l,FLAG_ON,1);
           load_switch(n,cd[n].x,cd[n].y,10);
+          break;
+      case 3:                         /* 3 : 拡張"z" FX (PHIDM NEO extension) */
+          fx_send_payload(n, msgd[i].data.mesg);
+          break;
       default:
           break;
         }
@@ -3551,6 +3555,7 @@ void   free_outgatedata()
 
 void   load_td_swt()
 {
+  fx_clear_image_cache();  /* FX 画像キャッシュは Load swt で破棄 (PHIDM NEO extension) */
   FILE  *fp;
   std::array<char, 256> buf;
   /* buf2 は CPYSTR の宛先のため C 配列のまま */
@@ -3692,7 +3697,7 @@ void   load_td_swt()
       msgd[rmdn].orgn = decimal_load(4, &p); /* add for used boid number bug 20041117 */
       msgd[rmdn].next = decimal_load(4, &p);
       msgd[rmdn].wait = decimal_load(4, &p);
-      while ((*p != '\0') && (*p != '\"') && (*p != 'x') && (*p != 'f')) /* psp3 */ /* add flag 20000522 */
+      while ((*p != '\0') && (*p != '\"') && (*p != 'x') && (*p != 'f') && (*p != 'z')) /* psp3 */ /* add flag 20000522 */ /* z: FX extension (PHIDM NEO) */
   p++;
       if (*p == '\"') {
   p++;
@@ -3721,6 +3726,17 @@ void   load_td_swt()
     p++;
     msgd[rmdn].type = 2;                     /* 拡張フラグ2 */
     msgd[rmdn].data.flag = flagno_load(&p);   /* :A MMMM NNNN TTTT f FF */
+  }
+  else if (*p == 'z') {                         /* :A拡張 FX (PHIDM NEO extension) */
+    p++;
+    SKIP_SPACE(p);
+    msgd[rmdn].type = 3;                     /* 拡張フラグ3: 残り全部が FX ペイロード */
+    CPYSTR(buf2, p);
+    l = std::strlen(buf2);
+    while (l > 0 && (buf2[l - 1] == '\n' || buf2[l - 1] == '\r'
+                     || buf2[l - 1] == ' ' || buf2[l - 1] == '\t'))
+      buf2[--l] = '\0';
+    msgd[rmdn].data.mesg = findstr(buf2);
   }
   else {
   /* ここに他の拡張の認識を記述可能 */
@@ -4124,6 +4140,12 @@ void   load_td_swt()
       case 60:    /* 刻印スイッチ (PHIDM NEO extension) */
       case 61:    /* 刻印表示スイッチ (PHIDM NEO extension) */
       case 62:    /* プログラム実行スイッチ (PHIDM NEO extension) */
+      case 63:    /* FX スイッチ (PHIDM NEO extension) */
+      case 64:    /* FX スイッチ (PHIDM NEO extension) */
+      case 65:    /* FX スイッチ (PHIDM NEO extension) */
+      case 66:    /* FX スイッチ (PHIDM NEO extension) */
+      case 67:    /* FX スイッチ (PHIDM NEO extension) */
+      case 68:    /* FX スイッチ (PHIDM NEO extension) */
   SKIP_SPACE(p);
   if (*p == '\"') {
     p++;
@@ -6009,6 +6031,348 @@ static int hall_parse_line(char *p, char *cat, char *uid, char *name, char *date
   return (1);
 }
 
+/*----------------------------------
+  DM演出 (FX) 拡張 (PHIDM NEO extension)
+
+  スイッチ動作 63〜68 / :A チェーン type 3 (本文 z) / Lua dm.fx.* の
+  共通送信部。ペイロード (kind から始まる文字列) を "#fx <payload>"
+  行にして、対象キャラが MD_FX を申告している時だけ送る。
+  世界データ由来の文字列を dmprintf の書式として渡すことは絶対に
+  しない (組み立てた行をそのまま check_write する)。
+
+  画像 (kind = img) だけはサーバが phi_graphics/<name>.bmp を引き、
+  FNV-1a 32bit ハッシュを計算して行に挿入する。ファイルは初回要求
+  時に読んでメモリにキャッシュし、Load swt (load_td_swt) のたびに
+  破棄する。転送は #ex-fx get への応答として行う。
+----------------------------------*/
+
+#define FX_IMG_MAX_SIZE 131072  /* 画像ファイル上限 128KB */
+#define FX_IMG_CACHE_MAX 16     /* キャッシュする画像の種類数 */
+#define FX_IMG_CHUNK 720        /* 1行に載せる生バイト数 (base64 で 960 文字) */
+
+typedef struct fximg_t {
+  char   name[16];
+  unsigned char *data;
+  long   size;
+  unsigned long hash;
+} FXImg;
+
+static FXImg fx_img_cache[FX_IMG_CACHE_MAX];
+static int   fx_img_cache_n = 0;
+
+/* FNV-1a 32bit */
+static unsigned long fx_fnv1a(const unsigned char *data, long size)
+{
+  unsigned long h = 2166136261UL;
+  long i;
+
+  for (i = 0; i < size; i++) {
+    h ^= (unsigned long) data[i];
+    h *= 16777619UL;
+  }
+  return (h & 0xffffffffUL);
+}
+
+/* 画像名の検査 (パス区切り等を許さない) */
+static int fx_img_name_ok(const char *name)
+{
+  int i, len;
+
+  if (name == nullptr)
+    return (0);
+  len = (int) std::strlen(name);
+  if (len < 1 || len > 15)
+    return (0);
+  for (i = 0; i < len; i++) {
+    char c = name[i];
+    if (!((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z')
+          || (c >= '0' && c <= '9') || c == '_' || c == '-'))
+      return (0);
+  }
+  return (1);
+}
+
+void fx_clear_image_cache(void)
+{
+  int i;
+
+  for (i = 0; i < fx_img_cache_n; i++) {
+    std::free(fx_img_cache[i].data);
+    fx_img_cache[i].data = nullptr;
+    fx_img_cache[i].name[0] = '\0';
+    fx_img_cache[i].size = 0;
+  }
+  fx_img_cache_n = 0;
+}
+
+/* phi_graphics/<name>.bmp を読んでキャッシュする。無ければ nullptr
+   (理由をログに 1 行残す)。 */
+static FXImg *fx_img_load(const char *name)
+{
+  FILE *fp;
+  char path[64];
+  char logbuf[160];
+  long size;
+  unsigned char *data;
+  int i;
+
+  for (i = 0; i < fx_img_cache_n; i++)
+    if (!std::strcmp(fx_img_cache[i].name, name))
+      return (&fx_img_cache[i]);
+  if (!fx_img_name_ok(name)) {
+    snprintf(logbuf, sizeof(logbuf), "fx       : bad image name: %s",
+             name != nullptr ? name : "(null)");
+    log_print(logbuf);
+    return (nullptr);
+  }
+  snprintf(path, sizeof(path), "phi_graphics/%s.bmp", name);
+  fp = efopen(path, (char *) "rb");
+  if (fp == nullptr) {
+    snprintf(logbuf, sizeof(logbuf), "fx       : image not found: %s", path);
+    log_print(logbuf);
+    return (nullptr);
+  }
+  std::fseek(fp, 0, SEEK_END);
+  size = std::ftell(fp);
+  std::fseek(fp, 0, SEEK_SET);
+  if (size <= 0 || size > FX_IMG_MAX_SIZE) {
+    snprintf(logbuf, sizeof(logbuf),
+             "fx       : image size out of range: %s (%ld bytes)", path, size);
+    log_print(logbuf);
+    efclose(fp);
+    return (nullptr);
+  }
+  data = (unsigned char *) std::malloc((size_t) size);
+  if (data == nullptr
+      || std::fread(data, 1, (size_t) size, fp) != (size_t) size) {
+    if (data != nullptr)
+      std::free(data);
+    efclose(fp);
+    return (nullptr);
+  }
+  efclose(fp);
+  if (fx_img_cache_n >= FX_IMG_CACHE_MAX) {
+    /* 一番古いものを捨てて空ける */
+    std::free(fx_img_cache[0].data);
+    for (i = 1; i < fx_img_cache_n; i++)
+      fx_img_cache[i - 1] = fx_img_cache[i];
+    fx_img_cache_n--;
+  }
+  i = fx_img_cache_n++;
+  CPYSTR(fx_img_cache[i].name, name);
+  fx_img_cache[i].data = data;
+  fx_img_cache[i].size = size;
+  fx_img_cache[i].hash = fx_fnv1a(data, size);
+  return (&fx_img_cache[i]);
+}
+
+/* base64 エンコード (自前実装、外部依存なし) */
+static void fx_base64(const unsigned char *in, long len, char *out)
+{
+  static const char tbl[] =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+  long i;
+  char *o = out;
+
+  for (i = 0; i + 3 <= len; i += 3) {
+    unsigned long v = ((unsigned long) in[i] << 16)
+      | ((unsigned long) in[i + 1] << 8) | (unsigned long) in[i + 2];
+    *o++ = tbl[(v >> 18) & 63];
+    *o++ = tbl[(v >> 12) & 63];
+    *o++ = tbl[(v >> 6) & 63];
+    *o++ = tbl[v & 63];
+  }
+  if (len - i == 1) {
+    unsigned long v = ((unsigned long) in[i] << 16);
+    *o++ = tbl[(v >> 18) & 63];
+    *o++ = tbl[(v >> 12) & 63];
+    *o++ = '=';
+    *o++ = '=';
+  } else if (len - i == 2) {
+    unsigned long v = ((unsigned long) in[i] << 16)
+      | ((unsigned long) in[i + 1] << 8);
+    *o++ = tbl[(v >> 18) & 63];
+    *o++ = tbl[(v >> 12) & 63];
+    *o++ = tbl[(v >> 6) & 63];
+    *o++ = '=';
+  }
+  *o = '\0';
+}
+
+/* "#fx img <where> <name> <hash> <dur>" を送る。送れたら 1。 */
+int fx_send_img(int n, const char *where, const char *name, long dur)
+{
+  FXImg *img;
+  char buf[256];
+
+  if (n < 0 || n >= MAX_NTTYS)
+    return (0);
+  if (!(cd[n].modef & MD_FX))
+    return (0);
+  img = fx_img_load(name);
+  if (img == nullptr)
+    return (0);
+  snprintf(buf, sizeof(buf), "#fx img %s %s %08lx %ld\n",
+           where, img->name, img->hash, dur);
+  check_write(n, buf);
+  return (1);
+}
+
+/* #ex-fx get への応答: 画像データを base64 分割で送る。 */
+void fx_send_image_data(int n, const char *name)
+{
+  FXImg *img;
+  char buf[MAX_MESSAGE_SIZE];
+  char b64[FX_IMG_CHUNK / 3 * 4 + 1];
+  long off;
+  int seq;
+
+  if (n < 0 || n >= MAX_NTTYS)
+    return;
+  if (!(cd[n].modef & MD_FX))
+    return;
+  img = fx_img_load(name);
+  if (img == nullptr)
+    return;
+  snprintf(buf, sizeof(buf), "#fx imgdata %s %ld %08lx\n",
+           img->name, img->size, img->hash);
+  check_write(n, buf);
+  off = 0;
+  seq = 0;
+  while (off < img->size) {
+    long chunk = img->size - off;
+    if (chunk > FX_IMG_CHUNK)
+      chunk = FX_IMG_CHUNK;
+    fx_base64(img->data + off, chunk, b64);
+    snprintf(buf, sizeof(buf), "#fx imgchunk %s %d %s\n",
+             img->name, seq, b64);
+    check_write(n, buf);
+    off += chunk;
+    seq++;
+  }
+  snprintf(buf, sizeof(buf), "#fx imgend %s\n", img->name);
+  check_write(n, buf);
+}
+
+/* ペイロード (kind から始まる文字列) を "#fx ..." 行で送る共通関数。
+   送れたら 1、対象が FX 非対応なら 0。 */
+int fx_send_payload(int n, const char *payload)
+{
+  char buf[MAX_MESSAGE_SIZE];
+
+  if (n < 0 || n >= MAX_NTTYS || payload == nullptr)
+    return (0);
+  if (!(cd[n].modef & MD_FX))
+    return (0);
+  if (!std::strncmp(payload, "img ", 4)) {
+    /* img だけはサーバが hash を付ける (fx_send_img 経由) */
+    char tmp[256];
+    char *p, where[8], name[32];
+    long dur = 0;
+
+    CPYSTR(tmp, payload + 4);
+    p = tmp;
+    loadstr(where, &p, ' ', (int) sizeof(where));
+    SKIP_SPACE(p);
+    loadstr(name, &p, ' ', (int) sizeof(name));
+    SKIP_SPACE(p);
+    dur = std::atol(p);
+    return (fx_send_img(n, where, name, dur));
+  }
+  snprintf(buf, sizeof(buf), "#fx %s\n", payload);
+  check_write(n, buf);
+  return (1);
+}
+
+/* スイッチ動作 63〜68 の実行。引数は引用符文字列 1 つで、中身は
+   対応する #fx 行の引数部と同文。 */
+static void fx_switch_action(int n, int act, const char *arg)
+{
+  char buf[MAX_MESSAGE_SIZE];
+
+  if (arg == nullptr)
+    arg = "";
+  switch (act) {
+  case 63:  /* マップ文字: "text <pos> <size> <dur> <text...>" / "off ..." */
+    if (!std::strncmp(arg, "off ", 4))
+      snprintf(buf, sizeof(buf), "textoff %s", arg + 4);
+    else if (!std::strcmp(arg, "off"))
+      snprintf(buf, sizeof(buf), "textoff all");
+    else
+      CPYSTR(buf, arg); /* arg は "text ..." から始まる (#fx 引数部と同文) */
+    fx_send_payload(n, buf);
+    break;
+  case 64:  /* 暗転: "<level> <dur> <mode>" */
+    snprintf(buf, sizeof(buf), "dark %s", arg);
+    fx_send_payload(n, buf);
+    break;
+  case 65:  /* ワイプ: "<pattern> <on|off>" */
+    snprintf(buf, sizeof(buf), "wipe %s", arg);
+    fx_send_payload(n, buf);
+    break;
+  case 66: {  /* 画像表示: "<M|L> <name> <dur>" (hash はサーバが付ける) */
+    char tmp[256];
+    char *p, where[8], name[32];
+    long dur = 0;
+
+    CPYSTR(tmp, arg);
+    p = tmp;
+    loadstr(where, &p, ' ', (int) sizeof(where));
+    SKIP_SPACE(p);
+    loadstr(name, &p, ' ', (int) sizeof(name));
+    SKIP_SPACE(p);
+    dur = std::atol(p);
+    fx_send_img(n, where, name, dur);
+    break;
+  }
+  case 67:  /* 画面振動: "<amp> <dur>" */
+    snprintf(buf, sizeof(buf), "shake %s", arg);
+    fx_send_payload(n, buf);
+    break;
+  case 68:  /* 放射発光: "<dur>" */
+    snprintf(buf, sizeof(buf), "glow %s", arg);
+    fx_send_payload(n, buf);
+    break;
+  default:
+    break;
+  }
+}
+
+/* 地図 C 行末尾の cn マスク (24 ビット)。#cond と同じ TCN 相当の
+   判定 (cn 本体 + 装備由来 ecn の合算) でビットを立てる。
+   FORCE / REFLEX / IDLE / LAG は対応する TCN が無いので cn 本体。 */
+unsigned int fx_cn_mask(int j)
+{
+  unsigned int mask = 0;
+
+  if (TCN_COAT(j))      mask |= 1u << CNN_COAT;
+  if (TCN_PROTECT(j))   mask |= 1u << CNN_PROTECT;
+  if (TCN_SHELL(j))     mask |= 1u << CNN_SHELL;
+  if (TCN_HASTE(j))     mask |= 1u << CNN_HASTE;
+  if (TCN_ILLUSION(j))  mask |= 1u << CNN_ILLUSION;
+  if (TCN_SPELL(j))     mask |= 1u << CNN_SPELL;
+  if (TCN_REGENE(j))    mask |= 1u << CNN_REGENE;
+  if (CN_FORCE(j))      mask |= 1u << CNN_FORCE;
+  if (CN_REFLEX(j))     mask |= 1u << CNN_REFLEX;
+  if (TCN_MIRROR(j))    mask |= 1u << CNN_MIRROR;
+  if (TCN_VANISH(j))    mask |= 1u << CNN_VANISH;
+  if (TCN_POISON(j))    mask |= 1u << CNN_POISON;
+  if (TCN_PALSY(j))     mask |= 1u << CNN_PALSY;
+  if (TCN_PANIC(j))     mask |= 1u << CNN_PANIC;
+  if (TCN_CONFUSE(j))   mask |= 1u << CNN_CONFUSE;
+  if (TCN_BERSERK(j))   mask |= 1u << CNN_BERSERK;
+  if (TCN_SILENCE(j))   mask |= 1u << CNN_SILENCE;
+  if (TCN_BLIND(j))     mask |= 1u << CNN_BLIND;
+  if (TCN_PASSWALL(j))  mask |= 1u << CNN_PASSWALL;
+  if (TCN_RAISEDEAD(j)) mask |= 1u << CNN_RAISEDEAD;
+  if (CN_IDLE(j))       mask |= 1u << CNN_IDLE;
+  if (CN_LAG(j))        mask |= 1u << CNN_LAG;
+  if (TCN_AEGIS(j))     mask |= 1u << CNN_AEGIS;
+  if (TCN_HAMMER(j))    mask |= 1u << CNN_HAMMER;
+  return (mask);
+}
+
+
 static void hall_engrave(int n, const char *cat)
 {
   FILE *fp;
@@ -6539,6 +6903,24 @@ int   load_switch(int n, int sx, int sy, int f)
       break;
     case 62:    /* プログラム実行スイッチ (PHIDM NEO extension) */
       class_call(n, swtd[cn][lpt++].dp, sx, sy);
+      break;
+    case 63:    /* FX: マップ文字 (PHIDM NEO extension) */
+      fx_switch_action(n, 63, swtd[cn][lpt++].dp);
+      break;
+    case 64:    /* FX: 暗転 (PHIDM NEO extension) */
+      fx_switch_action(n, 64, swtd[cn][lpt++].dp);
+      break;
+    case 65:    /* FX: ワイプ (PHIDM NEO extension) */
+      fx_switch_action(n, 65, swtd[cn][lpt++].dp);
+      break;
+    case 66:    /* FX: 画像表示 (PHIDM NEO extension) */
+      fx_switch_action(n, 66, swtd[cn][lpt++].dp);
+      break;
+    case 67:    /* FX: 画面振動 (PHIDM NEO extension) */
+      fx_switch_action(n, 67, swtd[cn][lpt++].dp);
+      break;
+    case 68:    /* FX: 放射発光 (PHIDM NEO extension) */
+      fx_switch_action(n, 68, swtd[cn][lpt++].dp);
       break;
     case 16:         /* 特殊範囲メッセージ added by Qajin 20000102 */
       switch (swtd[cn][lpt++].di) {
@@ -8001,6 +8383,12 @@ void   str_gc()
   case 60:  /* 刻印スイッチ (PHIDM NEO extension) */
   case 61:  /* 刻印表示スイッチ (PHIDM NEO extension) */
   case 62:  /* プログラム実行スイッチ (PHIDM NEO extension) */
+  case 63:  /* FX スイッチ (PHIDM NEO extension) */
+  case 64:  /* FX スイッチ (PHIDM NEO extension) */
+  case 65:  /* FX スイッチ (PHIDM NEO extension) */
+  case 66:  /* FX スイッチ (PHIDM NEO extension) */
+  case 67:  /* FX スイッチ (PHIDM NEO extension) */
+  case 68:  /* FX スイッチ (PHIDM NEO extension) */
     if ((dp = swtd[i][j++].dp) != nullptr) {
       findstrdata(dp)->c = -1;
     }
@@ -8042,7 +8430,7 @@ void   str_gc()
 
   /* add for quick message search 20030501 */
   for(i=0;i<msgn;i++) {
-    if(msgd[i].type == 0) {
+    if(msgd[i].type == 0 || msgd[i].type == 3) {
       if ((dp = msgd[i].data.mesg) != nullptr) {
         findstrdata(dp)->c = -1;
       }

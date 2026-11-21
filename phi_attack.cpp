@@ -43,7 +43,28 @@ int friend_attack;
 
 } // namespace
 
-static void attack_line(int n, int tx, int ty, int v, int w, int spear, int *asf)
+/* 1 回の attack_other で同じ相手を二度攻撃しないための入口。
+   槍の 2 マス先・複数方向の武器・2x2 の大きな敵の前縁など、攻撃セルが
+   重なると同じ大きな敵が複数のセルに現れる (魔法側の big_already と
+   同じ対策)。j == n (大きな敵が自分の体のあるセルを攻撃方向に含む
+   場合) もここで弾く */
+static int attack_once(int n, int j, int *hit_list, int *nhit, int *asf)
+{
+  int i;
+
+  if (j < 0 || j == n)
+    return (0);
+  for (i = 0; i < *nhit; i++)
+    if (hit_list[i] == j)
+      return (0);
+  if (*nhit < 32)
+    hit_list[(*nhit)++] = j;
+  attack_to(n, j);
+  *asf = 1;
+  return (1);
+}
+
+static void attack_line(int n, int tx, int ty, int v, int w, int spear, int *asf, int *hit_list, int *nhit)
 /* (tx,ty) のマスのキャラ全員を攻撃する。槍ならバリアのない限り
    その1マス先 (v,w 方向) も攻撃する */
 {
@@ -58,8 +79,7 @@ static void attack_line(int n, int tx, int ty, int v, int w, int spear, int *asf
       continue;
     if (j == n)
       continue;
-    attack_to(n, j);
-    *asf = 1;
+    attack_once(n, j, hit_list, nhit, asf);
   }
 #ifndef OLDWEAPON
   if (spear && !(pmap->tip & T_SPEARBARRIER)) {
@@ -73,8 +93,7 @@ static void attack_line(int n, int tx, int ty, int v, int w, int spear, int *asf
         continue;
       if (j == n)
         continue;
-      attack_to(n, j);
-      *asf = 1;
+      attack_once(n, j, hit_list, nhit, asf);
     }
   }
 #endif
@@ -89,6 +108,7 @@ void   attack_other(int n)
   int    x,y,v,w;
 
   asf = 0;      /* 攻撃成功？ */
+  int hit_list[32]; int nhit = 0;  /* 同じ相手への二重攻撃防止 */
 
   if (cd[n].weq == nullptr)
     tp = 0x0000;
@@ -153,15 +173,14 @@ void   attack_other(int n)
 	  ty = y + BIG_OFF[ci][1] + w;
 	  if (tx >= x && tx <= x + 1 && ty >= y && ty <= y + 1)
 		continue;   /* 体内に戻る方向は前縁ではない */
-	  attack_line(n, tx, ty, v, w, spear, &asf);
+	  attack_line(n, tx, ty, v, w, spear, &asf, hit_list, &nhit);
 	}
   } else if (tp & WD_FORE) {
 	pmap = &(map[y+w][x+v]);
     for (i = 0; i < MAX_CHRS_INONE; i++) {
       if ((j = pmap->chr[i] - 1) < 0)
   continue;
-      attack_to(n, j);
-      asf = 1;
+      attack_once(n, j, hit_list, &nhit, &asf);
     }
 #ifndef OLDWEAPON
     /* add for long range spear 20000518 */
@@ -171,8 +190,7 @@ void   attack_other(int n)
     for (i = 0; i < MAX_CHRS_INONE; i++) {
       if ((j = pmap->chr[i] - 1) < 0)
           continue;
-        attack_to(n, j);
-        asf = 1;
+        attack_once(n, j, hit_list, &nhit, &asf);
       }
     }
 #endif
@@ -182,8 +200,7 @@ void   attack_other(int n)
     for (i = 0; i < MAX_CHRS_INONE; i++) {
       if ((j = pmap->chr[i] - 1) < 0)
   continue;
-      attack_to(n, j);
-      asf = 1;
+      attack_once(n, j, hit_list, &nhit, &asf);
     }
 #ifndef OLDWEAPON
     /* add for long range spear 20000518 */
@@ -193,8 +210,7 @@ void   attack_other(int n)
       for (i = 0; i < MAX_CHRS_INONE; i++) {
         if ((j = pmap->chr[i] - 1) < 0)
           continue;
-        attack_to(n, j);
-        asf = 1;
+        attack_once(n, j, hit_list, &nhit, &asf);
       }
     }
 #endif
@@ -204,8 +220,7 @@ void   attack_other(int n)
     for (i = 0; i < MAX_CHRS_INONE; i++) {
       if ((j = pmap->chr[i] - 1) < 0)
   continue;
-      attack_to(n, j);
-      asf = 1;
+      attack_once(n, j, hit_list, &nhit, &asf);
     }
 #ifndef OLDWEAPON
     /* add for long range spear 20000518 */
@@ -215,8 +230,7 @@ void   attack_other(int n)
     for (i = 0; i < MAX_CHRS_INONE; i++) {
       if ((j = pmap->chr[i] - 1) < 0)
           continue;
-        attack_to(n, j);
-        asf = 1;
+        attack_once(n, j, hit_list, &nhit, &asf);
       }
     }
 #endif
@@ -226,8 +240,7 @@ void   attack_other(int n)
     for (i = 0; i < MAX_CHRS_INONE; i++) {
       if ((j = pmap->chr[i] - 1) < 0)
   continue;
-      attack_to(n, j);
-      asf = 1;
+      attack_once(n, j, hit_list, &nhit, &asf);
     }
 #ifndef OLDWEAPON
     /* add for long range spear 20000518 */
@@ -237,8 +250,7 @@ void   attack_other(int n)
     for (i = 0; i < MAX_CHRS_INONE; i++) {
       if ((j = pmap->chr[i] - 1) < 0)
           continue;
-        attack_to(n, j);
-        asf = 1;
+        attack_once(n, j, hit_list, &nhit, &asf);
       }
     }
 #endif

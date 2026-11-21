@@ -129,6 +129,13 @@ void   put_gaten(int, int);
 void   put_gate(int);
 void   send_down();
 int   load_switch(int, int, int, int);
+
+/* DM演出 (FX) 拡張 (PHIDM NEO extension, phi_data.cpp) */
+int   fx_send_payload(int, const char *);
+int   fx_send_img(int, const char *, const char *, long);
+void  fx_send_image_data(int, const char *);
+void  fx_clear_image_cache(void);
+unsigned int fx_cn_mask(int);
 void   change_flag(int, int, int, int);
 int   load_sd(int, int, int, int, int);
 int    save_sd(int, int, int, int, char *, int);

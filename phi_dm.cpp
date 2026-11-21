@@ -2310,9 +2310,11 @@ void   move_chr(int n, int sx, int sy, int ex, int ey, int msg)
 	k = 0;
 	for (j = 0; j < MAX_CHRS_INONE; j++) {
 	  i = map[ey][ex].chr[j] - 1;
-	  if (i >= 0)
+	  if (i >= 0 && i != n)
 		k++;
-	  if (sg_check(i) || chr_big(i)) {
+	  /* 大きな敵が東・南へ動くとき、移動先は自らの体の一部。
+	     自己占有は数えず、塞がない (上のフットプリント検証と同じ扱い) */
+	  if (i != n && (sg_check(i) || chr_big(i))) {
 		cng = 1;
 		ex = sx;
 		ey = sy;

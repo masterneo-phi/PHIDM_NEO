@@ -1546,7 +1546,7 @@ int    move_check(int n, int x, int y)
   k=0;
   for (j = 0; j < MAX_CHRS_INONE; j++) {
     i = map[y][x].chr[j] - 1;
-    if (i >= 0) {
+    if (i >= 0 && i != n) {
       if (sg_check(i))
         return(0);
       k++;

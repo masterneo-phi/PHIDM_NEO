@@ -5,7 +5,8 @@
  *
  * func_analyze_ex() は接続中のクライアントからの #ex-map /
  * #ex-switch を処理し、地図の形式 (57/40・solid/turn) と
- * 鷹の目表示の切り替えを行う。ex_notice() は土地・エリア名の
+ * 鷹の目表示の切り替えを行う。DM 演出 (FX) の能力申告
+ * (#ex-switch fx=1) と画像要求 (#ex-fx get) もここで受ける。ex_notice() は土地・エリア名の
  * 通知、ex_version_dm() はサーババージョンの通知。
  * ex_register() / ex_adduser_v52() / ex_adduser_v52_finish()
  * は #ex-register による新規登録の手順 (start → プロパティ行
@@ -138,7 +139,24 @@ int func_analyze_ex(int n, char *p)
                     check_write(n, "#ex-switch eagleeye=text\n");
                 }
                 /* form でも text でもなければ何もしない。 */
+            } else if (std::strcmp(property.data(), "fx") == 0) {
+                if (std::strcmp(value.data(), "1") == 0) {
+                    cd[n].modef |= MD_FX;
+                    check_write(n, "#ex-switch fx=1\n");
+                }
+                /* 1 でなければ何もしない。 */
             }
+        }
+    } else if (std::strcmp(protocol.data(), "#ex-fx") == 0) {
+        /* #ex-fx get <name>: FX 画像データの要求への応答
+         * (PHIDM NEO extension)。 */
+        std::array<char, 32> sub{};
+        std::array<char, 32> name{};
+        loadstr(sub.data(), &p, ' ', static_cast<int>(sub.size()));
+        SKIP_SPACE(p);
+        if (std::strcmp(sub.data(), "get") == 0) {
+            loadstr(name.data(), &p, ' ', static_cast<int>(name.size()));
+            fx_send_image_data(n, name.data());
         }
     }
     return 0;

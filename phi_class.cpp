@@ -23,6 +23,11 @@
  *   dm.log(text)            write to phi.log
  *   dm.vars                 plain table: world-shared variables,
  *                           kept in memory only (reset by Load class)
+ *   dm.fx.text(pos, size, dur, text) / dm.fx.textoff(pos) /
+ *   dm.fx.dark(level, dur, mode) / dm.fx.wipe(pattern, dir) /
+ *   dm.fx.img(where, name, dur) / dm.fx.shake(amp, dur) /
+ *   dm.fx.glow(dur)         DM FX lines; each returns whether the
+ *                           player declared FX support (MD_FX)
  * The program function receives one argument: a context table
  *   {player=<index>, name=<name>, x=<x>, y=<y>, sx=<switch x>,
  *    sy=<switch y>}
@@ -44,6 +49,9 @@ int save_id(int n, int in, int f);
 int match_item(ItemData id1, ItemData id2);
 int fsps(int ps, int v, int mx);
 unsigned short set_dd(char *p);
+/* DM FX senders (PHIDM NEO extension) */
+int fx_send_payload(int n, const char *payload);
+int fx_send_img(int n, const char *where, const char *name, long dur);
 extern CHROData *ed_o;
 extern int enmax;
 
@@ -354,6 +362,119 @@ static int l_print(lua_State *L)
   return 0;
 }
 
+/* ---------------- dm.fx.* API (DM FX, PHIDM NEO extension) ----------------
+ * Each function sends one #fx line to the player who fired the switch
+ * through the shared sender in phi_data.cpp, and returns whether that
+ * player declared FX support (MD_FX). */
+
+static int l_fx_text(lua_State *L)
+{
+  const char *pos = luaL_checkstring(L, 1);
+  long size = (long) luaL_checkinteger(L, 2);
+  long dur = (long) luaL_checkinteger(L, 3);
+  const char *text = luaL_checkstring(L, 4);
+  char buf[1024];
+  int ok = 0;
+  if (cls_cur >= 0) {
+    snprintf(buf, sizeof(buf), "text %s %ld %ld %s", pos, size, dur, text);
+    ok = fx_send_payload(cls_cur, buf);
+  }
+  lua_pushboolean(L, ok);
+  return 1;
+}
+
+static int l_fx_textoff(lua_State *L)
+{
+  const char *pos = luaL_checkstring(L, 1);
+  char buf[256];
+  int ok = 0;
+  if (cls_cur >= 0) {
+    snprintf(buf, sizeof(buf), "textoff %s", pos);
+    ok = fx_send_payload(cls_cur, buf);
+  }
+  lua_pushboolean(L, ok);
+  return 1;
+}
+
+static int l_fx_dark(lua_State *L)
+{
+  long level = (long) luaL_checkinteger(L, 1);
+  long dur = (long) luaL_checkinteger(L, 2);
+  long mode = (long) luaL_checkinteger(L, 3);
+  char buf[256];
+  int ok = 0;
+  if (cls_cur >= 0) {
+    snprintf(buf, sizeof(buf), "dark %ld %ld %ld", level, dur, mode);
+    ok = fx_send_payload(cls_cur, buf);
+  }
+  lua_pushboolean(L, ok);
+  return 1;
+}
+
+static int l_fx_wipe(lua_State *L)
+{
+  const char *pattern = luaL_checkstring(L, 1);
+  const char *dir = luaL_checkstring(L, 2);
+  char buf[256];
+  int ok = 0;
+  if (cls_cur >= 0) {
+    snprintf(buf, sizeof(buf), "wipe %s %s", pattern, dir);
+    ok = fx_send_payload(cls_cur, buf);
+  }
+  lua_pushboolean(L, ok);
+  return 1;
+}
+
+static int l_fx_img(lua_State *L)
+{
+  const char *where = luaL_checkstring(L, 1);
+  const char *name = luaL_checkstring(L, 2);
+  long dur = (long) luaL_checkinteger(L, 3);
+  int ok = 0;
+  if (cls_cur >= 0)
+    ok = fx_send_img(cls_cur, where, name, dur);
+  lua_pushboolean(L, ok);
+  return 1;
+}
+
+static int l_fx_shake(lua_State *L)
+{
+  long amp = (long) luaL_checkinteger(L, 1);
+  long dur = (long) luaL_checkinteger(L, 2);
+  char buf[256];
+  int ok = 0;
+  if (cls_cur >= 0) {
+    snprintf(buf, sizeof(buf), "shake %ld %ld", amp, dur);
+    ok = fx_send_payload(cls_cur, buf);
+  }
+  lua_pushboolean(L, ok);
+  return 1;
+}
+
+static int l_fx_glow(lua_State *L)
+{
+  long dur = (long) luaL_checkinteger(L, 1);
+  char buf[256];
+  int ok = 0;
+  if (cls_cur >= 0) {
+    snprintf(buf, sizeof(buf), "glow %ld", dur);
+    ok = fx_send_payload(cls_cur, buf);
+  }
+  lua_pushboolean(L, ok);
+  return 1;
+}
+
+static const luaL_Reg fxlib[] = {
+  {"text", l_fx_text},
+  {"textoff", l_fx_textoff},
+  {"dark", l_fx_dark},
+  {"wipe", l_fx_wipe},
+  {"img", l_fx_img},
+  {"shake", l_fx_shake},
+  {"glow", l_fx_glow},
+  {nullptr, nullptr}
+};
+
 static const luaL_Reg dmlib[] = {
   {"msg", l_msg},
   {"teleport", l_teleport},
@@ -405,6 +526,8 @@ void class_load(void)
   lua_setglobal(cls_L, "print");
 
   luaL_newlib(cls_L, dmlib);
+  luaL_newlib(cls_L, fxlib);
+  lua_setfield(cls_L, -2, "fx");
   lua_newtable(cls_L);
   lua_setfield(cls_L, -2, "vars");
   lua_setglobal(cls_L, "dm");

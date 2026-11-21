@@ -3990,6 +3990,7 @@ void   mg_heal_friend_all(int n, MagicData * m)
   int    x, y;
   int    i, j;
   double    s;
+  int    big_done[8]; int nbig = 0;  /* 2x2 の大きな敵の二重適用防止 */
 
   set_view(n);
 
@@ -3998,6 +3999,8 @@ void   mg_heal_friend_all(int n, MagicData * m)
 
       for (i = 0; i < MAX_CHRS_INONE; i++) {
         if ((j = cd[n].view[y][x].chr[i] - 1) < 0)
+          continue;
+        if (chr_big(j) && big_already(big_done, &nbig, j))
           continue;
         if (cd[n].party != cd[j].party)
           continue;
@@ -4134,6 +4137,7 @@ void   mg_antidote_friend_all(int n, MagicData * m)
   int    x, y;
   int    i, j;
   double    s;
+  int    big_done[8]; int nbig = 0;  /* 2x2 の大きな敵の二重適用防止 */
 
   set_view(n);
 
@@ -4145,6 +4149,8 @@ void   mg_antidote_friend_all(int n, MagicData * m)
 
       for (i = 0; i < MAX_CHRS_INONE; i++) {
         if ((j = cd[n].view[y][x].chr[i] - 1) < 0)
+          continue;
+        if (chr_big(j) && big_already(big_done, &nbig, j))
           continue;
         if (cd[n].party != cd[j].party)
           continue;

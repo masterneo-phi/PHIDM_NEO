@@ -297,14 +297,15 @@ void   print_m121(int n, int f)
         if (((cd[j].name[0] != ' ' && !TCN_VANISH(j))
                  || cd[n].at == AT_VISIBLE)) {
           snprintf(buf.data(), buf.size(),
-            "#m121 O C%04x:%01i %01i %c %-31s %02x %-15s %c %02x \n",
+            "#m121 O C%04x:%01i %01i %c %-31s %02x %-15s %c %02x %06x \n",
             j, x, y,
             rdc[(4 + cd[j].d - cmr11) & 3], cd[j].name,
             (!(cd[j].st) && CN_GASIFY(j) >= 60 ? ST_GASIFY : cd[j].st),
             CHRGRA(j),
              chr_marker(j),
             /* for change character graphic added by Qajin 19991224 */
-            (j < MAX_NTTYS ? ((cd[j].cg != nullptr || cd[j].ocg != nullptr) ? 0x40 : 0) : cd[j].type));
+            (j < MAX_NTTYS ? ((cd[j].cg != nullptr || cd[j].ocg != nullptr) ? 0x40 : 0) : cd[j].type),
+            fx_cn_mask(j));
 
           if (need_check
              || last_npc_num[n] <= k
