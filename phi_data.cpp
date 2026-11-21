@@ -6338,37 +6338,45 @@ static void fx_switch_action(int n, int act, const char *arg)
   }
 }
 
-/* 地図 C 行末尾の cn マスク (24 ビット)。#cond と同じ TCN 相当の
-   判定 (cn 本体 + 装備由来 ecn の合算) でビットを立てる。
-   FORCE / REFLEX / IDLE / LAG は対応する TCN が無いので cn 本体。 */
+/* 地図 C 行末尾の cn マスク (24 ビット)。
+   バフ系はプレイヤーのみ、しかも魔法等で付いた有限時間の cn 本体だけ
+   (装備由来の ecn と、DFP/MRP99 防具等による永続値 0x10000 は出さない)。
+   状態異常は敵味方とも cn 本体だけを出す (装備由来は出さない)。 */
+static int fx_timed(int v)
+{
+  return (v != 0 && v > -0x10000 && v < 0x10000);
+}
+
 unsigned int fx_cn_mask(int j)
 {
   unsigned int mask = 0;
 
-  if (TCN_COAT(j))      mask |= 1u << CNN_COAT;
-  if (TCN_PROTECT(j))   mask |= 1u << CNN_PROTECT;
-  if (TCN_SHELL(j))     mask |= 1u << CNN_SHELL;
-  if (TCN_HASTE(j))     mask |= 1u << CNN_HASTE;
-  if (TCN_ILLUSION(j))  mask |= 1u << CNN_ILLUSION;
-  if (TCN_SPELL(j))     mask |= 1u << CNN_SPELL;
-  if (TCN_REGENE(j))    mask |= 1u << CNN_REGENE;
-  if (CN_FORCE(j))      mask |= 1u << CNN_FORCE;
-  if (CN_REFLEX(j))     mask |= 1u << CNN_REFLEX;
-  if (TCN_MIRROR(j))    mask |= 1u << CNN_MIRROR;
-  if (TCN_VANISH(j))    mask |= 1u << CNN_VANISH;
-  if (TCN_POISON(j))    mask |= 1u << CNN_POISON;
-  if (TCN_PALSY(j))     mask |= 1u << CNN_PALSY;
-  if (TCN_PANIC(j))     mask |= 1u << CNN_PANIC;
-  if (TCN_CONFUSE(j))   mask |= 1u << CNN_CONFUSE;
-  if (TCN_BERSERK(j))   mask |= 1u << CNN_BERSERK;
-  if (TCN_SILENCE(j))   mask |= 1u << CNN_SILENCE;
-  if (TCN_BLIND(j))     mask |= 1u << CNN_BLIND;
-  if (TCN_PASSWALL(j))  mask |= 1u << CNN_PASSWALL;
-  if (TCN_RAISEDEAD(j)) mask |= 1u << CNN_RAISEDEAD;
-  if (CN_IDLE(j))       mask |= 1u << CNN_IDLE;
-  if (CN_LAG(j))        mask |= 1u << CNN_LAG;
-  if (TCN_AEGIS(j))     mask |= 1u << CNN_AEGIS;
-  if (TCN_HAMMER(j))    mask |= 1u << CNN_HAMMER;
+  if (j < MAX_NTTYS) {
+    if (OCN_COAT(j) && fx_timed(CN_COAT(j)))       mask |= 1u << CNN_COAT;
+    if (OCN_PROTECT(j) && fx_timed(CN_PROTECT(j))) mask |= 1u << CNN_PROTECT;
+    if (OCN_SHELL(j) && fx_timed(CN_SHELL(j)))     mask |= 1u << CNN_SHELL;
+    if (OCN_HASTE(j) && fx_timed(CN_HASTE(j)))     mask |= 1u << CNN_HASTE;
+    if (OCN_ILLUSION(j) && fx_timed(CN_ILLUSION(j))) mask |= 1u << CNN_ILLUSION;
+    if (fx_timed(CN_SPELL(j)))     mask |= 1u << CNN_SPELL;
+    if (fx_timed(CN_REGENE(j)))    mask |= 1u << CNN_REGENE;
+    if (fx_timed(CN_FORCE(j)))    mask |= 1u << CNN_FORCE;
+    if (fx_timed(CN_REFLEX(j)))   mask |= 1u << CNN_REFLEX;
+    if (fx_timed(CN_MIRROR(j)))   mask |= 1u << CNN_MIRROR;
+    if (fx_timed(CN_VANISH(j)))   mask |= 1u << CNN_VANISH;
+    if (fx_timed(CN_PASSWALL(j))) mask |= 1u << CNN_PASSWALL;
+    if (fx_timed(CN_RAISEDEAD(j))) mask |= 1u << CNN_RAISEDEAD;
+    if (CN_IDLE(j))                mask |= 1u << CNN_IDLE;
+    if (CN_LAG(j))                 mask |= 1u << CNN_LAG;
+    if (fx_timed(CN_AEGIS(j)))     mask |= 1u << CNN_AEGIS;
+    if (fx_timed(CN_HAMMER(j)))    mask |= 1u << CNN_HAMMER;
+  }
+  if (CN_POISON(j))  mask |= 1u << CNN_POISON;
+  if (CN_PALSY(j))   mask |= 1u << CNN_PALSY;
+  if (CN_PANIC(j))   mask |= 1u << CNN_PANIC;
+  if (CN_CONFUSE(j)) mask |= 1u << CNN_CONFUSE;
+  if (CN_BERSERK(j)) mask |= 1u << CNN_BERSERK;
+  if (CN_SILENCE(j)) mask |= 1u << CNN_SILENCE;
+  if (CN_BLIND(j))   mask |= 1u << CNN_BLIND;
   return (mask);
 }
 
