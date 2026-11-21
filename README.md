@@ -51,6 +51,32 @@ make clean      # 生成物を消します
 必要条件：g++（C++17 対応）、GNU make。外部ライブラリは不要です
 （`-lm` のみ）。
 
+### FreeBSD 8.1（gcc46）でのビルド
+
+FreeBSD 8.1 の標準 g++ は C++17 に対応していないため、gcc46 を
+使ってビルドします。/var が小さい環境ではコンパイラの一時
+ファイルで /var が溢れるので、TMPDIR をホーム配下へ向けて
+ください（csh の場合）。
+
+```sh
+mkdir -p ~/tmp
+make clean
+setenv TMPDIR ~/tmp
+make CXX=g++46 CC=gcc46 CXXSTD=-std=gnu++0x LIBS="-lm -Wl,-rpath,/usr/local/lib/gcc46"
+```
+
+sh / bash では `TMPDIR=~/tmp make ...` の形でも構いません。
+
+注意点：
+
+- Makefile はヘッダ依存を追わないので、ソースや `phi_dm.cnf` を
+  変えたら必ず `make clean` から全ビルドしてください。
+- 旧 C 版の `.c` ファイルが同じフォルダに混ざっていると、BSD make
+  が `.cpp` より `.c` を優先してエラーになります。あれば別の場所へ
+  退避してください。
+- できあがった `phi_dm` は gcc46 用 libstdc++ への rpath 付きで
+  リンクされるので、そのまま実行できます。
+
 元の C ビルドは `configure.sh` + `make MAKEOPT="-fcommon"` でしたが、
 このツリーでは `configure.sh` は使いません。設定は `phi_dm.cnf`
 （`MAX_X` は 8 のこと。16 にするとエリアデータが壊れます）が
