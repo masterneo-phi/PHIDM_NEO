@@ -63,6 +63,12 @@ phi_dm には以下のオプションをつけることができます。
         #ex-switch eagleeye=form Eagle eye をフォーム形式で要求する
         #ex-switch fx=1          FX 演出の受信を申告する
                                  (PHIDM NEO v1.11)
+        #ex-switch fastmove=1    高速移動を申告する。申告した
+                                 セッションのコマンドは tick の
+                                 合間にも処理され、移動の応答が
+                                 速くなる。申告しないクライアン
+                                 トの処理とタイミングは従来通り
+                                 (PHIDM NEO v1.14)
 
 サーバは、受け付けた内容を同じ形式の行で返します。受け付けられ
 ない要求には size=no / style=no と返し、その場合は従来地図(5x5)

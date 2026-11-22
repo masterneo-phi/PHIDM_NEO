@@ -23,6 +23,7 @@
 #include <cstring>
 
 #include "new_proto.h"
+#include "tcp.h"
 #include "phi_dm.h"
 #include "phi_data.h"
 #include "phi_str.h"
@@ -149,6 +150,13 @@ int func_analyze_ex(int n, char *p)
                 if (std::strcmp(value.data(), "1") == 0) {
                     cd[n].modef |= MD_HEIGHT;
                     check_write(n, "#ex-switch height=1\n");
+                }
+                /* 1 でなければ何もしない。 */
+            } else if (std::strcmp(property.data(), "fastmove") == 0) {
+                if (std::strcmp(value.data(), "1") == 0) {
+                    cd[n].modef |= MD_FASTMOVE;
+                    set_tcp_nodelay(n);
+                    check_write(n, "#ex-switch fastmove=1\n");
                 }
                 /* 1 でなければ何もしない。 */
             }

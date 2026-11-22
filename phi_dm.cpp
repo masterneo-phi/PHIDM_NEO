@@ -189,6 +189,86 @@ extern int enmax;
 extern CHROData *ed_o;
 extern int lcnt;
 
+/* 位置が変わったキャラの踏み抜け (条件02) / 踏み込み (条件06) と
+ * エリア出入りのスイッチ処理。tick ごとの処理と、高速移動の先行
+ * 処理 (fast_command_phase) の両方から使う。bx/by は直前にいたマス。
+ * 従来メインループ内にあった処理をそのまま関数化したもの。 */
+static void chr_position_switch_check(int n)
+{
+  int j, k;
+  if (cd[n].bx == cd[n].x && cd[n].by == cd[n].y)
+	return;
+  if (cd[n].bx >= 0 && cd[n].by >= 0 &&
+		cd[n].bx < MAX_X && cd[n].by < MAX_Y) {
+	if (map[cd[n].by][cd[n].bx].tip & T_SWITCH)
+	  load_switch(n, cd[n].bx, cd[n].by, 2);
+	/* add for area flag 20000629 */
+	if ((k = map[cd[n].by][cd[n].bx].area) != map[cd[n].y][cd[n].x].area &&
+		(j = fld[k].fout) >= 0) {
+	  change_flag(n,j,FLAG_ON,1);
+	  load_switch(n,cd[n].x,cd[n].y,10);
+	}
+  }
+  /* add for area flag 20000629 */
+  if (cd[n].by < 0 || cd[n].bx < 0 ||
+		 map[cd[n].by][cd[n].bx].area != map[cd[n].y][cd[n].x].area) {
+	if ((j = fld[map[cd[n].y][cd[n].x].area].fin) >= 0) {
+	  change_flag(n,j,FLAG_ON,1);
+	  load_switch(n,cd[n].x,cd[n].y,10);
+	}
+  } else {
+	if ((j = fld[map[cd[n].y][cd[n].x].area].fmove) >= 0) {
+	  change_flag(n,j,FLAG_ON,1);
+	  load_switch(n,cd[n].x,cd[n].y,10);
+	}
+  }
+  cd[n].bx = cd[n].x;
+  cd[n].by = cd[n].y;
+  if (map[cd[n].y][cd[n].x].tip & T_SWITCH) {
+	load_switch(n, cd[n].x, cd[n].y, 1);
+  }
+}
+
+/* 高速移動 (PHIDM NEO extension): #ex-switch fastmove=1 を申告した
+ * セッションが接続中にいるかどうか。 */
+static int fastmove_active(void)
+{
+  int n;
+  for (n = 1; n < MAX_NTTYS; n++)
+	if (cd[n].type && cd[n].fd >= 0 && (cd[n].modef & MD_FASTMOVE))
+	  return 1;
+  return 0;
+}
+
+/* 高速移動の先行処理: 申告セッションの入力だけを、tick の合間にも
+ * 処理する。プロトコル行の優先処理・通常コマンドの st/wt ゲート・
+ * 1 行ごとの位置変化スイッチ処理は tick 側の処理と同一に保ち、
+ * 申告していないセッションには一切触れない。世界の tick (約100ms)
+ * や敵 AI・タイマー類は従来どおりメインループ側で進む。 */
+static void fast_command_phase(void)
+{
+  char fbuf[256];
+  int n, lines;
+  for (n = 1; n < MAX_NTTYS; n++) {
+	if (cd[n].fd == -1 || !cd[n].type)
+	  continue;
+	if (!(cd[n].modef & MD_FASTMOVE))
+	  continue;
+	while (peek_protocol(n, fbuf, 240)) {/* protocol priority top 20010208 */
+	  func_analyze(n, fbuf);
+	}
+	for (lines = 0; lines < 8; lines++) {
+	  if (!read_line(n, fbuf, 240))
+		break;
+	  if (!*fbuf && cd[n].st != ST_ADDRESS_ && cd[n].st != ST_MENU)
+		break;
+	  if (cd[n].st == ST_ATTACK || cd[n].st == ST_CAST || (cd[n].st != ST_MSGW && cd[n].wt <= 0))
+		input_analyze(n, fbuf);
+	  chr_position_switch_check(n);
+	}
+  }
+}
+
 int    main(int argc, char **argv)
 {
   /* buf は CPYSTR の宛先とポインタ演算で使うため C 配列のまま */
@@ -271,7 +351,24 @@ int    main(int argc, char **argv)
 
 	/* change for active wait 20000901 */
 	/* 0とかマイナスになっちゃったらどうしよう… (汗 */
-	connect_check(100 - ((server_lag+server_lag_prev+server_lag_prev2) / 3 - 10 )*10);
+	{
+	  int wait_ms = 100 - ((server_lag+server_lag_prev+server_lag_prev2) / 3 - 10 )*10;
+	  if (wait_ms > 10 && fastmove_active()) {
+		/* 高速移動を申告したセッションがいる間だけ、待ちを
+		 * 10ms 刻みにして合間に先行処理する。tick 自体は
+		 * 従来どおり約100ms で、世界の進行は変わらない。 */
+		int remain = wait_ms;
+		while (remain > 0) {
+		  int slice = remain > 10 ? 10 : remain;
+		  connect_check(slice);
+		  remain -= slice;
+		  if (remain > 0)
+			fast_command_phase();
+		}
+	  } else {
+		connect_check(wait_ms);
+	  }
+	}
 	/* nfclose() 後のエラー発生 */
 	while((n=nfclose_error_check())>=0){
 	  snprintf(buf, sizeof(buf),"exit-err : (%i:%i) = %s (%s)",
@@ -514,37 +611,7 @@ int    main(int argc, char **argv)
 	  for (i = 9; i > 0; i--)
 	cd[n].com[i] = cd[n].com[i - 1];
 	  cd[n].com[0] = 0;
-	  if (cd[n].bx != cd[n].x || cd[n].by != cd[n].y) {
-	if (cd[n].bx >= 0 && cd[n].by >= 0 &&
-		cd[n].bx < MAX_X && cd[n].by < MAX_Y) {
-	  if (map[cd[n].by][cd[n].bx].tip & T_SWITCH)
-		load_switch(n, cd[n].bx, cd[n].by, 2);
-	  /* add for area flag 20000629 */
-	  if ((k = map[cd[n].by][cd[n].bx].area) != map[cd[n].y][cd[n].x].area &&
-		  (j = fld[k].fout) >= 0) {
-		change_flag(n,j,FLAG_ON,1);
-		load_switch(n,cd[n].x,cd[n].y,10);
-	  }
-	}
-	/* add for area flag 20000629 */
-	if (cd[n].by < 0 || cd[n].bx < 0 ||
-		 map[cd[n].by][cd[n].bx].area != map[cd[n].y][cd[n].x].area) {
-	  if ((j = fld[map[cd[n].y][cd[n].x].area].fin) >= 0) {
-		change_flag(n,j,FLAG_ON,1);
-		load_switch(n,cd[n].x,cd[n].y,10);
-	  }
-	} else {
-	  if ((j = fld[map[cd[n].y][cd[n].x].area].fmove) >= 0) {
-		change_flag(n,j,FLAG_ON,1);
-		load_switch(n,cd[n].x,cd[n].y,10);
-	  }
-	}
-	cd[n].bx = cd[n].x;
-	cd[n].by = cd[n].y;
-	if (map[cd[n].y][cd[n].x].tip & T_SWITCH) {
-	  load_switch(n, cd[n].x, cd[n].y, 1);
-	}
-	  }
+	  chr_position_switch_check(n);
 	  if (cd[n].wt > 0) {
 	cd[n].wt--;
 	if (cd[n].wt <= 0)

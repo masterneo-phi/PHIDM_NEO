@@ -26,6 +26,10 @@ int    peek_protocol(int id, char *buf , int buf_size);
 /* 終端の '\n' は省かれていない。*/
 
 int    set_server(int port);
+
+void   set_tcp_nodelay(int id);
+/* 高速移動 (fastmove) を申告したセッションのソケットで Nagle
+ * アルゴリズムを無効化する (PHIDM NEO extension)。 */
 /* ポート番号 port を新規接続受け付け用ポートとする。*/
 /* すでにそのポートが使われている等、しっぱいすると偽を返す。*/
 

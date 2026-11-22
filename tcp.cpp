@@ -52,6 +52,7 @@ typedef std::chrono::steady_clock SteadyClock;
 #include <errno.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <netinet/tcp.h>
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <fcntl.h>
@@ -271,6 +272,16 @@ void fill_readable(const fd_set &rfds) {
 /* 書き込みバッファを持ったまま書き込めない回数が上限を超えた
  * 接続を切断する。connect_check() の最後に呼ぶ。 */
 void drop_write_timed_out() {
+  /* connect_check() が短い間隔で繰り返し呼ばれる場合 (高速移動の
+   * スライス待ち) でも切断判定の進み方が従来 (メインループ約
+   * 100ms ごと) と変わらないよう、前回の評価から 90ms 以上
+   * 空いた時だけ数える。 */
+  static SteadyClock::time_point last_check;
+  const auto now = SteadyClock::now();
+  if (last_check.time_since_epoch().count() != 0
+      && now - last_check < std::chrono::milliseconds(90))
+    return;
+  last_check = now;
   for (int n = 0; n < MAX_CLIENT; n++) {
     Client &c = clients[n];
     if (c.connecting && c.wbuf_len > 0
@@ -568,6 +579,22 @@ void connect_check(int t){ /* バッファの書き込み／読み込み */
     /* ^^ end */
   } while (SteadyClock::now() < deadline);
   drop_write_timed_out();
+}
+
+void set_tcp_nodelay(int n){
+  /* 高速移動を申告したセッションのソケットで Nagle を無効化する。
+   * 1 歩ごとの小さな地図フレームが、受信側の遅延 ACK と Nagle の
+   * 相互作用で約40ms 滞留するのを防ぐ。申告セッションのソケット
+   * にだけ適用し、他の接続には触れない。 */
+  Client &c = clients[n];
+  if (!c.connecting || !IS_VALID_SOCKET(c.fd)) return;
+  int one = 1;
+#ifdef __USE_W32_SOCKETS
+  setsockopt(c.fd, IPPROTO_TCP, TCP_NODELAY,
+             (const char *)&one, sizeof(one));
+#else
+  setsockopt(c.fd, IPPROTO_TCP, TCP_NODELAY, &one, sizeof(one));
+#endif
 }
 
 int nfflush(int n, int t){
