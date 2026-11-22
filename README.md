@@ -7,11 +7,19 @@ Phantasmal Island（Philly）用ゲームサーバ `phi_dm`
 ## PHIDM_NEO（公開版）について
 
 このリポジトリは PHIDM_NEO のソース一式です。現在の公開版は
-**v1.3** で、内容は次のとおりです。
+**v1.12** で、内容は次のとおりです。
 
 - サーバ本体の全 16 モジュールを C++ 化し、潜在バグ 9 件を修正
-- 9x9 マップ対応（`#ex-map size=81`、NeoPHI 等の対応クライアント向け）
-- 9x9 時の Eagle Eye を 20x20 に拡大
+- 11x11 マップ対応（`#ex-map size=121`、NeoPHI 等の対応クライアント向け。
+  9x9（size=81）は v1.10 で仕様削除し、要求には従来地図で応答する）
+- Eagle Eye を 25x25 に拡大
+- マスター魔法の追加（Aegis of Athena、Remote lock/unlock、
+  Remote boards、Remote erase、Thunder of Zeus、Hammer of Ares、
+  Master search、Load class）
+- 刻印スイッチ（動作 60/61、phi.hall）と Lua スイッチ
+  （動作 62、phi.cls、Lua 5.4.7 同梱）
+- FX 演出拡張（動作 63〜68 と :A チェーンの z ペイロード。
+  マップ文字・暗転・ワイプ・画像・振動・発光）
 - 2x2 の大きな敵に対応（敵データ `phi.ed` の `:O` オプションに
   `B` を書いた敵が 2x2 の体を持つ。4 マスの当たり判定・移動・
   正面 2 マス攻撃、地図では専用の大きさ印 `B` で 1 回だけ送る）
@@ -79,8 +87,11 @@ sh / bash では `TMPDIR=~/tmp make ...` の形でも構いません。
 
 元の C ビルドは `configure.sh` + `make MAKEOPT="-fcommon"` でしたが、
 このツリーでは `configure.sh` は使いません。設定は `phi_dm.cnf`
-（`MAX_X` は 8 のこと。16 にするとエリアデータが壊れます）が
-そのまま使われます。
+がそのまま使われます。`phi_dm.cnf` の `MAX_X` / `MAX_Y` は
+世界の地図サイズ（マス数）で、世界の `phi.dd` の大きさに
+合わせてください（同梱の 8 は最小の雛形用です。256×256 の
+世界なら 256）。書き換えたら `make clean` から再ビルドが
+必要です。
 
 注意：`make install` は無効化してあります。稼働中のワールドへ
 誤ってコピーしないよう、バイナリは手でコピーしてください。
