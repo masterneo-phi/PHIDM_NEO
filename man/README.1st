@@ -10,3 +10,7 @@ README.euc と PATCH.euc をベースにしております。
                                                     かいたひと kzm
 
  2003/04/28 update by Qajin for v5y release 4_1
+
+PHIDM NEO では、C 言語から C++ への移植に合わせて、追加機能の
+記述を各ファイルの中に加筆し、変化した事実を更新しています。
+NEO で追加された機能には (PHIDM NEO) の印が付いています。

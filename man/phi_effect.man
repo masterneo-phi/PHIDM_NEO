@@ -232,6 +232,10 @@
         Dup                     アイテムを複製する
         Malor                   絶対/相対位置指定でテレポートする
         Pass wall               一定時間壁を通り抜け可能に
+        Aegis of Athena         一定時間、受ける HP ダメージが 0 に
+                                なる (PHIDM NEO、権限 T)。持続時間は
+                                Pass wall と同じ。コンディション
+                                番号 22
         Basi Rurla [num] x y    [num]のPCをx,yへ移動させる
         Cache                   所持金を TAX に移動する
                                 所持金が 0 の場合は TAX から現金を取り出す
@@ -239,6 +243,15 @@
         Evil wind from Malaika  全 PC をサーバから排除して shutdown する
         Evil wind to [num]      list番号から得られる数字を[num]に当てはめる
                                 ことにより特定の PC を kick する
+        Thunder of Zeus         リスト番号を入力すると、その PC に
+                                99999999 のダメージを与える
+                                (PHIDM NEO、権限 K)。実行は phi.log
+                                に記録される
+        Hammer of Ares          リスト番号を入力すると、その PC の
+                                アイテムと魔法を約 1 秒に 1 つずつ
+                                破壊し続ける (PHIDM NEO、権限 K)。
+                                実行は phi.log に記録される。
+                                コンディション番号 23
         Brizzard from Cokyutos  指定した番号[num]のＰＣを排除し、再接続を
                 to [num] [min]  [min]分間禁止.省略時は60分.
                                 時間の代わりに - を指定すると キャラID BAN
@@ -253,12 +266,19 @@
         Load fd                 phi.fd を再読み込み
         Load crt                phi.crtを再読み込み
         Load ed                 phi.ed を再読み込み
-        Load dd                 phi.dd を再読み込み
+        Load dd                 (未実装。phi.dd 本体はサーバ起動時に
+                                のみ読み込まれます。X 領域の上書き分
+                                は Load ddx で再読み込みできます)
         Load ddx                phi.fd の X オプションのついた領域の
                                 phi.ddx を再読み込み
         Load ex                 phi.ex を再読み込み
         Load obj                phi.od を再読み込み
         Load sd                 phi.sd を再読み込み
+        Load class              phi.cls を再読み込み (PHIDM NEO v1.7、
+                                権限 L)
+        Load cmd                phi.cmd を再読み込み (権限 L)。
+                                phi.cmd については phi_command.man
+                                を参照
         Save id                 phi.id をすぐに更新
         Save obj                phi.od をすぐに更新
 
@@ -273,6 +293,19 @@
         Createobj [obj data]    オブジェクト作成。パラメータはphi.odの:O(座標抜き)と同様
         Eraseobj                オブジェクト消去。(ID付きオブジェはphi.odに残ります)
 
+        Remote lock             座標(x y)を入力すると、その位置の
+                                扉・ゲート・サークルに遠隔で鍵を
+                                かける (PHIDM NEO、権限 U)
+        Remote unlock           座標(x y)を入力すると、その位置の
+                                鍵を遠隔で外す (PHIDM NEO、権限 U)
+        Remote boards           座標(x y)を入力すると、その位置の
+                                看板を遠隔で読む (PHIDM NEO、権限 L)
+        Remote erase            座標(x y)を入力すると、その位置の
+                                看板を遠隔で消す (PHIDM NEO、権限 D)
+        Master search           phi.sd の最新 100 件(看板・ロック)を
+                                座標・所有者・日時付きで表示する
+                                (PHIDM NEO、権限 L)
+
         Jump [num]              指定した番号[num]のＰＣの位置に移動（Tofup Server Edition)
         Draw [num]              指定した番号[num]のＰＣを自分の位置に移動（Tofup Server Edition)
 
@@ -280,39 +313,3 @@
         permit PK               PK許可に設定する（Tofup Server Edition)
 
 
-以下は PHIDM NEO で追加されたマスター専用魔法です。
-(権限は phi.ad の権限文字列の文字です)
-
-        Aegis of Athena         一定時間、受ける HP ダメージが 0 に
-                                なる (権限 T)。持続時間は Pass wall
-                                と同じ。コンディション番号 22
-        Remote lock             座標(x y)を入力すると、その位置の
-                                扉・ゲート・サークルに遠隔で鍵を
-                                かける (権限 U)
-        Remote unlock           座標(x y)を入力すると、その位置の
-                                鍵を遠隔で外す (権限 U)
-        Remote boards           座標(x y)を入力すると、その位置の
-                                看板を遠隔で読む (権限 L)
-        Remote erase            座標(x y)を入力すると、その位置の
-                                看板を遠隔で消す (権限 D)
-        Thunder of Zeus         リスト番号を入力すると、その PC に
-                                99999999 のダメージを与える (権限 K)。
-                                実行は phi.log に記録される
-        Hammer of Ares          リスト番号を入力すると、その PC の
-                                アイテムと魔法を約 1 秒に 1 つずつ
-                                破壊し続ける (権限 K)。実行は
-                                phi.log に記録される。
-                                コンディション番号 23
-        Master search           phi.sd の最新 100 件(看板・ロック)を
-                                座標・所有者・日時付きで表示する
-                                (権限 L)
-        Load class              phi.cls を再読み込みする (権限 L)
-                                (PHIDM NEO v1.7)
-        Load cmd                phi.cmd を再読み込みする (権限 L)
-
-(補足) Load cmd は原典のサーバに実装されていましたが、従来の
-一覧に記載がありませんでした。phi.cmd については phi_command.man
-を参照して下さい。
-また、一覧にある "Load dd" という独立した魔法は実装されて
-いません。phi.dd 本体はサーバ起動時にだけ読み込まれます
-(X 領域の上書き分 phi.ddx は Load ddx で再読み込みできます)。

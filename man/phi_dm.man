@@ -10,6 +10,8 @@ phi_dm には以下のオプションをつけることができます。
         phi.bb          access時一行目にでてくる
         phi.bd          ゲート移動した PC のデータ
         phi.cd          exit した PC のデータ
+        phi.cls         Lua スイッチのプログラム (PHIDM NEO v1.7)
+        phi.cmd         コマンド定義データ(任意。phi_command.man 参照)
         phi.sav         PC の保存フラグ&変数のデータ
         phi.crt         create の制御データ
         phi.dd          地形データ
@@ -17,6 +19,7 @@ phi_dm には以下のオプションをつけることができます。
         phi.ed          NPC データ
         phi.ex          アイテムのゲート通過制限データ
         phi.fd          フロア/エリアデータ
+        phi.hall        刻印スイッチの記録 (PHIDM NEO v1.6)
         phi.id          世界に落ちているアイテムと座標のデータ
         phi.inf         access/comein時にながれるインフォメーション
         phi.log         サーバ動作時に書き込まれるログ
@@ -27,6 +30,7 @@ phi_dm には以下のオプションをつけることができます。
         phi.od          オブジェクトのデータ
         backup/         異常終了時のデータファイル退避場所
         phi_docs/       看板の内容ファイルが置かれるディレクトリ
+        phi_graphics/   FX 演出の画像置き場 (PHIDM NEO v1.11)
         phi_logs/       サーバ動作時に書き込まれるログ保存ディレクトリ
         phi_cdi/        分割cd形式使用時に分割cdの置かれるディレクトリ
         phi_shows/      showコマンド用ファイルを置くディレクトリ
@@ -43,16 +47,6 @@ phi_dm には以下のオプションをつけることができます。
 エラーチェックは、かなり甘いのでサーバのデータを書き換える等するまえに
 バックアップをとるのが基本です。
 
-
-●ファイルの説明(追加分)
-
-        phi.cmd         コマンド定義データ(任意。phi_command.man 参照)
-        phi.hall        刻印スイッチの記録 (PHIDM NEO v1.6)
-        phi.cls         Lua スイッチのプログラム (PHIDM NEO v1.7)
-        phi_graphics/   FX 演出の画像置き場 (PHIDM NEO v1.11)
-
-phi.cmd は原典のサーバで使われていましたが、従来のファイル一覧に
-記載がありませんでした。
 
 
 ●拡張プロトコル
@@ -83,5 +77,5 @@ Eagle eye の範囲は PHIDM NEO v1.10 で 25x25 に拡大されています
 (フォームのヘッダでは size=24 と表記されます)。
 
 FX の画像は、クライアントが "#ex-fx get <name>" を送ると、
-サーバが分割して転送します。詳細は phiswt.man の FX の節を
-参照して下さい。
+サーバが分割して転送します。詳細は phiswt.man の動作 63～68 の
+説明を参照して下さい。

@@ -1,109 +1,106 @@
-configure.shを実行すると、実行ファイルを作成する為に必要な
-質問事項が幾つか出ます。
+PHIDM NEO では、元の C 版で使われていた configure.sh は使用しません。
+サーバの設定は phi_dm.cnf を直接編集し、make でビルドします。
+対象は BSD/Linux です。
 
-	 Select your system.
-	  1. BSD/Linux
-            :
+	% make
 
-お使いのOSを選択してください。
+で実行ファイル phi_dm が作成されます。
+必要条件は g++(C++17 対応)と GNU make で、外部ライブラリは不要です。
+make install は無効化されているので、出来上がった phi_dm は
+設置先へ自分でコピーして下さい。
+設置先にデータファイルが無い場合は、配布パッケージの world/ の
+雛形をコピーして使います。
 
-	 Input install directory for 'phi_dm'. Default is "..".
+phi_dm.cnf の設定を変更したら、必ず make clean から全ビルド
+して下さい。(共有ヘッダの依存関係を追わないため、古いオブジェクト
+ファイルが混ざると正しく動作しません)
 
-実行ファイルをインストールするディレクトリを入力してください。
-この後 インストール先にデータファイルが無い場合
-デフォルトのデータを作成します。
-その際 データ作成に必要な質問事項を聞いてきます。以下はデータファイルが
-無い場合に聞かれる質問です。
+設定項目は以下の通りです。元の configure.sh の質問項目に
+対応しています。
 
-	 Input your area name.
 
-作成する世界の名前を入力してください。
-省略すると "Default area name"になります。
-phi.tdが存在しない時 問い合わされます。
-これ以降は phi.cnfが存在しない時です。
+	#define MAX_X		8
+	#define MAX_Y		8
 
-	 Input width of this area. Default is 8.
-
-世界の横(東西方向)のサイズを入力してください。範囲は 8～1000です。
+世界の大きさです。MAX_X が横(東西方向)、MAX_Y が縦(南北方向)で、
+範囲は 8～1000です。
 注！)データとサイズが合っていないと 起動時にデータが壊れます。
+世界の大きさは phi.td ではなく、この phi_dm.cnf で指定します。
 
-	 Input height of this area. Default is 8.
 
-縦(南北方向)のサイズを入れてください。範囲は 8～1000です。
-注！)横方向同様データとサイズが合っていないと データが壊れます。
+	/* No CDI separation */
+	分割する場合は #define EPHI_FastBind_CD_NUM (分割数) とします。
 
-	 Input cdi-format separation
-	  0: No separate (default)
-            :
-
-分割cd(キャラクターデータ)形式を使う場合の分割数を入力します。
+分割cd(キャラクターデータ)形式を使う場合の分割数を指定します。
 プレイヤー数が増大し phi.cdのサイズが大きくなった場合に
 分割することで負荷を軽減できます。
 通常は分割する必要はありません。
 
-	 Input number of character backup. Default is 16.
 
-phi.bd(キャラクターバックアップ)に保存されるキャラクター数を入力してください。
+	#define C_BACKUP	16
+
+phi.bd(キャラクターバックアップ)に保存されるキャラクター数を
+指定します。
 この数を超えた者は古いデータから削除されます。
 
-	 Input number of NPC. Default is 128.
 
-NPC総数を入力してください。範囲は 1～32704です。
+	#define MAX_ENEMIES	128
 
-	 Input number of Objects. Default is 64.
+NPC総数を指定します。範囲は 1～32704です。
 
-オブジェクト総数を入力してください。範囲は 0～65535です。
+
+	#define MAX_OBJECTS	64
+
+オブジェクト総数を指定します。範囲は 0～65535です。
 魔法効果表示機能を使う場合、魔法グラフィックオブジェクトの数も含まれます。
 0にした場合、オブジェクト機能OFFとなり 全てのオブジェクト関連機能が削られます。
 
-	 Input number of general flags. Default is 0x100.
 
-スイッチで使用する汎用フラグの個数を入力してください。
+	#define GFLAG_MAX	0x100
+
+スイッチで使用する汎用フラグの個数を指定します。
 範囲は 1～0x100000000(4294967295)です。
 
-	 Input number of general variables. Default is 0x100.
 
-スイッチで使用する汎用変数の個数を入力してください。
+	#define GVAR_MAX	0x100
+
+スイッチで使用する汎用変数の個数を指定します。
 範囲は 1～0x100000000(4294967295)です。
 
-	 Input number of private variables. Default is 0x10.
 
-スイッチで使用するキャラ別変数の個数を入力してください。
+	#define PVAR_MAX	0x10
+
+スイッチで使用するキャラ別変数の個数を指定します。
 範囲は 1～0x100000000(4294967295)です。
 
-	 Input number of saved variables. Default is 0x10.
 
-スイッチで使用するキャラ別保存変数の個数を入力してください。
+	#define SVAR_MAX	0x10
+
+スイッチで使用するキャラ別保存変数の個数を指定します。
 範囲は 1～0x100000000(4294967295)です。
 
-	 Input number of characters in one space. Default is 2.
 
-一升に入れるキャラクター数を入力してください。
+	#define MAX_CHRS_INONE	2
+
+一升に入れるキャラクター数を指定します。
 上限は有りませんが 多すぎるとメモリ消費量が激しくなります。
 
-	 Use sdi format ? 
-	  0: No separate (default)
-	  1: sdi (area hashed)
 
-分割sd(看板・ロックデータ)形式を使うかどうかを選択します。
+	/* No SDI separation */
+
+分割sd(看板・ロックデータ)形式を使うかどうかを指定します。
 看板・ロック数が増大し phi.sdのサイズが大きくなった場合に
 分割することで負荷を軽減できます。
 
-	 Use sub area code ? 
-	  0: No (default)
-	  1: sub area sepalated
 
-サブエリアコードを使用するかどうかを選択します。
+	/* No SUB area */
+	サブエリアを使う場合は #define AREA_SUB とします。
 
-	 Select language of DM. Default is English.
-	  1: English (Default)
-            :
+サブエリアコードを使用するかどうかを指定します。
+サブエリアについては phifd.man を参照して下さい。
 
-DM(システム)メッセージの言語を選択してください。
 
-以上で質問は終わり、Makefileが作成されるので,続いて
+	#define DM_LANG_JP
 
-% make
-% make install
-
-と実行すると 実行ファイルが作成され インストール先にコピーされます。
+DM(システム)メッセージの言語を指定します。
+DM_LANG_JP を define すると日本語、しなければ英語になります。
