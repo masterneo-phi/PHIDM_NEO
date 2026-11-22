@@ -616,6 +616,23 @@ void   print_m57(int n, int f)
   buf[118] = 0;
   check_write(n, buf.data());
 
+  /* 高さ行 (PHIDM NEO v1.13): #ex-switch height=1 を申告した
+   * クライアントにだけ、M 行と同じ並びでセルの高さを送る。
+   * '0'=通常 '1'..'3'=丘 '9'=窪地。見えないセルは '0'。 */
+  if (cd[n].modef & MD_HEIGHT) {
+    char *hp = buf.data();
+    std::memcpy(hp, "#m57 H ", 7);
+    hp += 7;
+    for (int y = 0; y < 7; y++)
+      for (int x = 0; x < 7; x++) {
+        const MapData *hd = &(view7[6 - y][x]);
+        *hp++ = ((hd->tip & TMASK) == T_UNKNOWN) ? '0' : dd_height_char(hd->height);
+      }
+    *hp++ = '\n';
+    *hp = 0;
+    check_write(n, buf.data());
+  }
+
   for(k = 0; k<last_npc_num[n]; k++)
     check_write(n, last_npc[n][k]);
 

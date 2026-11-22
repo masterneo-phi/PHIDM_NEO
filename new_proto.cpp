@@ -145,6 +145,12 @@ int func_analyze_ex(int n, char *p)
                     check_write(n, "#ex-switch fx=1\n");
                 }
                 /* 1 でなければ何もしない。 */
+            } else if (std::strcmp(property.data(), "height") == 0) {
+                if (std::strcmp(value.data(), "1") == 0) {
+                    cd[n].modef |= MD_HEIGHT;
+                    check_write(n, "#ex-switch height=1\n");
+                }
+                /* 1 でなければ何もしない。 */
             }
         }
     } else if (std::strcmp(protocol.data(), "#ex-fx") == 0) {

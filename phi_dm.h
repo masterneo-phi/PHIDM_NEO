@@ -17,7 +17,7 @@
 
 /*	   v509ewl21+fix2 -> v509ewl21+fix2+psp6+QSCP -> v5x-010  */
 /*	   v5x-010 release 13 test8 -> v5y rel.0 test1	*/
-#define PHI_VERSION "v5z release v1.12 /*color=teal*/PHIDM NEO/*.*/ /*color=red*/'Nymphicus hollandicus'/*.*/"SKILL_VER	/* クライアント表示：任意長 */
+#define PHI_VERSION "v5z release v1.13 /*color=teal*/PHIDM NEO/*.*/ /*color=red*/'Nymphicus hollandicus'/*.*/"SKILL_VER	/* クライアント表示：任意長 */
 
 #define PHI_DM_VERS "v5x:011:0005:38"		 /* DM種別通知：任意長 */
 #define PHI_PROT_VERS "05115000" /* プロトコルバージョン：８桁 */
@@ -768,6 +768,7 @@
 #define MD_FEAGLE       0x20
 #define MD_M121         0x80
 #define MD_FX           0x40  /* DM演出 (FX) 対応 (PHIDM NEO extension) */
+#define MD_HEIGHT       0x100  /* 高さ印 (height) 対応 (PHIDM NEO extension) */
 
 typedef struct md_t {
   char  *spell;     /* 呪文 */
@@ -867,6 +868,7 @@ typedef struct maps {
   unsigned short int tip;    /* 地形データ */
   unsigned char  surface;
   unsigned char  area;
+  signed char    height;  /* 高さ -1..3 (0=通常) PHIDM NEO v1.13 */
 #ifdef AREA_SUB
   unsigned char  area_sub;
 #endif

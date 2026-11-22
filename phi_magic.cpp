@@ -1237,6 +1237,7 @@ void spell_analyze(int n, char *spell)
   save_sd(n, x, y, 'L', nullptr, 1);
       }
       map[y][x].tip = ((map[y][x].tip & (TCLEAR ^ T_ROOF)) | set_dd(buf));
+      map[y][x].height = dd_height_of(buf);
       dmcheck_write(n, DMM_RESOURCE);
       load_id_in_circle(x,y);
       if (*spell != '\0') {

@@ -119,6 +119,8 @@ void   load_dd();
 void   remap_lock_and_board(int);
 void   extension_dd(int);
 unsigned short set_dd(char *);
+signed char dd_height_of(char *);
+char   dd_height_char(int);
 int    save_dd();
 void   list_gate(int);
 void   load_gate(int, int);

@@ -1652,6 +1652,7 @@ void   set_view(int n)
   cd[n].view[y + 1][x + 2].tip = map[yy][xx].tip;
 	}
   cd[n].view[y + 1][x + 2].surface = map[yy][xx].surface;
+  cd[n].view[y + 1][x + 2].height = map[yy][xx].height;
   for (i = 0; i < MAX_CHRS_INONE; i++)
 	cd[n].view[y + 1][x + 2].chr[i] = map[yy][xx].chr[i];
 
@@ -1885,6 +1886,9 @@ void   dd_char(char *p, MapData d, int f)
   *(p + 1) = '~';
 	  }
 	}
+	/* 高さ印 (PHIDM NEO v1.13): 2バイト目に印を出す。屋根 '~' より優先 (save_dd と同じ決め) */
+	if (d.height != 0 && (d.tip & TMASK) != T_UNKNOWN)
+	  *(p + 1) = dd_height_char(d.height);
   }
   if (f & 0x2) {
 	if (d.tip & T_ITEM)

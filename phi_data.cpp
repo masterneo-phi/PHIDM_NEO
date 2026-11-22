@@ -4579,13 +4579,19 @@ void   load_dd()
     if (efgets(buf2.data(), MAX_X * 2 + 2, fp) == nullptr)
       break;
     p = buf2.data();
-    for (x = 0; x < MAX_X; x++, p += 2)
+    for (x = 0; x < MAX_X; x++, p += 2) {
       map[y][x].tip = set_dd(p);
+      map[y][x].height = dd_height_of(p);
+    }
   }
   for (x = 0; x < MAX_X; x++)
     map[0][x].tip = map[MAX_Y - 1][x].tip = (T_MWALL | T_ROOF);
   for (y = 0; y < MAX_Y; y++)
     map[y][0].tip = map[y][MAX_X - 1].tip = (T_MWALL | T_ROOF);
+  for (x = 0; x < MAX_X; x++)
+    map[0][x].height = map[MAX_Y - 1][x].height = 0;
+  for (y = 0; y < MAX_Y; y++)
+    map[y][0].height = map[y][MAX_X - 1].height = 0;
   while(1) {
     if (efgets(buf.data(), buf.size(), fp) == nullptr)
       break;
@@ -5134,6 +5140,7 @@ void   extension_dd(int n)
      (map[y][x].tip & TMASK) == T_LMSGATE)
     save_sd(n, x, y, 'L', nullptr, 1);
   map[y][x].tip = (map[y][x].tip & (TCLEAR ^ (T_ROOF | T_SURFACE))) | set_dd(p);
+  map[y][x].height = dd_height_of(p);
       }
     }
   }
@@ -5153,6 +5160,40 @@ void   extension_dd(int n)
   }
   efclose(fp);
   check_id_in_circle(); /* bug fix for re-appear circle items 20031213 */
+}
+
+/* dd 2バイト目の高さ印 (PHIDM NEO v1.13)。
+ * '1'=+1段 '2'=+2段 '3'=+3段 '9'=-1段(窪地)。それ以外は 0。
+ * 高さは見た目属性で、通行・魔法等の判定には使わない。 */
+signed char dd_height_of(char *p)
+{
+  switch (*(p + 1)) {
+  case '1':
+    return 1;
+  case '2':
+    return 2;
+  case '3':
+    return 3;
+  case '9':
+    return -1;
+  }
+  return 0;
+}
+
+/* 高さ値 (-1..3) から印文字へ。0 は '0' を返す */
+char dd_height_char(int h)
+{
+  switch (h) {
+  case 1:
+    return '1';
+  case 2:
+    return '2';
+  case 3:
+    return '3';
+  case -1:
+    return '9';
+  }
+  return '0';
 }
 
 unsigned short set_dd(char *p)
@@ -5359,6 +5400,9 @@ int    save_dd()
       }
       if (map[y][x].tip & T_ROOF)
   *(p + 1) = '~';
+      /* 高さ印は屋根より優先 (2バイト目は 1文字だけ) */
+      if (map[y][x].height != 0)
+  *(p + 1) = dd_height_char(map[y][x].height);
     }
     *(p++) = '\n';
     *p = 0;
@@ -6872,8 +6916,10 @@ int   load_switch(int n, int sx, int sy, int f)
       wbuf[0] = (char) (swtd[cn][lpt].di >> 8);
       wbuf[1] = (char) (swtd[cn][lpt++].di & 0xff);
       wbuf[2] = '\0';
-      if (i == 1)
+      if (i == 1) {
         map[yy][xx].tip = ((map[yy][xx].tip & (TCLEAR ^ T_ROOF)) | set_dd(wbuf));
+        map[yy][xx].height = dd_height_of(wbuf);
+      }
       else {
         map[yy][xx].surface = set_dd(wbuf);
         map[yy][xx].tip |= T_SURFACE;
@@ -6890,8 +6936,10 @@ int   load_switch(int n, int sx, int sy, int f)
       p = swtd[cn][lpt++].dp;
       j = swtd[cn][lpt++].di;
       for(; *p != '\0' && yy < MAX_Y-2 ; yy++)
-        for(i = 0; *p != '\0' && i < j && xx+i < MAX_X-2; p += 2 , i++)
+        for(i = 0; *p != '\0' && i < j && xx+i < MAX_X-2; p += 2 , i++) {
           map[yy][xx+i].tip = ((map[yy][xx+i].tip & (TCLEAR ^ T_ROOF)) | set_dd(p));
+          map[yy][xx+i].height = dd_height_of(p);
+        }
       snprintf(wbuf, sizeof(wbuf),"#remap\n");
       write_companion(n, 0, wbuf, 0);
       break;
