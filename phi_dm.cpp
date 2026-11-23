@@ -262,7 +262,9 @@ static void fast_command_phase(void)
 		break;
 	  if (!*fbuf && cd[n].st != ST_ADDRESS_ && cd[n].st != ST_MENU)
 		break;
-	  if (cd[n].st == ST_ATTACK || cd[n].st == ST_CAST || (cd[n].st != ST_MSGW && cd[n].wt <= 0))
+	  if (*fbuf == '#') /* プロトコル行はバッファ内の位置によらずプロトコルとして処理する */
+		func_analyze(n, fbuf);
+	  else if (cd[n].st == ST_ATTACK || cd[n].st == ST_CAST || (cd[n].st != ST_MSGW && cd[n].wt <= 0))
 		input_analyze(n, fbuf);
 	  chr_position_switch_check(n);
 	}
@@ -694,7 +696,9 @@ int    main(int argc, char **argv)
 	  	continue;
 	  if (!*buf && cd[n].st != ST_ADDRESS_ && cd[n].st != ST_MENU) /* change for address no publish answer 20000901 */
 		continue;
-	  if (cd[n].st==ST_ATTACK || cd[n].st==ST_CAST || (cd[n].st!=ST_MSGW && cd[n].wt<=0))
+	  if (*buf == '#') /* プロトコル行はバッファ内の位置によらずプロトコルとして処理する */
+		func_analyze(n, buf);
+	  else if (cd[n].st==ST_ATTACK || cd[n].st==ST_CAST || (cd[n].st!=ST_MSGW && cd[n].wt<=0))
 		input_analyze(n, buf);
 	  continue;
 	} else {
