@@ -105,7 +105,7 @@ lua/ltablib.o: lua/ltablib.c
 	$(CC) -O2 -c -o $@ lua/ltablib.c
 
 $(PROGRAM): $(OBJS)
-	$(CXX) -o $@ $(OBJS) $(LIBS) -Wl,--no-eh-frame-hdr
+	$(CXX) -o $@ $(OBJS) $(LIBS)
 
 $(BSDARC):
 	cd $(BSDDIR); $(MAKE)
