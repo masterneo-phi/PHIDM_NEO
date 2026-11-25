@@ -101,6 +101,30 @@ int mr_rate(int n)
   return (mrp);
 }
 
+/* 条件25 (HP/MP 範囲監視) の起動 (PHIDM NEO で有効化)。
+ * 原典では HP/MP 変動時の load_switch(...,25) 呼び出しがコメントアウト
+ * されていて条件25が発火しなかった (ADD スイッチデータ追加(HP/MP変動時)
+ * 2005/11/26 Savarl.F の呼び出し側だけが無効のまま残っていた)。
+ * hp_dmg/mp_dmg はスイッチ動作の中からも呼ばれるため、条件25の評価中に
+ * 起きた HP/MP 変動で条件25が再帰的に再発火すると、条件25の動作が
+ * ダメージ/回復を与える仕掛けが無限再帰になり得る。キャラクタ単位の
+ * 評価中フラグで再入を抑止する。
+ * 用途はプレイヤーがダメージを受けた時の発動が本筋のため、評価対象は
+ * プレイヤーキャラクタ (CT_NORMAL) のみとする。NPC の HP/MP 変動では
+ * 評価自体を行わない。 */
+static char sw25_in_eval[MAX_NTTYS];
+
+static void check_switch25(int n)
+{
+  if (n < 0 || n >= MAX_NTTYS || cd[n].type != CT_NORMAL)
+    return;  /* プレイヤーキャラクタのみ */
+  if (sw25_in_eval[n])
+    return;
+  sw25_in_eval[n] = 1;
+  load_switch(n, cd[n].x, cd[n].y, 25);
+  sw25_in_eval[n] = 0;
+}
+
 /* 戻り値: 0 = 生存、1 = 死亡 (dead() 済み)、2 = 復活処理へ (raise_dead() 呼び出し側)。
  * f == 1 のとき最大 HP の成長判定と死亡判定を行い、f == 2 のとき
  * 最大 MP の成長判定 (魔法バースト) を行う。f == 2 の成長式は
@@ -117,7 +141,7 @@ static int hp_dmg_body(int n, int p, int f)
   if (cd[n].hp < 0)
     cd[n].hp = 0;
 
-/*  load_switch(n,cd[n].x,cd[n].y,25); ADD スイッチデータ追加(HP/MP変動時) 2005/11/26 Savarl.F */
+  check_switch25(n);  /* 条件25 (HP変動時)。原典の呼び出し位置のまま有効化 */
 
   /* change for sheil cheat 20000522 bug fix 20000623 */
   if (cd[n].mhp > 0 || (cd[n].exp < 99999999 && n < MAX_NTTYS)) {
@@ -197,7 +221,7 @@ int mp_dmg(int n, int p, int f)
   if (cd[n].mp < 0)
     cd[n].mp = 0;
 
-/* load_switch(n,cd[n].x,cd[n].y,25); ADD スイッチデータ追加(HP/MP変動時) 2005/11/26 Savarl.F */
+  check_switch25(n);  /* 条件25 (MP変動時)。原典の呼び出し位置のまま有効化 */
 
   /* change for sheil cheat 20000522 bug fix 20000623 */
   if (cd[n].mmp > 0 || (cd[n].exp < 99999999 && n < MAX_NTTYS)) {
