@@ -396,7 +396,9 @@ const FormatSpec kFormatSpecs[] = {
  * 対応表に無い %書式 は '%' だけが消え、直後の文字はそのまま出る。 */
 char *dmprintf(int n, int m, char *buf, int len, char *frm, ...)
 {
-  if (buf == NULL || frm == NULL || n < 0 || m < 0 || len <= 0)
+  /* n / m がキャラ数の範囲外だとハンドラが cd[] の外を引く (c-bugs 4-53) */
+  if (buf == NULL || frm == NULL || n < 0 || m < 0 || len <= 0
+      || n >= MAX_NTTYS + MAX_ENEMIES || m >= MAX_NTTYS + MAX_ENEMIES)
     return NULL;
 
   va_list argp;

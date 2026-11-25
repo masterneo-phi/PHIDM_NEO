@@ -450,7 +450,7 @@ int charge_appear(int n, ItemData *id)
 
   /* m は一致した定義の数合計だが、この後使われない (元のまま)。 */
   k = m = 0;
-  for (j = 0; j < max_enemy; j++) {
+  for (j = 0; j < max_enemy && j < MAX_ENEMIES; j++) { /* cbuf は MAX_ENEMIES 要素。max_enemy がそれを超える phi.ed では範囲外になる (c-bugs 4-60/4-26) */
     if ((ed_o[j].apc == 3) && ed_o[j].apnm == id->name) {
       cbuf[j] = -1;
       m += ed_o[j].nm;    /* 数合計 */
@@ -466,7 +466,7 @@ int charge_appear(int n, ItemData *id)
     return (0);
   }
   for (j = MAX_NTTYS; j < enmax; j++) {
-    if ((cd[j].et >= 0) && cbuf[cd[j].et]) {
+    if ((cd[j].et >= 0) && cd[j].et < MAX_ENEMIES && cbuf[cd[j].et]) {
       /* 実体があれば消滅させる (戻り値は使わない)。 */
       clear_enemy_instance(j);
       cd[j].wt = fsps(80, ed_o[cd[j].et].apt, 990000);
@@ -482,7 +482,7 @@ int charge_disappear(int n, ItemData *id)
   int    j, k;
   std::array<int, MAX_ENEMIES> cbuf;
 
-  for (j = 0; j < max_enemy; j++) {
+  for (j = 0; j < max_enemy && j < MAX_ENEMIES; j++) { /* cbuf は MAX_ENEMIES 要素。max_enemy がそれを超える phi.ed では範囲外になる (c-bugs 4-60/4-26) */
     if ((ed_o[j].apc == 3) && ed_o[j].apdm == id->name) {
       cbuf[j] = -1;
     } else {
@@ -491,7 +491,7 @@ int charge_disappear(int n, ItemData *id)
   }
   k = 0;
   for (j = MAX_NTTYS; j < enmax; j++) {
-    if ((cd[j].et >= 0) && cbuf[cd[j].et]) {
+    if ((cd[j].et >= 0) && cd[j].et < MAX_ENEMIES && cbuf[cd[j].et]) {
       if (clear_enemy_instance(j))
         k++;
       cd[j].wt = 0;
@@ -519,6 +519,9 @@ void effect_trap(int n)
 			md.fn = (*id)->id.fn;
 			md.is_inherence = 1;
 			md.extension = nullptr;
+			/* cd[0] のレベルは罠の間だけ 0 にし、終わったら戻す。
+			   書き換えたままにすると以降ずっと 0 になる (c-bugs 4-10)。 */
+			int dm_wlv = cd[0].lv[LV_WIZARD];
 			cd[0].lv[LV_WIZARD] = 0; /* 使用者のレベルに依存しない… */
 			/* md.effect は各 case で設定してから使う。いずれの case にも
 			 * 一致しなければ読まれない。 */
@@ -534,13 +537,13 @@ void effect_trap(int n)
 				case EF_MINEHP:
 					md.effect = EF_EXPLODE;
 					mg_explode(0,&md,cd[n].x,cd[n].y,0,1);
-				/* break が無いため EF_MINEMP へ落ち、両方の爆発が起きる。
-				 * 元のまま残す。 */
+					break;  /* EF_MINEMP へ落とさない (c-bugs 1-5) */
 				case EF_MINEMP:
 					md.effect = EF_MEXPLODE;
 					mg_explode(0,&md,cd[n].x,cd[n].y,4,1);
 					break;
 			}
+			cd[0].lv[LV_WIZARD] = dm_wlv;
 		    if((*id)->id.CHARGE>0){
 		        if(--((*id)->id.CHARGE)<=0){
 			        id2 = (*id);

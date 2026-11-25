@@ -153,10 +153,9 @@ int set_property(char *src, char *dst, int dsize, char *property, char *value)
             SKIP_SPACE(bp);
             for (; bp < src && dsize > 1; *dst++ = *bp++, --dsize) {
             }
-            /* 区切りの空白を入れる。何も写していないとき (dsize が
-             * はじめから 1 の場合) は dst の1つ前を読むことになる
-             * が、従来コードと同じ式のままにしてある。 */
-            if (*(dst - 1) != ' ') {
+            /* 区切りの空白を入れる。何も写していないときは
+             * dst の1つ前を読まない (c-bugs 4-59)。 */
+            if (dst != b2 && *(dst - 1) != ' ') {
                 *dst++ = ' ';
                 --dsize;
             }

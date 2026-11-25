@@ -149,8 +149,9 @@ static int hp_dmg_body(int n, int p, int f)
         && (is_kill_master || cd[n].exp < 99999999)) {
       /* 魔法バースト */
       if (cd[n].mmp < cd[n].lv[LV_WIZARD]) {
-        c = -p * 25 * (cd[n].mhp + cd[n].hp)
-          / (cd[n].mhp * cd[n].hp + 1);
+        /* 確率は MP 系の値で計算する (f==1 側の HP 式のコピーのままだった。c-bugs 1-10) */
+        c = -p * 25 * (cd[n].mmp + cd[n].mp)
+          / (cd[n].mmp * cd[n].mp + 1);
         if (PER_DICE < c) {
           cd[n].mmp++;
         }
@@ -643,6 +644,9 @@ int dice(int n)
 
 int lv_dice(int lv)
 {
+  /* lv = -1 では lv + 1 が 0 になりゼロ除算 (SIGFPE) になる (c-bugs 4-33) */
+  if (lv < 0)
+    return (0);
   /* RAND % (lv + 1) を 100 で割るため、lv が 99 以下だと常に 0。 */
   int sum = RAND % (lv + 1) / 100;
   return (sum);
@@ -764,7 +768,7 @@ int    ecn(int n, int se_t)
 int sep_calc(int n, ItemData *id)
 {
   int    sep;
-  MagicData md;
+  MagicData md = {};  /* is_inherence 等、ここで設定しない要素を mdp_calc が読む (c-bugs 4-30) */
 
   if ((id->type & IT_MASK) == IT_FOOD)
     return 0;      /* food は SE に対応するものがない */
@@ -879,7 +883,7 @@ int    analyze_numbers(int number[], int size, char *buf)
       while ((*p < '0' || '9' < *p) && *p != '\0') p++;
       if (*p == '\0') {                        /* "from -\0" */
         if (i == 0) number[i++] = 1;
-        number[i++] = -1;
+        if (i < size) number[i++] = -1;  /* 満杯時に size の先へ書かない (c-bugs 4-27) */
         return i;
       } else {
         for (to = 0; '0' <= *p && *p <= '9'; p++)
@@ -956,6 +960,8 @@ int    analyze_hexnumbers(int number[], int size, char *buf)
       num = to + 1;
     }
   }
-  number[i++] = -1;
-  return i;
+  /* 終端は呼び出し側の +1 枠 (ter[257] に size=256) へ書くが、
+     戻り値が size を超えると呼び出し側が ter[size+1] へ書いてしまう (c-bugs 4-27) */
+  number[i] = -1;
+  return (i < size ? i + 1 : i);
 }

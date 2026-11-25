@@ -560,7 +560,7 @@ void spell_analyze(int n, char *spell)
     *spell = ftoupper(*spell);
     i = (int) std::strlen(spell);
     k = l = m = 0;
-    for (j = 0; j < max_enemy; j++) {
+    for (j = 0; j < max_enemy && j < MAX_ENEMIES; j++) { /* cbuf は MAX_ENEMIES 要素。max_enemy がそれを超える phi.ed では範囲外になる (c-bugs 4-60/4-26) */
       if (ed_o[j].apc == 3) {
   if ((!std::strncmp(spell, ed_o[j].name, i) &&
        (ed_o[j].name[i] == '\0' || ed_o[j].name[i] == ' ')) &&
@@ -634,7 +634,7 @@ void spell_analyze(int n, char *spell)
       if (m < 1)
   m = 1;
     }
-    for (j = 0; j < max_enemy; j++) { /* 発生位置 */
+    for (j = 0; j < max_enemy && j < MAX_ENEMIES; j++) { /* 発生位置 */
       if (cbuf[j]) {
   ed_o[j].ix = cd[n].x;
   ed_o[j].iy = cd[n].y;
@@ -642,7 +642,7 @@ void spell_analyze(int n, char *spell)
     }
     o = k = 0;
     for (j = MAX_NTTYS; j < enmax; j++) {
-      if ((cd[j].et >= 0) && cbuf[cd[j].et]) {
+      if ((cd[j].et >= 0) && cd[j].et < MAX_ENEMIES && cbuf[cd[j].et]) {
   if (cd[j].type == CT_NOEXIST) {
     ebuf[k++] = j;  /* 存在しない */
   } else {
@@ -669,7 +669,7 @@ void spell_analyze(int n, char *spell)
       m = k;
     for (i = 0; i < m; i++) {
       j = ebuf[i];
-      if ((cd[j].et >= 0) && cbuf[cd[j].et]) {
+      if ((cd[j].et >= 0) && cd[j].et < MAX_ENEMIES && cbuf[cd[j].et]) {
   if (cd[j].type != CT_NOEXIST) { /* 消滅 */
     for (i = 0; i < MAX_ITEMS; i++) {
       delete_item(&(cd[j].id[i]));
@@ -692,7 +692,7 @@ void spell_analyze(int n, char *spell)
 	*spell = ftoupper(*spell);
     i = std::strlen(spell);
     k = l = 0;
-    for (j = 0; j < max_enemy; j++) {
+    for (j = 0; j < max_enemy && j < MAX_ENEMIES; j++) { /* cbuf は MAX_ENEMIES 要素。max_enemy がそれを超える phi.ed では範囲外になる (c-bugs 4-60/4-26) */
       if (ed_o[j].apc == 3) {
   if (((ed_o[j].apcode == 0) && (i != 0) &&
        (!std::strncmp(spell, ed_o[j].name, i) &&
@@ -763,7 +763,7 @@ void spell_analyze(int n, char *spell)
     }
     i = 0;
     for (j = MAX_NTTYS; j < enmax; j++) {
-      if ((cd[j].et >= 0) && (cbuf[cd[j].et] != 0)) {
+      if ((cd[j].et >= 0) && cd[j].et < MAX_ENEMIES && (cbuf[cd[j].et] != 0)) {
         /* add for controlable sammon 20000614 */
         if((i = cd[j].vf2) >= 0 && i != n && l) {
           k = (7 * cd[n].lv[LV_WIZARD] + 7 * cd[n].lv[LV_CREATER]
@@ -856,7 +856,16 @@ void spell_analyze(int n, char *spell)
 		SKIP_SPACE(spell);
 		SKIP_TO_SPACE(spell);
 		clear_chr(i);
-		sscanf(spell,"%i %i",&(cd[i].x),&(cd[i].y));
+		/* 読めた2値が地図の範囲内の時だけ移す。範囲外だと set_chr で
+		   配列の外へ書く (c-bugs 4-58) */
+		{
+		  int nx, ny;
+		  if (sscanf(spell,"%i %i",&nx,&ny) == 2
+		      && nx >= 0 && nx < MAX_X && ny >= 0 && ny < MAX_Y) {
+		    cd[i].x = nx;
+		    cd[i].y = ny;
+		  }
+		}
         set_chr(i);
         dmprintf(i, 0, buf, sizeof(buf),DMM_TRANS_OTHER);
         write_companion(n, i, buf, 0);
@@ -1860,7 +1869,7 @@ void wizard_eye_f(int n, int f)
 #endif
   /* add for comment distartion 20000927 */
   k = cmtstrcpy(nbuf.data(), nbuf.size(),cd[n].name,20);
-  nstr(sp1.data(),' ',20-k);
+  nstr(sp1.data(),' ',(20-k > 18 ? 18 : 20-k));  /* sp1 は 19 バイト (c-bugs 4-34) */
 #ifndef AREA_SUB
   l = mgstrlen(fld[ar1].name);
 #else
@@ -1897,11 +1906,11 @@ void wizard_eye_f(int n, int f)
     if (cd[i].type) {
       ar2 = (int) (unsigned int) map[cd[i].y][cd[i].x].area;
 #ifdef AREA_SUB
-      ars = (int) (unsigned int) map[cd[n].y][cd[n].x].area_sub;
+      ars = (int) (unsigned int) map[cd[i].y][cd[i].x].area_sub;  /* 自分 n でなく相手 i (c-bugs 1-13) */
 #endif
       /* add for comment distartion 20000927 */
       k = cmtstrcpy(nbuf.data(), nbuf.size(),cd[i].name,20);
-      nstr(sp1.data(),' ',20-k);
+      nstr(sp1.data(),' ',(20-k > 18 ? 18 : 20-k));  /* c-bugs 4-34 */
 #ifndef AREA_SUB
       l = mgstrlen(fld[ar2].name);
 #else

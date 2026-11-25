@@ -182,9 +182,10 @@ int get_token(char **p,int *lpt,ATOM *abf)
 				return (-1);
 			if (get_arrayaffix(p,lpt,abf) < 0)
 				return (-1);
-			/* 所持魔法でも要素は get_itemelement で読む
-			 * (get_magicelement ではない)。従来の挙動。 */
-			return (get_itemelement(p,lpt,abf));
+			/* 所持魔法の要素は魔法側のオフセットで読む。以前は
+			 * get_itemelement (道具側) で読んでおり、.fn が別の
+			 * フィールドを指し、.effect はエラーになっていた (c-bugs 1-8)。 */
+			return (get_magicelement(p,lpt,abf));
 		} else if (!std::strncmp(*p,"magic",5)) {	/* 条件合致魔法 */
 			(*p) += 5;
 			a.type = VAR_MAGIC;
@@ -829,14 +830,15 @@ int calc_expression(int n,int *lpt,ATOM *abf)
 						a1.VAL *= a2.VAL;
 						break;
 					case '/':
-						if (a2.VAL == 0) {
+						/* INT_MIN / -1 も x86 では SIGFPE になる (c-bugs 4-48) */
+						if (a2.VAL == 0 || (a1.VAL == (-2147483647 - 1) && a2.VAL == -1)) {
 							log_error(ERRM_DEVIDE_ZERO);
 							return (-1);
 						}
 						a1.VAL /= a2.VAL;
 						break;
 					case '%':
-						if (a2.VAL == 0) {
+						if (a2.VAL == 0 || (a1.VAL == (-2147483647 - 1) && a2.VAL == -1)) {  /* c-bugs 4-48 */
 							log_error(ERRM_DEVIDE_ZERO);
 							return (-1);
 						}
@@ -1030,7 +1032,9 @@ int calc_expression(int n,int *lpt,ATOM *abf)
 				a1.kind = EXP_CONST;
 				switch (a1.NAME) {
 					case 'p':
-						std::sscanf(cd[n].str,"%i",&(a1.VAL));
+						/* 数値でない入力では a1.VAL が前のトークンの残りになる (c-bugs 4-49) */
+						if (std::sscanf(cd[n].str,"%i",&(a1.VAL)) != 1)
+							a1.VAL = 0;
 						break;
 					case 't':
 						a1.VAL = tax;

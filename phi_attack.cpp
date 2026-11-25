@@ -188,7 +188,7 @@ void   attack_other(int n)
 #ifndef OLDWEAPON
     /* add for long range spear 20000518 */
     if (spear && !(pmap->tip & T_SPEARBARRIER)
-     && y+w*2 >= 0 && x+v*2 >= 0 && y+w*2 <= MAX_Y && x+v*2 <= MAX_X) {
+     && y+w*2 >= 0 && x+v*2 >= 0 && y+w*2 < MAX_Y && x+v*2 < MAX_X) {  /* 座標 == MAX は配列の外 (c-bugs 4-8) */
 	pmap = &(map[y+w*2][x+v*2]);
     for (i = 0; i < MAX_CHRS_INONE; i++) {
       if ((j = pmap->chr[i] - 1) < 0)
@@ -208,7 +208,7 @@ void   attack_other(int n)
 #ifndef OLDWEAPON
     /* add for long range spear 20000518 */
     if (spear && !(pmap->tip & T_SPEARBARRIER)
-     && y-w*2 >= 0 && x-v*2 >= 0 && y-w*2 <= MAX_Y && x-v*2 <= MAX_X) {
+     && y-w*2 >= 0 && x-v*2 >= 0 && y-w*2 < MAX_Y && x-v*2 < MAX_X) {  /* c-bugs 4-8 */
 	pmap = &(map[y-w*2][x-v*2]);
       for (i = 0; i < MAX_CHRS_INONE; i++) {
         if ((j = pmap->chr[i] - 1) < 0)
@@ -228,7 +228,7 @@ void   attack_other(int n)
 #ifndef OLDWEAPON
     /* add for long range spear 20000518 */
     if (spear && !(pmap->tip & T_SPEARBARRIER)
-     && y-v*2 >= 0 && x+w*2 >= 0 && y-v*2 <= MAX_Y && x+w*2 <= MAX_X) {
+     && y-v*2 >= 0 && x+w*2 >= 0 && y-v*2 < MAX_Y && x+w*2 < MAX_X) {  /* c-bugs 4-8 */
 	pmap = &(map[y-v*2][x+w*2]);
     for (i = 0; i < MAX_CHRS_INONE; i++) {
       if ((j = pmap->chr[i] - 1) < 0)
@@ -248,7 +248,7 @@ void   attack_other(int n)
 #ifndef OLDWEAPON
     /* add for long range spear 20000518 */
     if (spear && !(pmap->tip & T_SPEARBARRIER)
-     && y+v*2 >= 0 && x-w*2 >= 0 && y+v*2 <= MAX_Y && x-w*2 <= MAX_X) {
+     && y+v*2 >= 0 && x-w*2 >= 0 && y+v*2 < MAX_Y && x-w*2 < MAX_X) {  /* c-bugs 4-8 */
 	pmap = &(map[y+v*2][x-w*2]);
     for (i = 0; i < MAX_CHRS_INONE; i++) {
       if ((j = pmap->chr[i] - 1) < 0)
@@ -927,24 +927,29 @@ if (attack_effect == 1) { /* 新攻撃効果設定 added by NEO 2011/12/6 */
     if (PER_DICE < ((cd[as].lv[LV_FIGHTER] + skill_w) / 1000) * (1 + special / 20)/(friend_attack+1))
 #endif
     {
+      int wi;
       dmprintf(ds, as, buf.data(), buf.size(),DMM_RAPIER_DROP);
       write_companion(ds, as, buf.data(), 0);
-      for (i = 0; i < MAX_ITEMS; i++)
-  if (&(cd[ds].id[i]) == cd[ds].weq)
+      /* 道具探しは別の変数で行う。i はダメージの結果 (倒したか) を
+         持っており、使い回すと直後の反撃判定が変わる (c-bugs 4-7)。 */
+      for (wi = 0; wi < MAX_ITEMS; wi++)
+  if (&(cd[ds].id[wi]) == cd[ds].weq)
     break;
       if (degrade(cd[ds].weq)==2) {
   dmprintf(ds, as, buf.data(), buf.size(),DMM_BROKEN_WPN);
   write_companion(ds, as, buf.data(), 0);
-      } else if (i < MAX_ITEMS)
-  save_id(ds, i, 1);
+  /* 壊れた武器を weq が指したままにしない (c-bugs 4-7) */
+  cd[ds].weq = nullptr;
+  cd[ds].wsep = 0;
+      } else if (wi < MAX_ITEMS)
+  save_id(ds, wi, 1);
       item_gc(ds);
       set_fn(ds);
     }
   }
 #endif
-  /* ここの i は本来ダメージの結果だが、直前のスティンガー処理が
-     アイテム探しの添字に i を使い回すため、tp == WT_STINGER の
-     ときは中身がそちらに差し替わっている (元のまま)。 */
+  /* ここの i はダメージの結果。スティンガー処理は wi を使うため、
+     tp == WT_STINGER でも i は差し替わらない (c-bugs 4-7 で修正)。 */
   if (!i && wtp == IT_WEAPON && cd[ds].type < CT_MAGICAL
       && 10 + lv_dice(cd[ds].lv[LV_FIGHTER]) < PER_DICE + lv_dice(cd[as].lv[LV_FIGHTER])) {
     dmg = frand(cd[as].weq->ATP / 2 + 1) + (cd[as].weq->ATP / 2 + 1);
@@ -1154,7 +1159,9 @@ if (attack_effect == 1) { /* 新攻撃効果設定 added by NEO 2011/12/6 */
   write_companion(ds, as, buf.data(), 0);
   }
       }
-      if (CN_BLIND(ds) > 0) {
+      /* 盲目は CN_BLIND < 0 の時だけ「既に盲目」。AE_BLIND と揃え、
+         通常視界 (0) でもかかるようにする (c-bugs 1-3)。 */
+      if (CN_BLIND(ds) >= 0) {
   CN_BLIND(ds) = ((int) (dmg / 5) + 3) * (-1);
   dmprintf(as,ds, buf.data(), buf.size(),DMM_BLIND_BY_ATTACK
     , dmg);

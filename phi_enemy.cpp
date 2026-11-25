@@ -1055,6 +1055,8 @@ int auto_action(int n)
         cd[n].vf = 0;
         return (0);
       }
+      if (cd[n].id[i].name == nullptr)
+        return (0);  /* get に失敗していたら何もしない (c-bugs 4-45) */
       for (j = 0; j < MAX_ITEMS; j++) {
         if (cd[n].id[j].type == DT_NONE || i == j)
     continue;
@@ -1144,6 +1146,8 @@ int auto_action(int n)
         select_armor(n);
         return (0);
       }
+      if (cd[n].id[i].name == nullptr)
+        return (0);  /* get に失敗していたら何もしない (c-bugs 4-45) */
       for (j = 0; j < MAX_ITEMS; j++) {
         if ((cd[n].id[j].type & IT_MASK) != IT_ARMOR || i == j)
     continue;
@@ -1192,6 +1196,8 @@ int auto_action(int n)
         cd[n].vf = 0;
         return (0);
       }
+      if (cd[n].id[i].name == nullptr)
+        return (0);  /* get 失敗時。mgstrlen(nullptr) で落ちる (c-bugs 4-45) */
       if(cd[n].id[i].CHARGE==0)
         i = mgstrlen(cd[n].id[i].name) * 99;
       else
@@ -2294,8 +2300,8 @@ int    use_charged_item_check(int n, int m)
       return 1;
     }
   }
-  /* 未設定の判定は !ff (magic_check の ff == -1 と非対称で、添字 0 の
-     候補も未設定扱いになる。元のまま) */
+  /* 未設定の判定は ff == -1 (magic_check と同じ。!ff だと添字 0 の
+     候補まで未設定扱いになるため c-bugs 1-14 で修正) */
   for(i = MAX_ITEMS-1, ff = -1; i >= 0; i--)/*上の方ほど使われやすくするため*/
     if((cd[n].id[i].type & IT_MASK) == IT_CHARGE
        && cd[n].id[i].active_time !=ULONG_MAX
@@ -2303,7 +2309,7 @@ int    use_charged_item_check(int n, int m)
        && cd[n].id[i].SE != SE_HITISUSE
        && (!is_need_charge_time || cd[n].id[i].active_time <= time(nullptr))
        && is_effective_effect(n, m, cd[n].id[i].UE, cd[n].id[i].fn, f))
-      if(!ff || PER_DICE <50)
+      if(ff == -1 || PER_DICE <50)
   ff = i;
   if(ff < 0)
     return -1;
@@ -2323,6 +2329,9 @@ int    view_location(int n, int j, int *vx, int *vy)
 /* 先んじて set_view(n) の実行が必要 */
 {
   int xx, yy;
+
+  /* trace = -1 のまま呼ばれる経路があるため、ここで範囲を確かめる (c-bugs 4-46) */
+  if (j < 0 || j >= MAX_NTTYS + MAX_ENEMIES) return 0;
 
   /* view 位置への変換 */
   xx= -py[cd[n].d] * (cd[j].x-cd[n].x) + px[cd[n].d] * (cd[j].y-cd[n].y);
@@ -2389,6 +2398,9 @@ int    attack_angry(int n, int mc)
       input_analyze(n, (char *)"turn l");
       return 1;
     }
+    /* damaged が 0〜3 以外 (攻撃されていない等) はここで終える。
+       このまま視界内処理へ進むと vx / vy が未初期化のまま使われる (c-bugs 4-44) */
+    return 0;
   }
 
   /* 視界内 */

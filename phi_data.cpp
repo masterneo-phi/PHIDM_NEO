@@ -261,9 +261,12 @@ FILE  *efopen(char *fnm, char *mod)
 {
   FILE *fp;
 
-  lcnt = 0;
   CPYSTR(pfname, fnm);
   fp = fopen(fnm, mod);
+  /* 開けた時だけ「読み込み中」にする。失敗時も 0 にすると、
+     signal_trap がファイルアクセス中と誤認する (c-bugs 4-13)。 */
+  if (fp != nullptr)
+    lcnt = 0;
 #ifdef DEBUG
   if(fp!=nullptr){
     snprintf(debug_buf, sizeof(debug_buf),"efopen:  (%d)(name=%s)(mode=%s)",fileno(fp),fnm,mod);
@@ -845,7 +848,10 @@ int    authorize(char *password)
       continue;
     i++;
     if (!std::strcmp(gatedata[cn][1].dp, password))  /* match */
-      return (gatedata[cn][2].di);    /* authorize it */
+      /* 番号なし :P の一致は 'P' を返す。-1 のままだと「:P 行が無い」
+         場合と区別が付かず、shift_gate の P フラグ行とも一致しない
+         (c-bugs 4-62)。番号付き :P は従来どおりその番号を返す。 */
+      return (gatedata[cn][2].di == -1 ? 'P' : gatedata[cn][2].di);
   }
   if (i == 0)
     return (-1);
@@ -1174,7 +1180,8 @@ int    load_cd(int n, int fl)
       log_print(debug_buf);
 #endif
       SKIP_SPACE(p);
-      for (i = 0; i < 31 && (!fisspace(*p) || !fisspace(*(p + 1)));
+      /* 行末の NUL を越えて読まないよう、先に NUL を確かめる (c-bugs 4-17) */
+      for (i = 0; i < 31 && *p != '\0' && (!fisspace(*p) || !fisspace(*(p + 1)));
      name[i++] = *(p++));
       for (; i <= 31; name[i++] = 0);
       cd[n].name = findstr(name.data());
@@ -1286,7 +1293,9 @@ int    load_cd(int n, int fl)
   case 'C': /* コンディション復帰 */
       SKIP_SPACE(p);
       k = decimal_load(2,&p);
-      sscanf(p,"%i",&(cd[n].cn[k]));
+      /* 番号が範囲外だと cd[n] の後続フィールドへ書いてしまう (c-bugs 4-17) */
+      if (k >= 0 && k < MAX_CN)
+        sscanf(p,"%i",&(cd[n].cn[k]));
       break;
   case 'A': /* 新メールアドレス 20000906 */
       SKIP_SPACE(p);
@@ -1745,6 +1754,7 @@ int    get_cd(int n, char *data, char *ip)
       cd[n].md[i].effect = EF_NONE;
       cd[n].md[i].fn = FN_NONE;
       cd[n].md[i].is_inherence = 0;
+      cd[n].md[i].extension = nullptr;  /* load_cd と揃える (c-bugs 1-9) */
     }
     for (i = 0; i < MAX_ITEMS; i++)
       delete_item(&(cd[n].id[i]));
@@ -1891,7 +1901,7 @@ void   put_cd(int n, int m, char *p)
     ,cd[0].align, cd[0].mhp, cd[0].hp, cd[0].mmp, cd[0].mp
     ,cd[0].gp, cd[0].exp, cd[0].ix, cd[0].iy, cd[0].d
     ,cd[0].last, (cd[0].formatA != nullptr ? cd[0].formatA : ""));
-  for (j = 23; buf[j] != '\n'; j++)
+  for (j = 23; j < 255 && buf[j] != '\n'; j++)  /* 改行が無い行で buf の外を読まない (c-bugs 4-18) */
     sum += buf[j];
   check_write(m, buf.data());
   for (i = 0; i < MAX_MAGICS; i++) {
@@ -1900,7 +1910,7 @@ void   put_cd(int n, int m, char *p)
     snprintf(buf.data(), buf.size(),"#chr-D %-15s M%02i:", cd[0].uid, i);
     save_spell(&(cd[0].md[i]), buf.data() + 27,buf.size()-27);
     /* 転送されるキャラクタには inherent な magic は持ってないはず */
-    for (j = 23; buf[j] != '\n'; j++)
+    for (j = 23; j < 255 && buf[j] != '\n'; j++)  /* 改行が無い行で buf の外を読まない (c-bugs 4-18) */
       sum += buf[j];
     check_write(m, buf.data());
   }
@@ -1909,7 +1919,7 @@ void   put_cd(int n, int m, char *p)
       continue;
     snprintf(buf.data(), buf.size(),"#chr-D %-15s I%02i:", cd[0].uid, i);
     save_item(&(cd[0].id[i]), buf.data() + 27, buf.size()-27);
-    for (j = 23; buf[j] != '\n'; j++)
+    for (j = 23; j < 255 && buf[j] != '\n'; j++)  /* 改行が無い行で buf の外を読まない (c-bugs 4-18) */
       sum += buf[j];
     check_write(m, buf.data());
   }
@@ -2006,7 +2016,7 @@ int    load_sav(int n)
       SKIP_SPACE(p);
       for(i=0;i<SFLAG_MAX;i++) {
         if (*(p++) == '1') {
-            cd[n].pflag |= (1 << (16+i));
+            cd[n].pflag |= (1UL << (16+i));  /* int のままでは i=15 で符号拡張し上位ビットまで立つ (c-bugs 3-1) */
         }
       }
       break;
@@ -2014,7 +2024,14 @@ int    load_sav(int n)
     SKIP_SPACE(p);
     i = hexadecimal_load_arbitrarily(&p);
     if (i >= 0 && i < SVAR_MAX) {
-        cd[n].svar[i] = decimal_load_arbitrarily(&p);
+        /* 保存側は %i で負値も書くが decimal_load_arbitrarily は
+           符号を読めず -1 になるため、符号をここで処理する (c-bugs 4-12) */
+        int sgn = 1, v;
+        SKIP_SPACE(p);
+        if (*p == '-') { sgn = -1; p++; }
+        else if (*p == '+') { p++; }
+        v = decimal_load_arbitrarily(&p);
+        cd[n].svar[i] = (v < 0 ? v : sgn * v);
     }
     break;
   default:
@@ -2131,7 +2148,7 @@ int    save_sav(int n)
         CPYSTR(buf, ":F ");
         p = buf + 3;
         for(i=0;i<SFLAG_MAX;i++) {
-            *(p++) = (cd[n].pflag & (1 << (16+i))) ? '1' : '0';
+            *(p++) = (cd[n].pflag & (1UL << (16+i))) ? '1' : '0';  /* c-bugs 3-1 */
         }
         *p++ = '\n';
         *p++ = '\0';
@@ -2358,7 +2375,7 @@ int    have_authority(int n,int authority,int x,int y)
            fwd |= MS_DELETE | MS_UNLOCK | MS_RESOURCE;
     }
 
-    if ((authority & MS_RESOURCE) & !(fwd & MS_RESOURCE))
+    if ((authority & MS_RESOURCE) && !(fwd & MS_RESOURCE))  /* & だと常に 0 (c-bugs 1-2) */
         dmcheck_write(n,DMM_NORSCAUTHORITY);
 
     return((authority & fwd) == authority);
@@ -2378,10 +2395,13 @@ void   load_ed_o()
   long   i, j;
   int    en;
   CHRSData sbuf[100];   /* データバッファ */
-  ItemData id;
-  MagicData md;
-  TalkData td;
-  AppData ad;
+  /* 欄不足の行では load_* が全フィールドを書かない。未初期化のまま
+     写すとゴミ (ポインタ含む) が NPC テンプレートへ入るため、ゼロで
+     初期化しておく (c-bugs 4-16)。 */
+  ItemData id = {};
+  MagicData md = {};
+  TalkData td = {};
+  AppData ad = {};
 
   if ((fp = efopen("phi.ed", "rb")) == nullptr) {
     fprintf(stderr, " Can not find enemy data file [phi.ed]. ");
@@ -2473,8 +2493,12 @@ void   load_ed_o()
     f = 0;
   continue;
       } else if (*buf.data() == '>') {
-  sbuf[i - f].sf = f;
-  f = -1;
+  /* f == -1 ('<select' が無い) の時は書かない。sbuf[i + 1] への
+     書き込みになってしまう (c-bugs 4-55)。 */
+  if (f >= 0) {
+    sbuf[i - f].sf = f;
+    f = -1;
+  }
   continue;
   /* <select ...> があると、最初の所持データの sf に */
   /* 選択対象の個数が入る。*/
@@ -2605,6 +2629,10 @@ void   load_ed_o()
   continue;
       }
 
+      /* sbuf は 100 要素で、末尾に番兵を 1 つ書く。99 個を越える
+         所持データは格納しない (c-bugs 4-55)。 */
+      if (i >= 99)
+  continue;
       p = buf.data() + 1;
       switch (*(p++)) {
       case 'M':   /* 魔法データ読み取り */
@@ -3104,7 +3132,7 @@ int    savef_id()
     snprintf(buf2.data(),buf2.size(),"%d %s",(*ip)->gp, cirunit);
     snprintf(buf.data(),buf.size(),
       ":G %03i %03i %-31s %04x %02i %c %02i %02i %02i %02i\n",
-      x, y, buf2.data(), (*ip)->id.type, (*ip)->id.wp, kFnc[(*ip)->id.fn],
+      x, y, buf2.data(), (*ip)->id.type, (*ip)->id.wp, kFnc[((*ip)->id.fn >= 0 && (*ip)->id.fn < FN_MAX) ? (*ip)->id.fn : 0],  /* fn 範囲外は kFnc の外 (c-bugs 4-31) */
       (*ip)->id.op[0], (*ip)->id.op[1], (*ip)->id.op[2], (*ip)->id.op[3]);
     fputs(buf.data(), fp);
   } else {
@@ -3508,8 +3536,8 @@ void   load_td_gate()
   for (;;) {      /* データ数調査 */
     if (efgets(buf.data(), 255, fp) == nullptr)
       break;
-    if (feof(fp))
-      break;
+    /* 最終行 (改行なし) も数える。読む段と食い違うと配列の外へ
+       書く (c-bugs 4-15)。 */
     if (buf[0] != ':')
       continue;
     switch (buf[1]) {
@@ -3658,8 +3686,8 @@ void   load_td_swt()
   ATOM   abf[ATOMBUF_SIZE];
   int    i, j, lpt, l, rsdn, rmdn, rndn;
   char  *p, *p2;
-  ItemData id;
-  MagicData md;
+  ItemData id = {};  /* 4-16 と同じくゼロ初期化 */
+  MagicData md = {};
 
   rsdn = swtn = rmdn = msgn = rndn = menun = 0;
   if ((fp = efopen("phi.swt", "r")) == nullptr) {
@@ -3669,8 +3697,7 @@ void   load_td_swt()
   for (;;) {      /* データ数調査 */
     if (efgets(buf.data(), 255, fp) == nullptr)
       break;
-    if (feof(fp))
-      break;
+    /* 最終行 (改行なし) も数える (c-bugs 4-15) */
     if (buf[0] != ':')
       continue;
     switch (buf[1]) {
@@ -3993,7 +4020,9 @@ void   load_td_swt()
     p++;
     i = lpt++;
     abf[i].di = 0;
-    while (*p != '\"') {
+    /* 閉じる '"' が無い行では行末で止める。flagno_load は行末で p を
+       進めないため、そのままだと無限ループになる (c-bugs 4-54)。 */
+    while (*p != '\"' && *p != '\0' && *p != '\n') {
       j = flagno_load(&p);
       if (j < 0 || j >= GFLAG_MAX + PFLAG_MAX + GVAR_MAX + PVAR_MAX + SVAR_MAX)
         continue;
@@ -4318,7 +4347,9 @@ void   load_td_swt()
     p++;
     i = lpt++;
     abf[i].di = 0;
-    while (*p != '\"') {
+    /* 閉じる '"' が無い行では行末で止める。flagno_load は行末で p を
+       進めないため、そのままだと無限ループになる (c-bugs 4-54)。 */
+    while (*p != '\"' && *p != '\0' && *p != '\n') {
       j = flagno_load(&p);
       if (j < 0 || j >= GFLAG_MAX + PFLAG_MAX + GVAR_MAX + PVAR_MAX + SVAR_MAX)
         continue;
@@ -4495,6 +4526,10 @@ void   load_td_swt()
     }
     rsdn++;
   }
+  /* 書式誤りで読み飛ばした :S 行の分だけ rsdn は swtn より少なく
+     なる。swtn を実際の格納数に合わせないと、末尾の未初期化
+     スロットを load_switch 等が辿って落ちる (c-bugs 4-14)。 */
+  swtn = rsdn;
   efclose(fp);
 
   return;
@@ -5069,7 +5104,7 @@ void   load_dd()
     case 'N':
       SKIP_SPACE(p);
       CPYSTR(land_name, p);
-      for (i = 0; i < 32 && land_name[i] >= ' '; i++);
+      for (i = 0; i < 32 && (unsigned char) land_name[i] >= ' '; i++);  /* CP932 の上位バイトで切らない (c-bugs 1-1) */
       land_name[i] = 0;
       break;
     case 'T':
@@ -7394,7 +7429,9 @@ int   load_switch(int n, int sx, int sy, int f)
       break;
     case 5:     /* お金をおいた時 */
       i = swtd[cn][lpt++].di;
-      sscanf(cd[n].str, "%i", &j);
+      /* 数値でない入力では j が条件番号のまま残り誤発火する (c-bugs 1-7) */
+      if (sscanf(cd[n].str, "%i", &j) != 1)
+  continue;
       if (j != i && i != 0)
   continue;
       cd[n].gp -= j;
@@ -7550,7 +7587,11 @@ int   load_switch(int n, int sx, int sy, int f)
       break;
     /* ↓ スイッチデータ追加 2005/11/26 Savarl.F */
     case 21: /* 指定NPC殺害時 */
-      if (std::strcmp(cd[cd[n].target].name, swtd[cn][lpt++].dp)) {
+      /* target の範囲と name の NULL を確かめてから比べる (c-bugs 4-24) */
+      p = swtd[cn][lpt++].dp;
+      if (cd[n].target < 0 || cd[n].target >= MAX_NTTYS + MAX_ENEMIES
+       || cd[cd[n].target].name == nullptr || p == nullptr
+       || std::strcmp(cd[cd[n].target].name, p)) {
         continue; /* 条件外のNPC殺害 */
       }
       break;
@@ -7570,30 +7611,36 @@ int   load_switch(int n, int sx, int sy, int f)
       wbuf[0] = (char) (swtd[cn][lpt].di >> 8);
       wbuf[1] = (char) (swtd[cn][lpt++].di & 0xff);
       wbuf[2] = '\0';
-      if (i == 1) {
-        map[yy][xx].tip = ((map[yy][xx].tip & (TCLEAR ^ T_ROOF)) | set_dd(wbuf));
-        map[yy][xx].height = dd_height_of(wbuf);
-      }
-      else {
-        map[yy][xx].surface = set_dd(wbuf);
-        map[yy][xx].tip |= T_SURFACE;
+      /* 座標が地図の外なら地形は変えない (c-bugs 4-57) */
+      if (xx >= 0 && xx < MAX_X && yy >= 0 && yy < MAX_Y) {
+        if (i == 1) {
+          map[yy][xx].tip = ((map[yy][xx].tip & (TCLEAR ^ T_ROOF)) | set_dd(wbuf));
+          map[yy][xx].height = dd_height_of(wbuf);
+        }
+        else {
+          map[yy][xx].surface = set_dd(wbuf);
+          map[yy][xx].tip |= T_SURFACE;
+        }
       }
       snprintf(wbuf, sizeof(wbuf),"#remap\n");
       write_companion(n, 0, wbuf, 0);
       break;
     case 24:
-      map[yy][xx].tip &= ~T_SURFACE;
+      if (xx >= 0 && xx < MAX_X && yy >= 0 && yy < MAX_Y)
+        map[yy][xx].tip &= ~T_SURFACE;
       snprintf(wbuf, sizeof(wbuf),"#remap\n");
       write_companion(n, 0, wbuf, 0);
       break;
     case 11:   /* 広範囲地形変化 added by Qajin 20000102 change 20001130 */
       p = swtd[cn][lpt++].dp;
       j = swtd[cn][lpt++].di;
-      for(; *p != '\0' && yy < MAX_Y-2 ; yy++)
-        for(i = 0; *p != '\0' && i < j && xx+i < MAX_X-2; p += 2 , i++) {
-          map[yy][xx+i].tip = ((map[yy][xx+i].tip & (TCLEAR ^ T_ROOF)) | set_dd(p));
-          map[yy][xx+i].height = dd_height_of(p);
-        }
+      /* 始点が地図の外 (負値含む) なら何もしない (c-bugs 4-57) */
+      if (xx >= 0 && yy >= 0)
+        for(; *p != '\0' && yy < MAX_Y-2 ; yy++)
+          for(i = 0; *p != '\0' && i < j && xx+i < MAX_X-2; p += 2 , i++) {
+            map[yy][xx+i].tip = ((map[yy][xx+i].tip & (TCLEAR ^ T_ROOF)) | set_dd(p));
+            map[yy][xx+i].height = dd_height_of(p);
+          }
       snprintf(wbuf, sizeof(wbuf),"#remap\n");
       write_companion(n, 0, wbuf, 0);
       break;
@@ -7785,7 +7832,7 @@ int   load_switch(int n, int sx, int sy, int f)
     case 7:     /* クリーチャー発生スイッチ */
       CPYSTR(wbuf, swtd[cn][lpt++].dp);
       i = std::strlen(wbuf);
-      for (j = 0; j < max_enemy; j++) {
+      for (j = 0; j < max_enemy && j < MAX_ENEMIES; j++) { /* cbuf は MAX_ENEMIES 要素。max_enemy がそれを超える phi.ed では範囲外になる (c-bugs 4-60/4-26) */
   if (ed_o[j].apc == 2 &&
       !std::strncmp(ed_o[j].name, wbuf, i) &&
       (ed_o[j].name[i] == '\0' || ed_o[j].name[i] == ' ')) {
@@ -7795,7 +7842,7 @@ int   load_switch(int n, int sx, int sy, int f)
   }
       }
       for (j = MAX_NTTYS; j < enmax; j++) {
-  if ((cd[j].et >= 0) && cbuf[cd[j].et] != 0) {
+  if ((cd[j].et >= 0) && cd[j].et < MAX_ENEMIES && cbuf[cd[j].et] != 0) {
     if (cd[j].type == CT_NOEXIST) { /* 発生 */
       if (cd[j].ec == 0) {
         cd[j].wt = fsps(80, ed_o[cd[j].et].apt, 900000);
@@ -8094,9 +8141,9 @@ void   change_flag(int n, int f, int ctrl, int first)
       on = cd[n].pvar[f-GFLAG_MAX-PFLAG_MAX-GVAR_MAX];
     } else if (f < GFLAG_MAX + PFLAG_MAX + GVAR_MAX + PVAR_MAX + SVAR_MAX) {
       if (ctrl == FLAG_REV) {
-        cd[n].svar[f-GFLAG_MAX-PFLAG_MAX-GVAR_MAX-SVAR_MAX] = !(cd[n].svar[f-GFLAG_MAX-PFLAG_MAX-GVAR_MAX-SVAR_MAX]);
+        cd[n].svar[f-GFLAG_MAX-PFLAG_MAX-GVAR_MAX-PVAR_MAX] = !(cd[n].svar[f-GFLAG_MAX-PFLAG_MAX-GVAR_MAX-PVAR_MAX]);  /* 減算は PVAR_MAX (c-bugs 1-6) */
       } else {
-        cd[n].svar[f-GFLAG_MAX-PFLAG_MAX-GVAR_MAX-SVAR_MAX] = ctrl;
+        cd[n].svar[f-GFLAG_MAX-PFLAG_MAX-GVAR_MAX-PVAR_MAX] = ctrl;  /* c-bugs 1-6 */
       }
       on = cd[n].svar[f-GFLAG_MAX-PFLAG_MAX-GVAR_MAX-SVAR_MAX];
     }
@@ -8685,7 +8732,12 @@ void   get_title(char *p)
   snprintf(buf.data(), buf.size(),"phi_docs/%s", p);
   if ((fp = efopen(buf.data(), "rb")) == nullptr)
     return;
-  efgets(buf.data(), 255, fp);
+  /* 空ファイルでは buf にファイル名が残り、それが題名になる (c-bugs 1-16) */
+  if (efgets(buf.data(), 255, fp) == nullptr) {
+    *p = 0;
+    efclose(fp);
+    return;
+  }
   for (i = 0; i < 128 && buf[i] && buf[i] != '\n'; i++, p++)
     *p = buf[i];
   *p = 0;
@@ -8718,6 +8770,10 @@ void year_format(char *p, int len)
   std::array<char, 256> tstr;
   char *bufp;
 
+  /* len < 53 では len-52 が巨大な size_t に化ける (c-bugs 4-22)。
+     行が 70 バイト未満では p+27 / p+70 が行の外を読む (c-bugs 4-23)。 */
+  if (len < 53 || std::strlen(p) < 70)
+    return;
   bufp = p + 27;
   abstime = (time_t) hexadecimal_load(8, &bufp);
   sttime = (struct tm *) localtime(&abstime);
@@ -8746,13 +8802,18 @@ void   append_file(int n, char *fnm, char *mes)
 /* vs write crack */
 void   id2f(int n, char *buf)
 {
-    int i;
+    int i, j;
     char *p;
 
     p = cd[n].uid;
+    j = 0;
     for (i=0;i<16 && *p != '\0';i++) {
-        if (*p != '/')
+        /* 終端 NUL の分を残す。uid が 16 バイト全て非 '/' だと
+           宛先 (16 バイト) の外へ NUL を書いてしまう (c-bugs 4-20)。 */
+        if (*p != '/' && j < 15) {
             *buf++ = *p;
+            j++;
+        }
         p++;
     }
     *buf = '\0';
@@ -8766,7 +8827,7 @@ int    save_id(int n, int in, int f)
 
   CPYSTR(cd[n].str, "Nothing");
   if (f) {      /* アイテムをその場におく */
-    if (in < MAX_ITEMS && cd[n].id[in].type != DT_NONE
+    if (in >= 0 && in < MAX_ITEMS && cd[n].id[in].type != DT_NONE
   && (cd[n].id[in].type & MT_MASK) != MT_NOBREAK) {
       /* add for storehouse 20020823 */
       if ((map[cd[n].y][cd[n].x].tip & TMASK) == T_STORE) {
@@ -8797,6 +8858,10 @@ int    save_id(int n, int in, int f)
       if (ip == nullptr)
   return (-1);    /* そんなアイテムなし */
     }
+    /* in <= 0 ではループが回らず ip が nullptr のままになる
+       (c-bugs 4-19)。複数番号入力 "1 0" 等で到達する。 */
+    if (ip == nullptr)
+      return (-1);    /* そんなアイテムなし */
     if (is_gp(*ip)) {   /* お金を拾う */
       cd[n].gp += jb_gp_gain(n, (*ip)->gp);  /* 商人ボーナス (PHIDM NEO extension) */
       if (cd[n].gp > 9999) {
@@ -8863,7 +8928,7 @@ int save_store(int n, int in, int f, char *nm)
 
       if (efgets(buf.data(), buf.size(), rfp) == nullptr)
   break;
-      if (*buf.data() != ':' && *(buf.data()+1) != 'I')
+      if (*buf.data() != ':' || *(buf.data()+1) != 'I')  /* ':I' 行だけを数える (c-bugs 4-1) */
   continue;
         i++;
 
@@ -8977,17 +9042,23 @@ void   str_gc()
     /* add for suport formatA 20000928 */
     if (cd[i].formatA != nullptr)
       findstrdata(cd[i].formatA)->c = -1;
+    /* 配列ごとに上限が違う (id: MAX_ITEMS、md: MAX_MAGICS、td: MAX_TALKS)。
+       1 つの上限で回すと td の後半が GC から守られない (c-bugs 4-3)。 */
     for (j = 0; j < MAX_ITEMS; j++) {
       if (cd[i].id[j].type != DT_NONE) {
   findstrdata(cd[i].id[j].name)->c = -1;
         if (cd[i].id[j].extension != nullptr)
             findstrdata(cd[i].id[j].extension)->c = -1;
       }
+    }
+    for (j = 0; j < MAX_MAGICS; j++) {
       if (cd[i].md[j].spell != nullptr) {
   findstrdata(cd[i].md[j].spell)->c = -1;
         if (cd[i].md[j].extension != nullptr)
             findstrdata(cd[i].md[j].extension)->c = -1;
       }
+    }
+    for (j = 0; j < MAX_TALKS; j++) {
       if (cd[i].td[j].string != nullptr)
   findstrdata(cd[i].td[j].string)->c = -1;
     }
@@ -9374,7 +9445,7 @@ void   item_destruct()
 
 void   min_proc()
 {
-  ItemData id;
+  ItemData id = {};  /* Seeds / Nuts で設定しないフィールドがゴミにならないよう (c-bugs 4-30) */
   int    x, y, dx, dy;
 
   remap_gate_and_switch();
@@ -9854,11 +9925,11 @@ void   save_item(ItemData * id, char *p, int len)
   }
   if (id->extension == nullptr)
     snprintf(p, len-1," %-31s %04x %02i %c %02i %02i %02i %02i\n"
-    ,id->name, id->type, id->wp, kFnc[id->fn]
+    ,id->name, id->type, id->wp, kFnc[(id->fn >= 0 && id->fn < FN_MAX) ? id->fn : 0]  /* c-bugs 4-31 */
     ,id->op[0], id->op[1], rsn, id->op[3]);
   else
     snprintf(p, len-1," %-31s %04x %02i %c %02i %02i %02i %02i %s\n"
-    ,id->name, id->type, id->wp, kFnc[id->fn]
+    ,id->name, id->type, id->wp, kFnc[(id->fn >= 0 && id->fn < FN_MAX) ? id->fn : 0]  /* c-bugs 4-31 */
     ,id->op[0], id->op[1], rsn, id->op[3], id->extension);
 
   return;
@@ -9988,9 +10059,9 @@ void   save_spell(MagicData * m, char *p, int len)
     rsn -= 28;
 
   if(m->is_inherence == 1)
-    snprintf(p, len-1, " %-31s %02i %c *", m->spell, rsn, kFnc[m->fn]);
+    snprintf(p, len-1, " %-31s %02i %c *", m->spell, rsn, kFnc[(m->fn >= 0 && m->fn < FN_MAX) ? m->fn : 0]);  /* c-bugs 4-31 */
   else
-    snprintf(p, len-1, " %-31s %02i %c", m->spell, rsn, kFnc[m->fn]);
+    snprintf(p, len-1, " %-31s %02i %c", m->spell, rsn, kFnc[(m->fn >= 0 && m->fn < FN_MAX) ? m->fn : 0]);  /* c-bugs 4-31 */
 
   /* add for extension 20000116 */
   if(m->extension != nullptr) {
@@ -10026,7 +10097,7 @@ void   load_talk(TalkData * t, char *p)
   SKIP_SPACE(p);
   t->type = decimal_load(2, &p);
   SKIP_SPACE(p);
-  for (i = 0; i < 63 && *p != '\n'; talk[i++] = *(p++));
+  for (i = 0; i < 63 && *p != '\n' && *p != '\0'; talk[i++] = *(p++));  /* 終端なし文字列で先を読まない (c-bugs 4-28) */
   talk[i] = '\0';
   t->string = findstr(talk.data());
   return;
@@ -10046,7 +10117,7 @@ void   load_app(AppData * t, char *p)
   SKIP_SPACE(p);
   t->type = decimal_load(2, &p);
   SKIP_SPACE(p);
-  for (i = 0; i < 63 && *p != '\n'; apname[i++] = *(p++));
+  for (i = 0; i < 63 && *p != '\n' && *p != '\0'; apname[i++] = *(p++));  /* c-bugs 4-28 */
   apname[i] = '\0';
   t->string = findstr(apname.data());
   return;
@@ -10613,6 +10684,7 @@ void clear_crt()
     free(p);
     p=q;
   }
+  first_create_data = nullptr;  /* 解放済みリストを指したままにしない (c-bugs 4-4) */
 }
 
 int    get_server_port()
@@ -10781,6 +10853,7 @@ void   free_ex()
     free(p);
     p=q;
   }
+  first_export_data = nullptr;  /* c-bugs 4-4 */
 }
 
 int    export_item_check(int n, int x, int y, char *name, char *ip, char ex)

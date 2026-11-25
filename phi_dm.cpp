@@ -1234,7 +1234,8 @@ int    main(int argc, char **argv)
 	  CN_GASIFY(n) = 0x10000; /* add 20020908 */
 	} else if (!std::strncmp(buf, "#gate", 5)) {
 	  if (get_gate(buf + 5, 0, n)) {
-		CPYSTR(cd[n].str, buf + 22);
+		/* 行が短いと buf+22 が前行の残りを指す (c-bugs 4-43) */
+		CPYSTR(cd[n].str, (std::strlen(buf) > 22 ? buf + 22 : (char *)""));
 		snprintf(buf, sizeof(buf), "bad gate : %s ", cd[n].str);
 		log_print(buf);
 		close_connect(n);
@@ -1243,7 +1244,7 @@ int    main(int argc, char **argv)
 		  ,cd[n].str);
 		write_companion(0, 0, buf, 1);
 	  } else {
-		CPYSTR(cd[n].str, buf + 22);
+		CPYSTR(cd[n].str, (std::strlen(buf) > 22 ? buf + 22 : (char *)""));  /* c-bugs 4-43 */
 		snprintf(buf, sizeof(buf), "gate     : %s ", cd[n].str);
 		log_print(buf);
 		close_connect(n);
@@ -1254,7 +1255,7 @@ int    main(int argc, char **argv)
 	  }
 	} else if (!std::strncmp(buf, "#g-close", 8)) {
 	  get_gate(buf + 8, 1, n);
-	  CPYSTR(cd[n].str, buf + 25);
+	  CPYSTR(cd[n].str, (std::strlen(buf) > 25 ? buf + 25 : (char *)""));  /* c-bugs 4-43 */
 	  snprintf(buf, sizeof(buf), "g-close  : %s ", cd[n].str);
 	  log_print(buf);
 	  close_connect(n);
@@ -1268,9 +1269,14 @@ int    main(int argc, char **argv)
 	  loadstr(cd[n].str, &p, ' ', 32);
 	  SKIP_SPACE(p);
 	  if (!std::strncmp(p, "P:", 2)) {
+		p += 2;  /* "P:" を外してからパスワードを取り出す (c-bugs 4-61) */
 		loadstr(nm.data(), &p, '\n', 32);
 	  }
-	  if (!authorize(nm.data())) {
+	  /* authorize の 0 (不一致) と -1 (:P 行が無い) はどちらも失敗。
+	     従来は -1 を成功と扱い、:P の無い世界では未認証の接続から
+	     終了できてしまった (c-bugs 4-61)。 */
+	  i = authorize(nm.data());
+	  if (i == 0 || i == -1) {
 		snprintf(buf, sizeof(buf), "bad shut : %s", ip_domain_check(n));
 		log_print(buf);
 		/* psp5 fix ここから */
@@ -1354,6 +1360,8 @@ void   signal_trap(int sig)
 {
   /* buf は CPYSTR の宛先のため C 配列のまま */
   char	 buf[256];
+  /* 控え取りのコマンド用。終了メッセージの buf と分ける (c-bugs 4-11) */
+  char	 cmd[256];
 #ifdef __CYGWIN32__
   char	 buf2[256];
 #endif
@@ -1398,9 +1406,9 @@ void   signal_trap(int sig)
   if (lcnt >= 0) {
 	log_print("data files are back up...");
 #if defined(__CYGWIN32__)
-	CPYSTR(buf, "phi.bd phi.bd.bak phi.cd phi.cd.bak phi.dd phi.id phi.od phi.pet phi.qst phi.sd phi.sd.bak phi.td phi.td.bak backup/");
+	CPYSTR(cmd, "phi.bd phi.bd.bak phi.cd phi.cd.bak phi.dd phi.id phi.od phi.pet phi.qst phi.sd phi.sd.bak phi.td phi.td.bak backup/");
 	CPYSTR(buf2, "backup/");
-	spawnlp(_P_WAIT, "cp", "cp", buf, buf2, 0);
+	spawnlp(_P_WAIT, "cp", "cp", cmd, buf2, 0);
 #elif defined(_WIN32)
 	/* Windows には cp コマンドが無いので、copy で1ファイルずつ移す。 */
 	{
@@ -1417,8 +1425,8 @@ void   signal_trap(int sig)
 	  }
 	}
 #else
-	CPYSTR(buf, "cp phi.bd phi.bd.bak phi.cd phi.cd.bak phi.dd phi.id phi.od phi.pet phi.qst phi.sd phi.sd.bak phi.td phi.td.bak backup/");
-	system(buf);
+	CPYSTR(cmd, "cp phi.bd phi.bd.bak phi.cd phi.cd.bak phi.dd phi.id phi.od phi.pet phi.qst phi.sd phi.sd.bak phi.td phi.td.bak backup/");
+	system(cmd);
 #endif
   }
 
@@ -1660,7 +1668,9 @@ void   check_write(int n, char *mes)
 	}
 	  write_line(n, buf, std::strlen(buf), 0);
   }
-  if(cd[n].exp == 99999999) nfflush(n, 1000);
+  /* NPC (n >= MAX_NTTYS) はソケットを持たない。nfflush は接続用配列を
+     引くため、プレイヤーの時だけ呼ぶ (c-bugs 4-32)。 */
+  if(n < MAX_NTTYS && cd[n].exp == 99999999) nfflush(n, 1000);
   return;
 }
 
@@ -3354,8 +3364,13 @@ void   input_analyze(int n, char *rbuf)
   if (cd[n].id[i].type == DT_NONE)
 	break;
 	  }
-	  std::memcpy(&(cd[n].id[i]), &(cd[n].id[ic]), sizeof (ItemData));
-	  dmcheck_write(n, DMM_DUPLICATE);
+	  /* 空きが無いのに複製すると cd[n].id の直後へ書いてしまう (c-bugs 4-39) */
+	  if (i >= MAX_ITEMS)
+	    dmcheck_write(n, DMM_DUPLICATE_STOP);
+	  else {
+	    std::memcpy(&(cd[n].id[i]), &(cd[n].id[ic]), sizeof (ItemData));
+	    dmcheck_write(n, DMM_DUPLICATE);
+	  }
 	}
 	cd[n].st = ST_COMMAND;
 	CN_GASIFY(n) = 0;
@@ -3659,9 +3674,10 @@ void   input_analyze(int n, char *rbuf)
 	  append_file(n, "BoardTMP", rbuf);
 	break;
   case ST_SEARCH:
-	p = rbuf + std::strlen(rbuf) - 1;
-	if (*p == '\n')
-	  *p = 0;
+	/* 空行では rbuf - 1 を読む/書くことになる (c-bugs 4-52) */
+	p = rbuf + std::strlen(rbuf);
+	if (p > rbuf && *(p - 1) == '\n')
+	  *(p - 1) = 0;
 	if (!search_board(n, rbuf))
 	  dmcheck_write(n, DMM_SEARCH_NO);
 	cd[n].st = ST_COMMAND;
@@ -3808,7 +3824,7 @@ void   input_analyze(int n, char *rbuf)
 	cd[n].st = ST_ADDRESS_;
 	break;
   case ST_ADDRESS_:
-	if (*(rbuf+1)=='\0' && *rbuf != 'Y' && *rbuf != 'y') {
+	if (*rbuf == '\0' || (*(rbuf+1)=='\0' && *rbuf != 'Y' && *rbuf != 'y')) {  /* 空行は rbuf+1 を読まない (c-bugs 4-43) */
 		CPYSTR(cd[n].adr,cd[n].str);
 	} else {
 		snprintf(wbuf.data(), wbuf.size(),"/*@NP:%s*/",cd[n].str);
@@ -4022,11 +4038,15 @@ int    command_analyze(int n, char *com)
 	write_companion(n, 0, buf, access_dm);
 	return (0);
   } else if (!std::strcmp(com, "see")) {
-	reflesh_last_map[n] = 1;
+	/* 動作33等で NPC が実行すると reflesh_last_map (MAX_NTTYS 個) の
+	   外へ書くため、範囲内だけ更新する (c-bugs 4-38) */
+	if (n < MAX_NTTYS)
+		reflesh_last_map[n] = 1;
 	print_map(n, 0);
 	return (0);
   } else if (!std::strcmp(com, "look")) {
-	reflesh_last_map[n] = 1;
+	if (n < MAX_NTTYS)
+		reflesh_last_map[n] = 1;
 	print_map(n, MD_BOARD | MD_FLOORITEM);
 	return (0);
   } else if (!std::strcmp(com, "check")) {
@@ -4130,6 +4150,13 @@ int    command_analyze(int n, char *com)
 	std::strncpy(bufa.data(), buf, i ); /* 宛先を抽出 */
 	if (i > 0)
     	bufa[i]= '\0';
+	/* 宛先に '/' が含まれると phi_mail の外のファイルへ書けてしまう
+	   ため断る (c-bugs 4-50)。 */
+	if (std::strchr(bufa.data(), '/') != nullptr
+	 || std::strchr(bufa.data(), '\\') != nullptr) {
+		dmcheck_write(n, DMM_MAIL_WRONG);
+		return(0);
+	}
 	std::strncpy(bufb.data(), buf + i + 1 , j - i ); /* メッセージを抽出 */
 	if ( save_mail( n, bufa.data(), bufb.data() ) == -1 ) /* メッセージ書き込み＆チェック */
 		dmcheck_write(n, DMM_MAIL_NULL);
@@ -4179,7 +4206,9 @@ int    command_analyze(int n, char *com)
   } else if (!std::strcmp(com, "address")) {
 	if (!std::strncmp(cd[n].adr,"/*@NP:",6)) {
 		CPYSTR(cd[n].str,cd[n].adr+6);
-		cd[n].str[std::strlen(cd[n].str)-2] = '\0';
+		/* 文字列が2文字未満だと str の前へ書いてしまう (c-bugs 4-51) */
+		if (std::strlen(cd[n].str) >= 2)
+			cd[n].str[std::strlen(cd[n].str)-2] = '\0';
 	} else {
 		CPYSTR(cd[n].str,cd[n].adr);
 	}
@@ -5354,6 +5383,10 @@ int save_mail(int n, char *mailto, char *msg) /* Add for メールシステム:�
 	int i,j;
 	std::array<char, 32> sp;
 
+	/* 宛先の検査 (呼び出し側でも行うが、ここでも断る) (c-bugs 4-50) */
+	if (mailto[0] == '\0' || std::strchr(mailto, '/') != nullptr
+	 || std::strchr(mailto, '\\') != nullptr)
+		return (-1);
 	snprintf(buf.data(),buf.size(),"phi_mail/%s.md", mailto); /* ファイル準備 */
 	if ((fp = efopen(buf.data(), "ab")) == nullptr) {
 		log_print("DM > Can not write item data file [phi_mail/].\n");
