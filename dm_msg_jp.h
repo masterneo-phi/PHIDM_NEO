@@ -583,6 +583,54 @@
 #define DMM_ANTIDOTE_SELF       "%dm > %name の毒が消えた. \n"
 #define DMM_MAGIC_EFFECT_NO     "%dm > %vsname には効かなかった. \n"
 #define DMM_MAGIC_EFFECT_NO_IL  "%dm > %vsname は Illusion の効果によって魔法攻撃を回避した. \n" /* Illusion魔法効果 added by NEO 20120206 */
+#define DMM_NPCA_HEAL_HP         "%dm > %vsname は /*color=+hp*/%i/*.*/ Hp回復した. \n" /* NPC効果 (PHIDM NEO extension) */
+#define DMM_NPCA_HEAL_MP         "%dm > %vsname は /*color=+mp*/%i/*.*/ Mp回復した. \n" /* NPC効果 (PHIDM NEO extension) */
+#define DMM_NPCA_HPDMG           "%dm > %vsname は /*color=-hp*/%i/*.*/ Hpのダメージを受けた. \n" /* NPC効果 (PHIDM NEO extension) */
+#define DMM_NPCA_MPDMG           "%dm > %vsname は /*color=-mp*/%i/*.*/ Mpのダメージを受けた. \n" /* NPC効果 (PHIDM NEO extension) */
+#define DMM_NPCA_DRAIN           "%dm > %vsname は %i level を奪われた. \n" /* NPC効果 (PHIDM NEO extension) */
+#define DMM_NPCA_DIVIDEHP        "%dm > %vsname の Hp は %i%% に削られた. \n" /* NPC効果 (PHIDM NEO extension) */
+#define DMM_NPCA_DIVIDEMP        "%dm > %vsname の Mp は %i%% に削られた. \n" /* NPC効果 (PHIDM NEO extension) */
+#define DMM_NPCA_FUMBLE          "%dm > %vsname の %s が/*color=red*/叩き落された！ /*.*/ \n" /* NPC効果 (PHIDM NEO extension) */
+#define DMM_NPCA_DEGRADE         "%dm > %vsname の %s が/*color=red*/劣化した！ /*.*/ \n" /* NPC効果 (PHIDM NEO extension) */
+#define DMM_NPCA_DEGRADE_BROKEN  "%dm > %vsname の %s が/*color=red*/ぶっ壊れた！ /*.*/ \n" /* NPC効果 (PHIDM NEO extension) */
+#define DMM_NPCA_VANISH          "%dm > Vanish は %i 秒間効果を持続します. \n" /* NPC効果 (PHIDM NEO extension) */
+#define DMM_NPCA_MIRROR          "%dm > Mirror は %i 秒間効果を持続します. \n" /* NPC効果 (PHIDM NEO extension) */
+#define DMM_NPCA_COAT_UP         "%dm > %vsname の攻撃力が %i 上昇しました. \n" /* NPC効果 (PHIDM NEO extension) */
+#define DMM_NPCA_COAT_DOWN       "%dm > %vsname の攻撃力が %i さがった. \n" /* NPC効果 (PHIDM NEO extension) */
+#define DMM_NPCA_SPELL_UP        "%dm > %vsname の魔力が %i 上昇しました. \n" /* NPC効果 (PHIDM NEO extension) */
+#define DMM_NPCA_SPELL_DOWN      "%dm > %vsname の魔力が %i さがった. \n" /* NPC効果 (PHIDM NEO extension) */
+#define DMM_NPCA_PROTECT_UP      "%dm > %vsname の防御力が %i 上昇しました. \n" /* NPC効果 (PHIDM NEO extension) */
+#define DMM_NPCA_PROTECT_DOWN    "%dm > %vsname の防御力が %i さがった. \n" /* NPC効果 (PHIDM NEO extension) */
+#define DMM_NPCA_SHELL_UP        "%dm > %vsname の魔法防御力が %i 上昇しました. \n" /* NPC効果 (PHIDM NEO extension) */
+#define DMM_NPCA_SHELL_DOWN      "%dm > %vsname の魔法防御力が %i さがった. \n" /* NPC効果 (PHIDM NEO extension) */
+#define DMM_NPCA_HASTE_UP        "%dm > %vsname の速度が %i 上昇しました. \n" /* NPC効果 (PHIDM NEO extension) */
+#define DMM_NPCA_HASTE_DOWN      "%dm > %vsname の速度が %i さがった. \n" /* NPC効果 (PHIDM NEO extension) */
+#define DMM_NPCA_ANTIDOTE        "%dm > %vsname の毒が消えた. \n" /* NPC効果 (PHIDM NEO extension) */
+#define DMM_NPCA_ANTIDOTE_SOFT   "%dm > %vsname の毒がやわらいだ. \n" /* NPC効果 (PHIDM NEO extension) */
+#define DMM_NPCA_REMOVE          "%dm > %vsname の麻痺が消えた. \n" /* NPC効果 (PHIDM NEO extension) */
+#define DMM_NPCA_REMOVE_SOFT     "%dm > %vsname の麻痺がやわらいだ. \n" /* NPC効果 (PHIDM NEO extension) */
+#define DMM_NPCA_AWAKEN          "%dm > %vsname は正気に戻った. \n" /* NPC効果 (PHIDM NEO extension) */
+#define DMM_NPCA_AWAKEN_SOFT     "%dm > %vsname はやや落ちついた. \n" /* NPC効果 (PHIDM NEO extension) */
+/* ペット (PHIDM NEO extension)。%s はペット名 (付与時はタイプ名)、%i は量 */
+#define DMM_PET_JOIN             "%dm > %s が仲間になった! \n"
+#define DMM_PET_BITE             "%dm > %s は %vsname に噛みついた! [/*color=-hp*/%i/*color=gray*/ hp] \n"
+#define DMM_PET_MAGIC            "%dm > %s の魔法が %vsname を打った! [/*color=-hp*/%i/*color=gray*/ hp] \n"
+#define DMM_PET_BARK             "%dm > %s は嬉しそうに吠えた. \n"
+#define DMM_PET_HEAL             "%dm > %s が %name を癒した. [/*color=+hp*/%i/*color=gray*/ hp] \n"
+#define DMM_PET_HEAL_EMG         "%dm > %s が慌てて %name に駆け寄った! [/*color=+hp*/%i/*color=gray*/ hp] \n"
+#define DMM_PET_TIRED_MP         "%dm > %s は魔力が尽きて休んでいる. \n"
+#define DMM_PET_TIRED_ST         "%dm > %s は疲れて休んでいる. \n"
+#define DMM_PET_RECOVER          "%dm > %s はすっかり元気を取り戻した. \n"
+#define DMM_PET_NAME_PROMPT      "%dm > ペットの名前を言ってください. (何も言わなければ %s になります) \n"
+#define DMM_PET_RENAME_PROMPT    "%dm > ペットの新しい名前を言ってください. (何も言わなければ %s のままです) \n"
+#define DMM_PET_NAMED            "%dm > ペットの名前は %s に決まった. \n"
+#define DMM_PET_NAME_DEFAULT     "%dm > ペットの名前は %s になった. \n"
+#define DMM_PET_REL_PROMPT       "%dm > 本当に %s と別れますか? 別れるなら「はい」と言ってください. \n"
+#define DMM_PET_RELEASED         "%dm > %s と別れた. \n"
+#define DMM_PET_REL_CANCEL       "%dm > 別れるのをやめた. \n"
+#define DMM_PET_ALREADY          "%dm > %s は既に連れている. \n"
+#define DMM_PET_NONE             "%dm > ペットは連れていない. \n"
+#define DMM_PET_RESTORED         "%dm > %s はすっかり元気になった. \n"
 #define DMM_DEGRADE             "%dm > %vsname の攻撃力が %i point /*.*/%s /*color=gray*/によって下がった. \n"
 #define DMM_DEGRADE_WITH_TIME   "%dm > %vsname の攻撃力が %i point %i 秒間 /*.*/%s /*color=gray*/によって下がった. \n"
 #define DMM_SPELLDOWN           "%dm > %vsname の魔力が %i point /*.*/%s /*color=gray*/によって下がった. \n"

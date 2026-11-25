@@ -58,6 +58,10 @@ int    new_connect_check();
 /* 新規接続要求がある場合、その接続用の id を返す。*/
 /* 新規接続が無い場合は、負を返す。*/
 
+void   tcp_mark_authenticated(int id);
+/* ログイン等の認証が完了した接続であることを記録する。
+ * 未認証のまま一定時間経過した接続は切断される。 */
+
 void   connect_check(int timeout);
 /* 接続先へのバッファの吐き出し、バッファへの読み込みを */
 /* timeout (ms) 行う。*/

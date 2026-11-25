@@ -63,6 +63,10 @@ phi_dm には以下のオプションをつけることができます。
         #ex-switch eagleeye=form Eagle eye をフォーム形式で要求する
         #ex-switch fx=1          FX 演出の受信を申告する
                                  (PHIDM NEO v1.11)
+        #ex-switch pet=1         ペット表示 (#ex-pet) の受信を
+                                 申告する (PHIDM NEO v2.0)
+        #ex-switch job=1         職業・性別表示 (#ex-job) の受信
+                                 を申告する (PHIDM NEO v2.0)
         #ex-switch fastmove=1    高速移動を申告する。申告した
                                  セッションのコマンドは tick の
                                  合間にも処理され、移動の応答が

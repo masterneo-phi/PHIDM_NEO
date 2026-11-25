@@ -24,8 +24,9 @@
 #include <array>
 #include <chrono>
 /* GCC 4.6 の libstdc++ では C++11 の単調時計が旧名 monotonic_clock
- * (標準化の過程で steady_clock に改名された。4.7 以降は steady_clock)。 */
-#if defined(__GNUC__) && __GNUC__ == 4 && __GNUC_MINOR__ < 7
+ * (標準化の過程で steady_clock に改名された。4.7 以降は steady_clock)。
+ * clang は互換のため __GNUC__=4 を名乗るので、判定から除外する。 */
+#if defined(__GNUC__) && !defined(__clang__) && __GNUC__ == 4 && __GNUC_MINOR__ < 7
 typedef std::chrono::monotonic_clock SteadyClock;
 #else
 typedef std::chrono::steady_clock SteadyClock;
@@ -41,6 +42,12 @@ typedef std::chrono::steady_clock SteadyClock;
 //#include <windows.h>
 #include <winsock.h>
 #include <sys/time.h>
+#include <unistd.h>
+#if defined(__MINGW32__) && !defined(PHIDM_SOCKLEN_T_DEFINED)
+#define PHIDM_SOCKLEN_T_DEFINED
+/* MinGW-w64 の winsock.h (v1) には socklen_t が無い (winsock2.h にはある)。 */
+typedef int socklen_t;
+#endif
 #define SOCK_ERR	WSAGetLastError()
 #define CLOSE_SOCKET(s)	closesocket(s)
 #define IS_VALID_SOCKET(s)	((s)!=INVALID_SOCKET)
@@ -81,6 +88,7 @@ namespace {
 constexpr int kReadBufSize = 1024;	/* 読み込みバッファの大きさ */
 constexpr int kWriteBufSize = 65536;	/* 書き込みバッファの大きさ (16KB では大量行で溢れやすいため拡大、2026-11-17) */
 constexpr int kWriteTimeout = 600;	/* 書き込めない回数の上限 (超えたら切断) */
+constexpr int kAuthTimeout = 30;	/* 未認証接続の制限時間 (秒) */
 constexpr int kWriteChunkSize = 2048;	/* 1回の write() で送る上限 (EL's idea) */
 
 /* 1つの接続の状態。バッファは接続の開始時に確保し、切断時に解放する。 */
@@ -96,9 +104,15 @@ struct Client {
   std::unique_ptr<char[]> wbuf;	/* 書き込みバッファ */
   int wbuf_len;		/* 書き込みバッファ内の有効バイト数 */
   int wtimeout;		/* 書き込むデータがあって書き込めない回数 */
+  time_t connected_at;	/* 接続時刻 */
+  time_t last_receive;	/* 最終受信時刻 */
+  time_t authenticated_at;	/* 認証完了時刻 */
+  bool authenticated;	/* 認証が完了したか */
   bool closing_err;	/* nfclose() 後に異常切断した */
   Client() : connecting(false), reference(false), errnum(0), fd(INVALID_SOCKET),
-             rbuf_len(0), wbuf_len(0), wtimeout(0), closing_err(false) {
+             rbuf_len(0), wbuf_len(0), wtimeout(0), connected_at(0),
+             last_receive(0), authenticated_at(0), authenticated(false),
+             closing_err(false) {
     ip_address[0] = '\0';
     ip_domain[0] = '\0';
   }
@@ -156,6 +170,11 @@ void setup_client(int n, SOCKET fd, const char *addr) {
   c.rbuf_len = 0;
   c.wbuf_len = 0;
   c.wtimeout = 0;
+  const time_t now = time(nullptr);
+  c.connected_at = now;
+  c.last_receive = now;
+  c.authenticated_at = now;
+  c.authenticated = true;
   c.fd = fd;
   c.connecting = c.reference = true;
   c.closing_err = false;
@@ -264,6 +283,7 @@ void fill_readable(const fd_set &rfds) {
         }
       } else {
         c.rbuf_len += size;
+        c.last_receive = time(nullptr);
       }
     }
   }
@@ -282,11 +302,18 @@ void drop_write_timed_out() {
       && now - last_check < std::chrono::milliseconds(90))
     return;
   last_check = now;
+  const time_t now_wall = time(nullptr);
   for (int n = 0; n < MAX_CLIENT; n++) {
     Client &c = clients[n];
-    if (c.connecting && c.wbuf_len > 0
-        && (c.wtimeout++) >= kWriteTimeout)
+    if (!c.connecting) continue;
+    if (!c.authenticated
+        && (now_wall - c.connected_at >= kAuthTimeout
+            || now_wall - c.last_receive >= kAuthTimeout)) {
       close_client(n, CONNECT_TIMEOUT);
+    } else if (c.wbuf_len > 0
+               && (c.wtimeout++) >= kWriteTimeout) {
+      close_client(n, CONNECT_TIMEOUT);
+    }
   }
 }
 
@@ -504,17 +531,22 @@ void	 write_line(int n, char *buf, int len, int t){
   /* バッファがあふれる時は t ms の間だけフラッシュしてみる */
   Client &c = clients[n];
   if (!c.reference || !c.connecting) return;
-  if (c.wbuf_len + len > kWriteBufSize) {
+  if (len < 0 || len > kWriteBufSize) return;
+  if (c.wbuf_len < 0 || c.wbuf_len > kWriteBufSize) {
+    close_client(n, CONNECT_BUFFULL);
+    return;
+  }
+  if (c.wbuf_len > kWriteBufSize - len) {
     /* t=0 でも、溢れた時だけは少し待って吐き出しを試みる。
      * 掲示板の検索結果のような大量行の途中で、クライアントの
      * 受信が一瞬滞っただけで切断されるのを防ぐ (2026-11-17)。
      * 本当に死んだ相手は、この待ちの後で従来通り切断される。 */
     nfflush(n, t > 0 ? t : 200);
-    if (c.wbuf_len + len > kWriteBufSize) {
+    if (c.wbuf_len > kWriteBufSize - len) {
       close_client(n, CONNECT_BUFFULL); return ;
     }
   }
-  strlcpy(c.wbuf.get() + c.wbuf_len, buf, len + 1); /* buffer over runは起きないはず… */
+  std::memcpy(c.wbuf.get() + c.wbuf_len, buf, static_cast<size_t>(len));
   c.wbuf_len += len;
 }
 
@@ -549,13 +581,29 @@ int new_connect_check(void){
   fcntl(fd, F_SETFL, O_NDELAY);
 #endif
   setup_client(n, fd, inet_ntoa(caddr.sin_addr));
+  clients[n].authenticated = false;
+  clients[n].authenticated_at = 0;
 #ifdef DOMAIN_DISPLAY
   hst = gethostbyaddr((char *)&(caddr.sin_addr), sizeof(struct in_addr), AF_INET);
-  CPYSTR(clients[n].ip_domain, hst->h_name);
+  if (hst != nullptr && hst->h_name != nullptr)
+    CPYSTR(clients[n].ip_domain, hst->h_name);
+  else
+    CPYSTR(clients[n].ip_domain, clients[n].ip_address);
 #else
   CPYSTR(clients[n].ip_domain, clients[n].ip_address);
 #endif
   return n;
+}
+
+void tcp_mark_authenticated(int n){
+  /* ログイン等の認証が完了した接続を記録する。これが呼ばれない
+   * まま kAuthTimeout 秒経過した接続は drop_write_timed_out() が
+   * 切断する (未認証接続の資源消費対策)。 */
+  if (n < 0 || n >= MAX_CLIENT) return;
+  Client &c = clients[n];
+  if (!c.connecting) return;
+  c.authenticated = true;
+  c.authenticated_at = time(nullptr);
 }
 
 void connect_check(int t){ /* バッファの書き込み／読み込み */
@@ -636,7 +684,9 @@ int nfclose_error_check(){
   return -1;
 }
 
-#ifdef __MINGW32__
+#if defined(__MINGW32__) && !defined(__MINGW64_VERSION_MAJOR) && !defined(__MINGW64__)
+/* MinGW-w64 のランタイムには gettimeofday があるので、同梱定義は
+   旧来の MinGW (mingw.org) だけに残す。 */
 int gettimeofday (struct timeval *tp, void *tz)
 {
   if (tz)

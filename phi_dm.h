@@ -17,7 +17,7 @@
 
 /*	   v509ewl21+fix2 -> v509ewl21+fix2+psp6+QSCP -> v5x-010  */
 /*	   v5x-010 release 13 test8 -> v5y rel.0 test1	*/
-#define PHI_VERSION "v5z release v1.15 /*color=teal*/PHIDM NEO/*.*/ /*color=red*/'Nymphicus hollandicus'/*.*/"SKILL_VER	/* クライアント表示：任意長 */
+#define PHI_VERSION "v5z release v2.0 /*color=teal*/PHIDM NEO/*.*/ /*color=red*/'Nymphicus hollandicus'/*.*/" SKILL_VER	/* クライアント表示：任意長 */
 
 #define PHI_DM_VERS "v5x:011:0005:38"		 /* DM種別通知：任意長 */
 #define PHI_PROT_VERS "05115000" /* プロトコルバージョン：８桁 */
@@ -208,6 +208,9 @@
 #define ST_USERREGISTER 0x7f /* add for register user protocol 20050414 */
 #define ST_MSGW 0x80  /* added by Qajin 20001122 */
 #define ST_MENU 0x81  /* added by Qajin 20041212 */
+#define ST_SELECT 0x82  /* :A 拡張 y/s の選択待ち (PHIDM NEO extension, from MRDM) */
+#define ST_PETNAME 0x83  /* ペット命名の入力待ち (PHIDM NEO extension) */
+#define ST_PETREL 0x84  /* ペット解放の確認待ち (PHIDM NEO extension) */
 #define ST_JOIN_INVITE 0x90  /* add 20020823 */
 #define ST_JOIN_ANSWER 0x91  /* add 20020823 */
 #define ST_REMOTE_LOCK 0x6a /* add for Remote lock */
@@ -770,6 +773,8 @@
 #define MD_FX           0x40  /* DM演出 (FX) 対応 (PHIDM NEO extension) */
 #define MD_HEIGHT       0x100  /* 高さ印 (height) 対応 (PHIDM NEO extension) */
 #define MD_FASTMOVE     0x200  /* 高速移動 (fastmove) 対応 (PHIDM NEO extension) */
+#define MD_PET          0x400  /* ペット (#ex-pet) 対応 (PHIDM NEO extension) */
+#define MD_JOB          0x800  /* 職業・性別 (#ex-job) 対応 (PHIDM NEO extension) */
 
 typedef struct md_t {
   char  *spell;     /* 呪文 */
@@ -1167,6 +1172,7 @@ extern ATOM **swtd;      /* スイッチデータ */
 extern int    swtn;      /* スイッチデータ数 */
 extern MSGData *msgd;    /* メッセージデータ add 20030501 */
 extern int      msgn;    /* メッセージデータ数 */
+extern struct tm *sttime;  /* 現在時刻 (phi_dm.cpp で毎分更新) */
 extern ATOM **gatedata;                /* ゲートデータ */
 extern int    gatemax;                 /* ゲートデータ数 */
 extern PowerSpellData power_spell[MAX_POWER_SPELL];  /* 倍加呪文のパターン */

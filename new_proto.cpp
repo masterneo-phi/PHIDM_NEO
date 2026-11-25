@@ -28,6 +28,7 @@
 #include "phi_data.h"
 #include "phi_str.h"
 #include "phi_m57.h"
+#include "phi_class.h" /* pet system: #ex-pet senders (PHIDM NEO extension) */
 #include "ext_data.h"
 
 extern int reflesh_last_map[MAX_NTTYS];
@@ -157,6 +158,28 @@ int func_analyze_ex(int n, char *p)
                     cd[n].modef |= MD_FASTMOVE;
                     set_tcp_nodelay(n);
                     check_write(n, "#ex-switch fastmove=1\n");
+                }
+                /* 1 でなければ何もしない。 */
+            } else if (std::strcmp(property.data(), "pet") == 0) {
+                if (std::strcmp(value.data(), "1") == 0) {
+                    cd[n].modef |= MD_PET;
+                    check_write(n, "#ex-switch pet=1\n");
+                    /* 申告したクライアントへ現在のペット状態を
+                     * まとめて送る (PHIDM NEO extension) */
+                    pet_send_self(n);
+                    pet_send_chr(n);
+                    pet_send_chr_all(n);
+                }
+                /* 1 でなければ何もしない。 */
+            } else if (std::strcmp(property.data(), "job") == 0) {
+                if (std::strcmp(value.data(), "1") == 0) {
+                    cd[n].modef |= MD_JOB;
+                    check_write(n, "#ex-switch job=1\n");
+                    /* 申告したクライアントへ現在の職業・性別を
+                     * まとめて送る (PHIDM NEO extension) */
+                    jb_send_self(n);
+                    jb_send_chr(n);
+                    jb_send_chr_all(n);
                 }
                 /* 1 でなければ何もしない。 */
             }

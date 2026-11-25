@@ -826,7 +826,7 @@ void spell_analyze(int n, char *spell)
       }
       return;
     } else if(!std::strncmp(spell, "Evil wind to ", 13) && (i=have_authority(n,MS_KICK,0,0))) {
-      if((i=std::atoi(spell+13))<MAX_NTTYS && cd[i].type){
+      if((i=std::atoi(spell+13))>=0 && i<MAX_NTTYS && cd[i].type){
         snprintf(buf, sizeof(buf), "kick     : %s ", cd[i].name);
         log_print(buf);
         dmcheck_write(i, DMM_KICK);
@@ -839,7 +839,7 @@ void spell_analyze(int n, char *spell)
       }
       return;
     } else if(!std::strncmp(spell, "Be Pygmalion ", 13) && (i=have_authority(n,MS_KICK,0,0))) {
-      if((i=std::atoi(spell+13))<MAX_NTTYS && cd[i].type){
+      if((i=std::atoi(spell+13))>=0 && i<MAX_NTTYS && cd[i].type){
         dmprintf(i, 0, buf, sizeof(buf),DMM_MARIONET);
         CN_PALSY(i) = 0x10000;
         CN_SILENCE(i) = 0x10000;
@@ -851,7 +851,7 @@ void spell_analyze(int n, char *spell)
       }
       return;
     } else if(!std::strncmp(spell, "Basi Rurla ", 11) && (i=have_authority(n,MS_KICK | MS_TRANS,0,0))) {
-      if((i=std::atoi(spell+11))<enmax && cd[i].type){
+      if((i=std::atoi(spell+11))>=0 && i<enmax && cd[i].type){
 		spell += 11;
 		SKIP_SPACE(spell);
 		SKIP_TO_SPACE(spell);
@@ -864,7 +864,7 @@ void spell_analyze(int n, char *spell)
       return;
 /*  Draw（マスター専用）マスターの元へプレイヤーを呼び寄せる　20050305 by NEO */
     } else if(!std::strncmp(spell, "Draw ", 5) && (i=have_authority(n,MS_KICK | MS_TRANS,0,0))) {
-      if((i=std::atoi(spell+5))<enmax && cd[i].type){
+      if((i=std::atoi(spell+5))>=0 && i<enmax && cd[i].type){
 		spell += 5;
 		SKIP_SPACE(spell);
 		SKIP_TO_SPACE(spell);
@@ -878,7 +878,7 @@ void spell_analyze(int n, char *spell)
       return;
 /*  Jump（マスター専用）プレイヤーの元へジャンプ　20050305 by NEO */
 	} else if(!std::strncmp(spell, "Jump ", 5) && (i=have_authority(n,MS_KICK | MS_TRANS,0,0))) {
-      if((i=std::atoi(spell+5))<enmax && cd[i].type){
+      if((i=std::atoi(spell+5))>=0 && i<enmax && cd[i].type){
 		spell += 5;
 		SKIP_SPACE(spell);
 		SKIP_TO_SPACE(spell);
@@ -911,7 +911,7 @@ void spell_analyze(int n, char *spell)
       for(j=0;j < BANNEDIPMAX && !(ip_ban[j].ip == nullptr || ip_ban[j].time < time(nullptr));j++);
       if (j == BANNEDIPMAX) {
         dmcheck_write(n, DMM_BAN_FULL);
-      } else if((i=std::atoi(spell+26))<MAX_NTTYS && cd[i].type){
+      } else if((i=std::atoi(spell+26))>=0 && i<MAX_NTTYS && cd[i].type){
         if (i == n) {
           dmcheck_write(n, DMM_BAN_SELF_ALART);
         } else {
@@ -979,17 +979,21 @@ void spell_analyze(int n, char *spell)
       return;
     } else if (!std::strcmp(spell, "Eye of the Yog=Sothoth") && (i=have_authority(n,MS_LOAD,0,0))) {
       fp = fopen("phied.log", "w");
+      if (fp == NULL) {
+	log_print("cannot open phied.log");
+	return;
+      }
       check_write(n, "#more\n");
       for (i = 1, j = 0; i < enmax; i++)
   if (cd[i].type) {
     j++;
     snprintf(buf, sizeof(buf), " [%+3iW,%+3iN] %-31s \n"
       ,cd[n].x - cd[i].x, cd[n].y - cd[i].y, cd[i].name);
-    fprintf(fp, buf);
+    fprintf(fp, "%s", buf);
     check_write(n, buf);
   }
       snprintf(buf, sizeof(buf), " total %3i \n", j);
-      fprintf(fp, buf);
+      fprintf(fp, "%s", buf);
       check_write(n, buf);
       check_write(n, "#end-more\n");
       fclose(fp);
@@ -998,6 +1002,10 @@ void spell_analyze(int n, char *spell)
       dmprintf(n, 0, buf, sizeof(buf),DMM_PHIED_OUT);
       check_write(n, buf);
       fp = fopen("phied.log","w");
+      if (fp == NULL) {
+	log_print("cannot open phied.log");
+	return;
+      }
       for (i = 1, j = 0; i < enmax; i++){
   if (cd[i].type) {
     j++;
@@ -5585,6 +5593,19 @@ int    mdp_calc(int n, MagicData * m, int f, int f2, double *mdn)
 #else
   mdp = mdp * (5000 + cd[n].lv[LV_WIZARD] + skill_mg_calc(n,m)) / 5000;
 #endif
+  /* 職業ボーナス (PHIDM NEO extension)。回復魔法は僧侶/賢者、
+     攻撃魔法は魔法使い/賢者の率で増える。引数 f は単体攻撃魔法
+     (mg_attack_to) でも 0 になるため、効果種別で振り分ける。 */
+  if (m->effect == EF_HEAL || m->effect == EF_HEALS) {
+    int jbr = jb_heal_rate(n);
+    if (jbr)
+      mdp = mdp * (100 + jbr) / 100;
+  } else if ((m->effect >= EF_LINE && m->effect <= EF_MSPHERE)
+             || (m->effect >= EF_ROOF && m->effect <= EF_MAREA)) {
+    int jbr = jb_matk_rate(n);
+    if (jbr)
+      mdp = mdp * (100 + jbr) / 100;
+  }
   return (mdp);
 }
 

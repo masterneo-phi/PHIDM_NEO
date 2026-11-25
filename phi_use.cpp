@@ -14,6 +14,7 @@
 #include  "phi_calc.h"
 #include  "phi_magic.h"
 #include  "phi_attack.h"
+#include  "phi_class.h" /* PHIDM NEO extension: phi.jb job/gender */
 #include  "phi_str.h"
 
 #include  "ext_data.h"
@@ -309,6 +310,7 @@ int use_item(int n, int in)
     i = cd[n].id[in].VALUE * 100 + cd[n].id[in].VALUE2;
     i *= cirate;
     i /= 100;
+    i = jb_gp_gain(n, i);  /* 商人ボーナス (PHIDM NEO extension)。換算後の実入りに対して */
     dmprintf(n, 0, buf.data(), buf.size(),DMM_USE_JEWEL, i);
     check_write(n, buf.data());
     if (i > 9999 - cd[n].gp)

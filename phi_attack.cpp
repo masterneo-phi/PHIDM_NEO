@@ -23,6 +23,7 @@
 #include "phi_enemy.h"
 #include "phi_use.h"
 #include "phi_str.h"
+#include "phi_class.h" /* PHIDM NEO extension: phi.jb job/gender */
 
 #ifdef DEBUG
 char debug_buf[256];
@@ -161,6 +162,8 @@ void   attack_other(int n)
     }
   }
   
+  pet_attack_begin(n);  /* ペットのプール消費は1コマンド1回分まで (PHIDM NEO extension) */
+
   /* 4方向のブロックは座標式が違うだけで同形。槍の2セル先は、
      バリア判定が「1セル先」の tip を見る点も含め、元の形の
      まま残してある (phi_m57.cpp のオブジェ走査と同じ判断)。 */
@@ -394,6 +397,8 @@ void attack_to(int as, int ds)
   cd[as].wt *= (10000.0 - skill_o) / 5000;
 #endif
 
+  if (jb_job(as) == 6)  /* 盗賊の攻撃ウェイト軽減 (PHIDM NEO extension) */
+    cd[as].wt = cd[as].wt * (100 - jb_rate(6, 0)) / 100;
   if (cd[as].wt < 5)
     cd[as].wt = 5;
   cd[as].st = ST_ATTACK;
@@ -516,16 +521,20 @@ if (attack_effect == 1) { /* 新攻撃効果設定 added by NEO 2011/12/6 */
     }
   }
   hr = PER_DICE;
+  /* 武闘家のクリティカル率ボーナス (PHIDM NEO extension)。
+     閾値式は NO_SKILL 版とスキル版で異なるため、ダイス側に加算して
+     両分岐 (と OLDWEAPON) に一様に効かせる。 */
+  int jb_crit = (jb_job(as) == 3) ? jb_rate(3, 0) : 0;
   /* change for technical criticalize 20000518 */
   /* change for defence against blade critical 20010703 */
 #ifdef OLDWEAPON
-  if (hr >= (tp != WT_BLADE ? 99 : 95 - (cd[as].lv[LV_FIGHTER] / 150)))
+  if (hr + jb_crit >= (tp != WT_BLADE ? 99 : 95 - (cd[as].lv[LV_FIGHTER] / 150)))
 #else
 
 #ifdef NO_SKILL
-  if (hr >= 100 - ((tp != WT_BLADE || cd[ds].st == ST_DEFEND) ? (1+special/10) : (5*(20+special)*(cd[as].lv[LV_FIGHTER]+5001   )/20/5000))/(friend_attack?3:1) )
+  if (hr + jb_crit >= 100 - ((tp != WT_BLADE || cd[ds].st == ST_DEFEND) ? (1+special/10) : (5*(20+special)*(cd[as].lv[LV_FIGHTER]+5001   )/20/5000))/(friend_attack?3:1) )
 #else
-  if (hr >= 100 - ((tp != WT_BLADE || cd[ds].st == ST_DEFEND) ? (1+special/10) : (5*(20+special)*(cd[as].lv[LV_FIGHTER]+skill_w)/20/5000))/(friend_attack?3:1) )
+  if (hr + jb_crit >= 100 - ((tp != WT_BLADE || cd[ds].st == ST_DEFEND) ? (1+special/10) : (5*(20+special)*(cd[as].lv[LV_FIGHTER]+skill_w)/20/5000))/(friend_attack?3:1) )
 #endif
 
 #endif
@@ -669,6 +678,8 @@ if (attack_effect == 1) { /* 新攻撃効果設定 added by NEO 2011/12/6 */
 
   if (dmg < 0)
     dmg = 0;
+  if (jb_job(as) == 1)  /* 戦士の物理ダメージボーナス (PHIDM NEO extension) */
+    dmg = dmg * (100 + jb_rate(1, 0)) / 100;
   if (wtp == IT_WEAPON && ae == AE_MENTAL) {
     /* change for sheil cheat 20000522 */
     if (cd[ds].mmp == 0 && (cd[ds].exp == 99999999 || ds >= MAX_NTTYS)) {
@@ -702,6 +713,11 @@ if (attack_effect == 1) { /* 新攻撃効果設定 added by NEO 2011/12/6 */
       dmprintf(as,ds, buf.data(), buf.size(),DMM_ATTACK_HP,dmg);
       write_companion(ds, as, buf.data(), 0);
       i = hp_dmg(ds, -dmg, 1);
+      /* ペットの追加攻撃: 命中確定後 (この時点の dmg は Flv 倍率・
+         df 軽減まで適用済みの最終ダメージ) に差し込む。attack_to の
+         外に置くと外れにも追随し、deny_pk の早期 return も通らない
+         (PHIDM NEO extension) */
+      pet_assist(as, ds, dmg, friend_attack);
     }
     dmprintf(ds,as, buf.data(), buf.size(),DMM_LEFT_HP);
   }
@@ -1059,7 +1075,7 @@ if (attack_effect == 1) { /* 新攻撃効果設定 added by NEO 2011/12/6 */
       cd[ds].gp -= dmg;
       if (cd[ds].gp < 0)
   cd[ds].gp = 0;
-      cd[as].gp += dmg;
+      cd[as].gp += jb_gp_gain(as, dmg);  /* 商人ボーナス (PHIDM NEO extension) */
       if (cd[as].gp > 9999){
   tax+=(cd[as].gp-9999);
   cd[as].gp = 9999;

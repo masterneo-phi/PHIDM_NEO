@@ -619,6 +619,17 @@ void   exportcir(int n)
   メッセージスイッチ
 20030501 スイッチとデータを分けた
 ----------------------------------*/
+/* :A レコードを番号から引く (PHIDM NEO extension: y/s 選択用) */
+static int mesg_index(int orgn)
+{
+  int i;
+  for (i = 0; i < msgn; i++) {
+    if (msgd[i].orgn == orgn)
+      return i;
+  }
+  return -1;
+}
+
 void   load_mesg(int n)
 {
   int    i, l;
@@ -663,6 +674,45 @@ void   load_mesg(int n)
       case 3:                         /* 3 : 拡張"z" FX (PHIDM NEO extension) */
           fx_send_payload(n, msgd[i].data.mesg);
           break;
+      case 4:                         /* 4 : 拡張"y" Yes/No選択 (PHIDM NEO extension, from MRDM) */
+          if (msgd[i].data.mesg != nullptr) {
+            dmprintf(n, 0, message.data(), message.size(), msgd[i].data.mesg);
+            check_write(n, message.data());
+          }
+          check_write(n, "#list\n");
+          check_write(n, "[ 1] はい\n");
+          check_write(n, "[ 2] いいえ\n");
+          check_write(n, "#end-list\n");
+          cd[n].anmf = msgd[i].orgn;
+          cd[n].anmt = 0;
+          cd[n].st = ST_SELECT;
+          check_write(n, "#s-edit\n");
+          break;
+      case 5:                         /* 5 : 拡張"s" 選択肢 (PHIDM NEO extension, from MRDM) */
+          {
+            std::array<char, 256> wbuf;
+            int idx = i, cnt = 0;
+            check_write(n, "#list\n");
+            while (idx >= 0 && cnt < 8) {
+              cnt++;
+              if (msgd[idx].data.mesg != nullptr) {
+                dmprintf(n, 0, message.data(), message.size(), msgd[idx].data.mesg);
+                snprintf(wbuf.data(), wbuf.size(), "[%2i] %s", cnt, message.data());
+              } else {
+                snprintf(wbuf.data(), wbuf.size(), "[%2i] \n", cnt);
+              }
+              check_write(n, wbuf.data());
+              if (msgd[idx].next == 0)
+                break;
+              idx = mesg_index(msgd[idx].next);
+            }
+            check_write(n, "#end-list\n");
+          }
+          cd[n].anmf = msgd[i].orgn;
+          cd[n].anmt = 0;
+          cd[n].st = ST_SELECT;
+          check_write(n, "#s-edit\n");
+          break;
       default:
           break;
         }
@@ -672,6 +722,51 @@ void   load_mesg(int n)
     } else {
       break;
     }
+  }
+}
+
+
+/* :A 拡張 y/s の回答処理 (PHIDM NEO extension, from MRDM) */
+void   select_mesg(int n, int k)
+{
+  int i, idx, cnt;
+
+  i = mesg_index(cd[n].anmf);
+  if (i < 0) {
+    cd[n].anmf = 0;
+    cd[n].st = ST_COMMAND;
+    return;
+  }
+  if (msgd[i].type == 4) {          /* Yes/No選択 */
+    if (k == 1) {
+      cd[n].anmf = msgd[i].next;    /* Yes分岐 */
+    } else if (k == 2) {
+      cd[n].anmf = msgd[i].wait;    /* No分岐 */
+    } else {
+      return;                       /* 1/2以外は選択待ちを続ける */
+    }
+    cd[n].anmt = 0;
+    cd[n].st = ST_COMMAND;
+    load_mesg(n);
+  } else if (msgd[i].type == 5) {   /* 選択肢 */
+    idx = i;
+    for (cnt = k; cnt > 1; cnt--) {
+      if (msgd[idx].next == 0) {
+        idx = -1;
+        break;
+      }
+      idx = mesg_index(msgd[idx].next);
+      if (idx < 0)
+        break;
+    }
+    if (idx >= 0)
+      cd[n].anmf = msgd[idx].wait;  /* 選択時の分岐 */
+    /* 範囲外の番号では anmf を変えずに選択肢を再表示する */
+    cd[n].anmt = 0;
+    cd[n].st = ST_COMMAND;
+    load_mesg(n);
+  } else {
+    cd[n].st = ST_COMMAND;
   }
 }
 
@@ -3697,7 +3792,7 @@ void   load_td_swt()
       msgd[rmdn].orgn = decimal_load(4, &p); /* add for used boid number bug 20041117 */
       msgd[rmdn].next = decimal_load(4, &p);
       msgd[rmdn].wait = decimal_load(4, &p);
-      while ((*p != '\0') && (*p != '\"') && (*p != 'x') && (*p != 'f') && (*p != 'z')) /* psp3 */ /* add flag 20000522 */ /* z: FX extension (PHIDM NEO) */
+      while ((*p != '\0') && (*p != '\"') && (*p != 'x') && (*p != 'f') && (*p != 'z') && (*p != 'y') && (*p != 's')) /* psp3 */ /* add flag 20000522 */ /* z: FX extension (PHIDM NEO) */ /* y/s: 選択拡張 (PHIDM NEO extension, from MRDM) */
   p++;
       if (*p == '\"') {
   p++;
@@ -3737,6 +3832,44 @@ void   load_td_swt()
                      || buf2[l - 1] == ' ' || buf2[l - 1] == '\t'))
       buf2[--l] = '\0';
     msgd[rmdn].data.mesg = findstr(buf2);
+  }
+  else if (*p == 'y') {                         /* :A拡張 Yes/No選択 (PHIDM NEO extension, from MRDM) */
+    p++;
+    msgd[rmdn].type = 4;                     /* 拡張フラグ4: next=Yes分岐, wait=No分岐 */
+    SKIP_SPACE(p);
+    if (*p == '\"') {
+  p++;
+  CPYSTR(buf2, p);
+  l = std::strlen(buf2);
+  for (; l > 0; l--) {
+    if (buf2[l] == '\"')
+      break;
+  }
+  buf2[l++] = '\n';
+  buf2[l] = '\0';
+  msgd[rmdn].data.mesg = findstr(buf2);
+    } else {
+  msgd[rmdn].data.mesg = nullptr;
+    }
+  }
+  else if (*p == 's') {                         /* :A拡張 選択肢 (PHIDM NEO extension, from MRDM) */
+    p++;
+    msgd[rmdn].type = 5;                     /* 拡張フラグ5: next=次の選択肢行, wait=選択時の分岐 */
+    SKIP_SPACE(p);
+    if (*p == '\"') {
+  p++;
+  CPYSTR(buf2, p);
+  l = std::strlen(buf2);
+  for (; l > 0; l--) {
+    if (buf2[l] == '\"')
+      break;
+  }
+  buf2[l++] = '\n';
+  buf2[l] = '\0';
+  msgd[rmdn].data.mesg = findstr(buf2);
+    } else {
+  msgd[rmdn].data.mesg = nullptr;
+    }
   }
   else {
   /* ここに他の拡張の認識を記述可能 */
@@ -3952,6 +4085,20 @@ void   load_td_swt()
         loadstr(buf2,&p,' ',15);
         abf[lpt++].dp = findstr(buf2);
   break;
+      case 91: /* 実時間 (PHIDM NEO extension, from MRDM) */
+  abf[lpt++].di = decimal_load(2, &p);  /* 月 (99=任意) */
+  abf[lpt++].di = decimal_load(2, &p);  /* 日 (99=任意) */
+  abf[lpt++].di = decimal_load(2, &p);  /* 時 (99=任意) */
+  abf[lpt++].di = decimal_load(2, &p);  /* 分 (99=任意) */
+  break;
+      case 80: /* 職業・性別 (PHIDM NEO extension) */
+  abf[lpt++].di = decimal_load(2, &p);  /* 00=性別 01=職業 */
+  abf[lpt++].di = decimal_load(2, &p);  /* 値 (0=未設定) */
+  break;
+      case 92: /* ペット (PHIDM NEO extension) */
+  abf[lpt++].di = decimal_load(2, &p);  /* タイプ (0=任意 1妖精 2猫 3犬 4鳥) */
+  abf[lpt++].di = decimal_load(2, &p);  /* 状態 (0=任意 1行動可 2休止中) */
+  break;
       /* ↓スイッチデータ追加 2005/11/26 Savarl.F */
       case 21: /* 指定NPC殺害時 */
         SKIP_SPACE(p);
@@ -4163,6 +4310,8 @@ void   load_td_swt()
       case 20:      /* 確率変化 */
   abf[lpt++].di = decimal_load(2, &p);
       case 10:      /* 汎用フラグを変化 */
+      case 81:      /* 汎用フラグを変化 (スイッチを起動しない) (PHIDM NEO extension, from JET) */
+      case 82:      /* 汎用フラグを変化 (座標つきスイッチだけ起動) (PHIDM NEO extension, from JET) */
   abf[lpt++].di = decimal_load(1, &p);
   SKIP_SPACE(p);
   if (*p == '\"') {
@@ -4290,11 +4439,25 @@ void   load_td_swt()
         }
       }
   break;
+      case 34: /* NPC効果 (PHIDM NEO extension, from MRDM npcaction) */
+        abf[lpt++].di = decimal_load(2, &p);  /* 効果番号 */
+        abf[lpt++].di = decimal_load(4, &p);  /* 威力/パラメータ */
+  break;
+      case 80: /* 職業・性別を設定 (PHIDM NEO extension) */
+        abf[lpt++].di = decimal_load(2, &p);  /* 00=性別 01=職業 */
+        abf[lpt++].di = decimal_load(2, &p);  /* 値 (0=未設定に戻す) */
+  break;
+      case 92: /* ペット (PHIDM NEO extension) */
+        abf[lpt++].di = decimal_load(2, &p);  /* 動作 (0付与 1改名 2解放 3回復) */
+        abf[lpt++].di = decimal_load(2, &p);  /* タイプ (動作0の時のみ: 1妖精 2猫 3犬 4鳥) */
+  break;
       case 25: /* add for switch show 20010621 */
         loadstr(buf2,&p,'\n',256);
         abf[lpt++].dp = findstr(buf2);
   break;
       case 50: /* calculate expression */
+      case 51: /* calculate expression (スイッチを起動しない) (PHIDM NEO extension, from JET) */
+      case 52: /* calculate expression (座標つきスイッチだけ起動) (PHIDM NEO extension, from JET) */
         get_sentence(&p,&lpt,abf,'\0');
   break;
       case 33: /* コマンド実行 */
@@ -5693,6 +5856,8 @@ void   load_gate(int n, int gn)
 
       while (!backup_cd(n));
       while (!save_sav(n)); /* for saved flags 20010622 */
+      qstr_save(n); /* PHIDM NEO extension: phi.qst string store */
+      pet_save(n);  /* PHIDM NEO extension: phi.pet pet store */
       while (!save_cd(n, 1));
       cd[n].type = CT_NOEXIST;
       cd[n].st = ST_TRYRESERVE; /* ST_TRANSFER; change against abnomal process sequence 20000725 */
@@ -6492,6 +6657,439 @@ static void hall_show(int n, const char *cat)
   }
 }
 
+/*----------------------------------
+  NPC効果 (MRDM の npcaction 効果表をスイッチ動作34として実装)
+  n      : 起動したキャラクタ = 効果の対象 (聞き手)。
+           0 の時は汎用変数/汎用フラグの操作 (94-99) のみ有効。
+  sx, sy : 起動位置 (ノックバックの押し出し方向の基準)
+  f      : 効果番号 (MRDM npcaction と同じ番号)
+  l      : 威力/パラメータ (0000-9999)
+ ----------------------------------*/
+static void npc_no_effect(int j)
+{
+  std::array<char, 256> buf;
+  dmprintf(j, j, buf.data(), buf.size(), DMM_MAGIC_EFFECT_NO);
+  write_companion(j, 0, buf.data(), 0);
+}
+
+/* 状態異常をひとつかける (mdp は抵抗計算済みの威力) */
+static void npc_inflict(int j, int f, int mdp)
+{
+  std::array<char, 256> buf;
+  int lv;
+  switch (f) {
+  case 11:  /* 毒 */
+    if (cd[j].at == AT_POISONPROOF || (cd[j].at == AT_IMMORTAL && frand(100) < 90)) {
+      npc_no_effect(j);
+      return;
+    }
+    lv = mdp / 50 + 1;
+    dmprintf(j, j, buf.data(), buf.size(), DMM_POISON_BY_ATTACK, lv);
+    write_companion(j, 0, buf.data(), 0);
+    CN_POISON(j) = lv;
+    break;
+  case 12:  /* 麻痺 */
+    if (cd[j].at == AT_PALSYPROOF || (cd[j].at == AT_IMMORTAL && frand(100) < 90)) {
+      npc_no_effect(j);
+      return;
+    }
+    if (CN_PALSY(j)) {
+      dmprintf(j, j, buf.data(), buf.size(), DMM_PALSY_ALREADY);
+      write_companion(j, 0, buf.data(), 0);
+      return;
+    }
+    lv = mdp / 50 + 1;
+    dmprintf(j, j, buf.data(), buf.size(), DMM_PALSY_BY_ATTACK, lv);
+    write_companion(j, 0, buf.data(), 0);
+    CN_PALSY(j) = lv;
+    break;
+  case 13:  /* パニック */
+    if (cd[j].at == AT_MEPROOF || (cd[j].at == AT_IMMORTAL && frand(100) < 90)) {
+      npc_no_effect(j);
+      return;
+    }
+    lv = mdp / 50 + 1;
+    dmprintf(j, j, buf.data(), buf.size(), DMM_PANIC_BY_ATTACK, lv);
+    write_companion(j, 0, buf.data(), 0);
+    CN_PANIC(j) = lv;
+    break;
+  case 14:  /* 混乱 */
+    if (cd[j].at == AT_MEPROOF || (cd[j].at == AT_IMMORTAL && frand(100) < 90)) {
+      npc_no_effect(j);
+      return;
+    }
+    if (CN_CONFUSE(j)) {
+      dmprintf(j, j, buf.data(), buf.size(), DMM_CONFUSE_ALREADY);
+      write_companion(j, 0, buf.data(), 0);
+      return;
+    }
+    lv = mdp / 50 + 1;
+    dmprintf(j, j, buf.data(), buf.size(), DMM_CONFUSE_BY_ATTACK, lv);
+    write_companion(j, 0, buf.data(), 0);
+    CN_CONFUSE(j) = lv;
+    break;
+  case 15:  /* バーサク */
+    if (cd[j].at == AT_MEPROOF || (cd[j].at == AT_IMMORTAL && frand(100) < 90)) {
+      npc_no_effect(j);
+      return;
+    }
+    if (CN_BERSERK(j)) {
+      dmprintf(j, j, buf.data(), buf.size(), DMM_BERSERK_ALREADY);
+      write_companion(j, 0, buf.data(), 0);
+      return;
+    }
+    lv = mdp / 50 + 1;
+    dmprintf(j, j, buf.data(), buf.size(), DMM_BERSERK_BY_ATTACK, lv);
+    write_companion(j, 0, buf.data(), 0);
+    CN_BERSERK(j) = lv;
+    break;
+  case 16:  /* 沈黙 */
+    if (cd[j].at == AT_MEPROOF || (cd[j].at == AT_IMMORTAL && frand(100) < 90)) {
+      npc_no_effect(j);
+      return;
+    }
+    if (CN_SILENCE(j)) {
+      dmprintf(j, j, buf.data(), buf.size(), DMM_SILENCE_ALREADY);
+      write_companion(j, 0, buf.data(), 0);
+      return;
+    }
+    lv = mdp / 50 + 1;
+    dmprintf(j, j, buf.data(), buf.size(), DMM_SILENCE_BY_ATTACK, lv);
+    write_companion(j, 0, buf.data(), 0);
+    CN_SILENCE(j) = lv;
+    break;
+  case 18:  /* 盲目 */
+    lv = mdp / 50 + 3;
+    if (CN_BLIND(j) < 0) {
+      dmprintf(j, j, buf.data(), buf.size(), DMM_BLIND_ALREADY);
+      write_companion(j, 0, buf.data(), 0);
+      return;
+    }
+    dmprintf(j, j, buf.data(), buf.size(), DMM_BLIND_BY_ATTACK, lv);
+    write_companion(j, 0, buf.data(), 0);
+    CN_BLIND(j) = -lv;
+    break;
+  }
+}
+
+/* 能力値の増減 (MRDM 形式: 変化量は mdp/100+1) */
+static void npc_stat_up(int j, int cnn, int mdp, char *fmt)
+{
+  std::array<char, 256> buf;
+  int v = mdp / 100 + 1;
+  dmprintf(j, j, buf.data(), buf.size(), fmt, v);
+  write_companion(j, 0, buf.data(), 0);
+  if (cd[j].cn[cnn] > 0)
+    cd[j].cn[cnn] = v;
+  else
+    cd[j].cn[cnn] += v;
+}
+
+static void npc_stat_down(int j, int cnn, int mdp, char *fmt)
+{
+  std::array<char, 256> buf;
+  int v = mdp / 100 + 1;
+  dmprintf(j, j, buf.data(), buf.size(), fmt, v);
+  write_companion(j, 0, buf.data(), 0);
+  if (cd[j].cn[cnn] > 0)
+    cd[j].cn[cnn] -= v;
+  else
+    cd[j].cn[cnn] = -v;
+}
+
+void npc_action_effect(int n, int sx, int sy, int f, int l)
+{
+  std::array<char, 256> buf;
+  int j = n, mdp, mrr, k, m;
+
+  /* 汎用変数/汎用フラグの操作 (対象キャラクタを必要としない) */
+  if (f >= 94) {
+    if (l < 0)
+      return;
+    switch (f) {
+    case 94:  /* 汎用変数 = 0 */
+    case 95:  /* 汎用変数 ++ */
+    case 96:  /* 汎用変数 -- */
+      if (l >= GVAR_MAX)
+        return;
+      if (f == 94)
+        generic_variable[l] = 0;
+      else if (f == 95)
+        generic_variable[l]++;
+      else
+        generic_variable[l]--;
+      /* 変更を条件10/20の再評価へ伝える (change_flag と同じ経路) */
+      if (gfn2 < (int) (sizeof(gfbuf2) / sizeof(gfbuf2[0])))
+        gfbuf2[gfn2++] = GFLAG_MAX + PFLAG_MAX + l;
+      return;
+    case 97:  /* 汎用フラグ反転 */
+      if (l < GFLAG_MAX)
+        change_flag(n, l, FLAG_REV, 0);
+      return;
+    case 98:  /* 汎用フラグ OFF */
+      if (l < GFLAG_MAX)
+        change_flag(n, l, FLAG_OFF, 0);
+      return;
+    case 99:  /* 汎用フラグ ON */
+      if (l < GFLAG_MAX)
+        change_flag(n, l, FLAG_ON, 0);
+      return;
+    default:
+      return;
+    }
+  }
+  if (f == 19) {  /* ランダム (MRDM: 1-7を抽選し 7 は 8 として処理) */
+    f = frand(7) + 1;
+    if (f == 7)
+      f = 8;
+    npc_action_effect(n, sx, sy, f, l);
+    return;
+  }
+  if (j <= 0 || !cd[j].type)
+    return;   /* 聞き手がいない */
+  if (f == 0 || f == 5)
+    return;   /* 0: 効果なし, 5: 化ける は動作形式では未対応 */
+
+  mdp = (l * 2) / 3 + frand(l / 3) + 1;  /* 威力の基本値 */
+  if (f == 1 || f == 2) {        /* HP回復 */
+    if (cd[j].hp <= 0)
+      return;
+    dmprintf(j, j, buf.data(), buf.size(), DMM_NPCA_HEAL_HP, mdp);
+    write_companion(j, 0, buf.data(), 0);
+    (void) hp_dmg(j, mdp, 0);
+    return;
+  }
+  if (f == 3 || f == 4) {        /* MP回復 */
+    dmprintf(j, j, buf.data(), buf.size(), DMM_NPCA_HEAL_MP, mdp);
+    write_companion(j, 0, buf.data(), 0);
+    (void) mp_dmg(j, mdp, 0);
+    return;
+  }
+  if (f == 6) {                  /* Vanish */
+    dmprintf(j, j, buf.data(), buf.size(), DMM_NPCA_VANISH, mdp / 50);
+    check_write(j, buf.data());
+    CN_VANISH(j) = mdp / 50;
+    return;
+  }
+  if (f == 7) {                  /* Mirror */
+    dmprintf(j, j, buf.data(), buf.size(), DMM_NPCA_MIRROR, mdp / 50);
+    check_write(j, buf.data());
+    CN_MIRROR(j) = mdp / 50;
+    return;
+  }
+  if (CN_GASIFY(j) >= 60) {      /* ガス化した相手には届かない */
+    npc_no_effect(j);
+    return;
+  }
+  /* 治療・補助 (抵抗なし) */
+  switch (f) {
+  case 71:  /* 解毒 */
+    if (CN_POISON(j) > 0) {
+      CN_POISON(j) -= mdp / 50 + 1;
+      if (CN_POISON(j) > 0)
+        dmprintf(j, j, buf.data(), buf.size(), DMM_NPCA_ANTIDOTE_SOFT);
+      else {
+        CN_POISON(j) = 0;
+        dmprintf(j, j, buf.data(), buf.size(), DMM_NPCA_ANTIDOTE);
+      }
+      write_companion(j, 0, buf.data(), 0);
+    }
+    return;
+  case 72:  /* 麻痺治療 */
+    if (CN_PALSY(j) > 0) {
+      CN_PALSY(j) -= mdp / 50 + 1;
+      if (CN_PALSY(j) > 0)
+        dmprintf(j, j, buf.data(), buf.size(), DMM_NPCA_REMOVE_SOFT);
+      else {
+        CN_PALSY(j) = 0;
+        dmprintf(j, j, buf.data(), buf.size(), DMM_NPCA_REMOVE);
+      }
+      write_companion(j, 0, buf.data(), 0);
+    }
+    return;
+  case 73:  /* 精神異常治療 */
+    k = mdp / 50 + 1;
+    if (CN_PANIC(j) > 0 || CN_CONFUSE(j) > 0 || CN_BERSERK(j) > 0) {
+      if (k < CN_PANIC(j) || k < CN_CONFUSE(j) || k < CN_BERSERK(j)) {
+        dmprintf(j, j, buf.data(), buf.size(), DMM_NPCA_AWAKEN_SOFT);
+        write_companion(j, 0, buf.data(), 0);
+        CN_PANIC(j) -= k;
+        if (CN_PANIC(j) < 0)
+          CN_PANIC(j) = 0;
+        CN_CONFUSE(j) -= k;
+        if (CN_CONFUSE(j) < 0)
+          CN_CONFUSE(j) = 0;
+        CN_BERSERK(j) -= k;
+        if (CN_BERSERK(j) < 0)
+          CN_BERSERK(j) = 0;
+      } else {
+        dmprintf(j, j, buf.data(), buf.size(), DMM_NPCA_AWAKEN);
+        write_companion(j, 0, buf.data(), 0);
+        CN_PANIC(j) = CN_CONFUSE(j) = CN_BERSERK(j) = 0;
+      }
+    }
+    return;
+  case 81: npc_stat_up(j, CNN_COAT, mdp, DMM_NPCA_COAT_UP); return;
+  case 82: npc_stat_up(j, CNN_SPELL, mdp, DMM_NPCA_SPELL_UP); return;
+  case 83: npc_stat_up(j, CNN_PROTECT, mdp, DMM_NPCA_PROTECT_UP); return;
+  case 84: npc_stat_up(j, CNN_SHELL, mdp, DMM_NPCA_SHELL_UP); return;
+  case 85: npc_stat_up(j, CNN_HASTE, mdp, DMM_NPCA_HASTE_UP); return;
+  }
+  /* 攻撃系: 10-26 は MRP 抵抗, 40-44 は DFP 抵抗 (MRDM 形式) */
+  if (!((f >= 10 && f <= 26) || (f >= 40 && f <= 44)))
+    return;
+  mrr = 1;
+  if (f < 40) {
+    if (cd[j].aeq != nullptr)
+      mrr = cd[j].aeq->MRP + 1;
+    if (TCN_ILLUSION(j) < 0)
+      mrr = mrr * (100 + TCN_ILLUSION(j)) / 100;
+    else if (TCN_ILLUSION(j) > 0)
+      mrr = mrr * (100 - TCN_ILLUSION(j)) / 100;
+  } else {
+    if (cd[j].aeq != nullptr)
+      mrr = cd[j].aeq->DFP + 1;
+    if (TCN_PROTECT(j) < 0)
+      mrr = mrr * (100 + TCN_PROTECT(j)) / 100;
+    else if (TCN_PROTECT(j) > 0)
+      mrr = mrr * (100 - TCN_PROTECT(j)) / 100;
+  }
+  if (mrr > 400 && frand(100) < 50)
+    mrr = 400 - frand(40);
+  if (frand(100) < mrr / 4) {
+    npc_no_effect(j);
+    return;
+  }
+  mdp = mdp * (100 - mrr) / 100;
+  switch (f) {
+  case 10:  /* MPダメージ */
+    dmprintf(j, j, buf.data(), buf.size(), DMM_NPCA_MPDMG, mdp);
+    write_companion(j, 0, buf.data(), 0);
+    (void) mp_dmg(j, -mdp, 1);
+    break;
+  case 11: case 12: case 13: case 14: case 15: case 16: case 18:
+    npc_inflict(j, f, mdp);
+    break;
+  case 17:  /* ドレイン (レベルを奪う。動作形式では受け手はいない) */
+    if (cd[j].at == AT_DRAINPROOF) {
+      npc_no_effect(j);
+      break;
+    }
+    k = frand(4);
+    mdp = mdp / 100 + 1;
+    if (cd[j].lv[k] < 1000)
+      mdp = (mdp * cd[j].lv[k]) / 1000 + 1;
+    if (mdp > cd[j].lv[k])
+      mdp = cd[j].lv[k];
+    cd[j].lv[k] -= mdp;
+    dmprintf(j, j, buf.data(), buf.size(), DMM_NPCA_DRAIN, mdp);
+    write_companion(j, 0, buf.data(), 0);
+    break;
+  case 20:  /* バッド (全状態異常) */
+    npc_inflict(j, 11, mdp);
+    npc_inflict(j, 12, mdp);
+    npc_inflict(j, 13, mdp);
+    npc_inflict(j, 14, mdp);
+    npc_inflict(j, 15, mdp);
+    npc_inflict(j, 16, mdp);
+    npc_inflict(j, 18, mdp);
+    break;
+  case 21: npc_stat_down(j, CNN_COAT, mdp, DMM_NPCA_COAT_DOWN); break;
+  case 22: npc_stat_down(j, CNN_SPELL, mdp, DMM_NPCA_SPELL_DOWN); break;
+  case 23: npc_stat_down(j, CNN_PROTECT, mdp, DMM_NPCA_PROTECT_DOWN); break;
+  case 24: npc_stat_down(j, CNN_SHELL, mdp, DMM_NPCA_SHELL_DOWN); break;
+  case 25: npc_stat_down(j, CNN_HASTE, mdp, DMM_NPCA_HASTE_DOWN); break;
+  case 26:  /* MP分割 */
+  case 44:  /* HP分割 */
+    m = mdp / 16 + 1;
+    m = 25 + frand(25) + 100 / m;
+    if ((f == 44 ? cd[j].mhp : cd[j].mmp) == 0 || m <= 1) {
+      npc_no_effect(j);
+      break;
+    }
+    if (f == 44)
+      dmprintf(j, j, buf.data(), buf.size(), DMM_NPCA_DIVIDEHP, m);
+    else
+      dmprintf(j, j, buf.data(), buf.size(), DMM_NPCA_DIVIDEMP, m);
+    write_companion(j, 0, buf.data(), 0);
+    if (f == 44) {
+      cd[j].hp = cd[j].hp * m / 100 + 1;
+      if (cd[j].hp > cd[j].mhp)
+        cd[j].hp = cd[j].mhp;
+    } else {
+      cd[j].mp = cd[j].mp * m / 100 + 1;
+      if (cd[j].mp > cd[j].mmp)
+        cd[j].mp = cd[j].mmp;
+    }
+    break;
+  case 40:  /* HPダメージ */
+    dmprintf(j, j, buf.data(), buf.size(), DMM_NPCA_HPDMG, mdp);
+    write_companion(j, 0, buf.data(), 0);
+    (void) hp_dmg(j, -mdp, 1);
+    break;
+  case 41:  /* ノックバック */
+    dmprintf(j, j, buf.data(), buf.size(), DMM_KNOCK_BACK);
+    write_companion(j, 0, buf.data(), 0);
+    move_chr(j, cd[j].x, cd[j].y,
+             cd[j].x + fsign(cd[j].x - sx), cd[j].y + fsign(cd[j].y - sy), 0);
+    break;
+  case 42:  /* 武器を叩き落す */
+    k = -1;
+    if (cd[j].type == CT_NORMAL && cd[j].weq != nullptr
+        && (cd[j].weq->type & 0xf0) != WT_FIST
+        && (cd[j].weq->type & 0xf00) != MT_NOBREAK) {
+      for (k = 0; k < MAX_ITEMS; k++)
+        if (&(cd[j].id[k]) == cd[j].weq)
+          break;
+      if (k >= MAX_ITEMS)
+        k = -1;
+    }
+    if (k >= 0) {
+      dmprintf(j, j, buf.data(), buf.size(), DMM_NPCA_FUMBLE, cd[j].weq->name);
+      write_companion(j, 0, buf.data(), 0);
+      save_id(j, k, 1);
+      item_gc(j);
+      set_fn(j);
+    } else {
+      npc_no_effect(j);
+    }
+    break;
+  case 43:  /* 所持品劣化 */
+    m = MAX_ITEMS;
+    for (k = 0; k < MAX_ITEMS; k++) {
+      if (cd[j].id[k].type != DT_NONE
+          && (cd[j].id[k].type & 0xf00) != MT_NOBREAK) {
+        if (m == MAX_ITEMS)
+          m = k;
+        else if (PER_DICE < 50)
+          m = k;
+        else
+          break;
+      }
+    }
+    if (m < MAX_ITEMS)
+      k = speed_degrade(&(cd[j].id[m]));
+    else
+      k = 0;
+    if (k == 0) {
+      npc_no_effect(j);
+    } else if (k == 1) {
+      dmprintf(j, j, buf.data(), buf.size(), DMM_NPCA_DEGRADE, cd[j].id[m].name);
+      write_companion(j, 0, buf.data(), 0);
+      item_gc(j);
+      set_fn(j);
+    } else {
+      dmprintf(j, j, buf.data(), buf.size(), DMM_NPCA_DEGRADE_BROKEN, cd[j].id[m].name);
+      write_companion(j, 0, buf.data(), 0);
+      item_gc(j);
+      set_fn(j);
+    }
+    break;
+  default:
+    break;
+  }
+}
+
 int   load_switch(int n, int sx, int sy, int f)
 {
   ItemData id;
@@ -6499,6 +7097,7 @@ int   load_switch(int n, int sx, int sy, int f)
   char   wbuf[256];
   int    x, y;
   int    xx, yy;
+  int    prop, px, py;  /* 動作51/52/81/82 の伝播制御 (PHIDM NEO extension, from JET) */
   int    i, j, k, l, m, lpt, cn;
   int    cbuf[MAX_ENEMIES];
   ItemOData **ip, *ip2;
@@ -6508,6 +7107,7 @@ int   load_switch(int n, int sx, int sy, int f)
   char exp; /* ADD スイッチデータ追加 2005/12/02 Savarl.F */
 
   done = 0; m = 0;
+  prop = -1; px = sx; py = sy;
   for (cn = 0; cn < swtn; cn++) {
     if (swtd[cn] == nullptr)
       continue;
@@ -6521,6 +7121,10 @@ int   load_switch(int n, int sx, int sy, int f)
     j = i = swtd[cn][lpt++].di;
     if (j == 6 || j == 8 || j == 11 || j == 16)
       j = 1;      /* 踏んだときチェック */
+    if (j == 80)
+      j = 1;      /* 職業・性別も踏んだときチェック (PHIDM NEO extension) */
+    if (j == 92)
+      j = 1;      /* ペットも踏んだときチェック (PHIDM NEO extension) */
     if (j == 9)
       j = 4;      /* 置いたときチェック */
     if (j == 12 || j == 20)
@@ -6531,7 +7135,13 @@ int   load_switch(int n, int sx, int sy, int f)
       j = (f==1? 1:15);
 /* ↓スイッチデータ追加 2005/11/26 Savarl.F */
 /*    if (f != j || ((x != sx || y != sy) && f != 10))	*/
-    if (f != j || ((x != sx || y != sy) && (f != 10 && (f < 21 || f > 25))))
+    if (f == 12) {
+      /* 動作82/52 からの起動では座標つきスイッチ (条件12) だけを対象にする
+         (PHIDM NEO extension, from JET) */
+      if (i != 12 || x != sx || y != sy)
+        continue;
+    }
+    else if (f != j || ((x != sx || y != sy) && (f != 10 && f != 91 && (f < 21 || f > 25))))
 /* ↑CHG */
       continue;     /* 起動条件が異なるか、座標が違う */
     switch (i) {
@@ -6541,6 +7151,50 @@ int   load_switch(int n, int sx, int sy, int f)
     case 22: /* ADD スイッチデータ追加 2005/12/29 Savarl.F */
     case 23: /* ADD スイッチデータ追加 2005/12/29 Savarl.F */
     case 24: /* ADD スイッチデータ追加 2005/12/29 Savarl.F */
+      break;
+    case 91: /* 実時間 (PHIDM NEO extension, from MRDM) */
+      j = swtd[cn][lpt++].di;   /* 月 */
+      if (j != 99 && sttime->tm_mon != j - 1)
+        continue;
+      j = swtd[cn][lpt++].di;   /* 日 */
+      if (j != 99 && sttime->tm_mday != j)
+        continue;
+      j = swtd[cn][lpt++].di;   /* 時 */
+      if (j != 99 && sttime->tm_hour != j)
+        continue;
+      j = swtd[cn][lpt++].di;   /* 分 */
+      if (j != 99 && sttime->tm_min != j)
+        continue;
+      break;
+    case 80: /* 職業・性別 (PHIDM NEO extension) */
+      j = swtd[cn][lpt++].di;   /* 00=性別 01=職業 */
+      k = swtd[cn][lpt++].di;   /* 値 (0=未設定) */
+      if (!jb_enabled())
+        continue;               /* phi.jb の無い世界では無効 */
+      if (j == 0) {
+        if (jb_sex(n) != k)
+          continue;
+      } else if (j == 1) {
+        if (jb_job(n) != k)
+          continue;
+      } else {
+        continue;
+      }
+      break;
+    case 92: /* ペット (PHIDM NEO extension) */
+      j = swtd[cn][lpt++].di;   /* タイプ (0=任意) */
+      k = swtd[cn][lpt++].di;   /* 状態 (0=任意 1行動可 2休止中) */
+      m = pet_type(n);
+      if (m == 0)
+        continue;               /* ペット無しは不成立 */
+      if (j != 0 && m != j)
+        continue;
+      if (k == 1 && !pet_active(n))
+        continue;
+      if (k == 2 && pet_active(n))
+        continue;
+      if (k != 0 && k != 1 && k != 2)
+        continue;
       break;
     case 1:     /* あるレベルに達した時 */
     case 6:     /* 無言プレート */
@@ -7239,12 +7893,29 @@ int   load_switch(int n, int sx, int sy, int f)
     case 20:      /* 確率変化 */
       m = swtd[cn][lpt++].di; /* 確率 */
     case 10:      /* 汎用フラグを変化 */
+    case 81:      /* 汎用フラグを変化 (スイッチを起動しない) (PHIDM NEO extension, from JET) */
+    case 82:      /* 汎用フラグを変化 (座標つきスイッチだけ起動) (PHIDM NEO extension, from JET) */
       j = swtd[cn][lpt++].di; /* どう変化させるか */
       k = swtd[cn][lpt++].di; /* 変化させるフラグの個数 */
-      while (--k >= 0) {
-  l = swtd[cn][lpt++].di;
-  if (i == 10 || PER_DICE < m)
-    change_flag(n, l, j, 0);
+      {
+        int gfn2_mark = gfn2;  /* 動作81 の変更は gfbuf2 へ残さない */
+        while (--k >= 0) {
+    l = swtd[cn][lpt++].di;
+    if (i != 20 || PER_DICE < m)
+      change_flag(n, l, j, 0);
+        }
+        if (i == 81 && gfn2 > gfn2_mark)
+          gfn2 = gfn2_mark;
+      }
+      if (i == 10 || i == 20)
+        prop = 0;
+      else if (i == 81) {
+        if (prop < 0)
+          prop = 1;
+      } else if (i == 82) {
+        if (prop != 0) {
+          prop = 2; px = xx; py = yy;
+        }
       }
       break;
 #if MAX_OBJECTS > 0
@@ -7305,13 +7976,58 @@ int   load_switch(int n, int sx, int sy, int f)
       show_file(n,swtd[cn][lpt++].dp);
       break;
     case 50: /* calc expression */
+    case 51: /* calc expression (スイッチを起動しない) (PHIDM NEO extension, from JET) */
+    case 52: /* calc expression (座標つきスイッチだけ起動) (PHIDM NEO extension, from JET) */
       stpt = 0;
       log_send = n;
-      calc_expression(n,&lpt,swtd[cn]);
+      if (i == 51) {
+        int gfn2_mark = gfn2;  /* 動作51 の変更は gfbuf2 へ残さない */
+        calc_expression(n,&lpt,swtd[cn]);
+        if (gfn2 > gfn2_mark)
+          gfn2 = gfn2_mark;
+      } else {
+        calc_expression(n,&lpt,swtd[cn]);
+      }
       log_send = 0;
+      if (i == 50)
+        prop = 0;
+      else if (i == 51) {
+        if (prop < 0)
+          prop = 1;
+      } else if (i == 52) {
+        if (prop != 0) {
+          prop = 2; px = xx; py = yy;
+        }
+      }
       break;
     case 29: /* add for boot menu 20041212 */
       display_menu(n,swtd[cn][lpt++].di);
+      break;
+    case 34: /* NPC効果 (PHIDM NEO extension, from MRDM npcaction) */
+      i = swtd[cn][lpt++].di;  /* 効果番号 */
+      j = swtd[cn][lpt++].di;  /* 威力/パラメータ */
+      npc_action_effect(n, sx, sy, i, j);
+      prop = 0;  /* 汎用変数/フラグの変更は従来どおり伝播させる */
+      break;
+    case 80: /* 職業・性別を設定 (PHIDM NEO extension) */
+      i = swtd[cn][lpt++].di;  /* 00=性別 01=職業 */
+      j = swtd[cn][lpt++].di;  /* 値 (0=未設定に戻す) */
+      if (i == 0)
+        jb_set_sex(n, j);
+      else if (i == 1)
+        jb_set_job(n, j);
+      break;
+    case 92: /* ペット (PHIDM NEO extension) */
+      i = swtd[cn][lpt++].di;  /* 動作 (0付与 1改名 2解放 3回復) */
+      j = swtd[cn][lpt++].di;  /* タイプ (動作0の時のみ) */
+      if (i == 0)
+        pet_grant(n, j);
+      else if (i == 1)
+        pet_rename_start(n);
+      else if (i == 2)
+        pet_release_start(n);
+      else if (i == 3)
+        pet_restore(n);
       break;
    case 33:  /* コマンド実行 */
       input_analyze(n,swtd[cn][lpt++].dp);
@@ -7325,7 +8041,14 @@ int   load_switch(int n, int sx, int sy, int f)
     }
     gfn = gfn2;
     gfn2 = 0;     /* gfbuf2 をクリア */
-    load_switch(n, sx, sy, 10);
+    if (prop == 1) {
+      /* 動作81/51 のみが変更した場合は、どのスイッチも起動しない
+         (PHIDM NEO extension, from JET) */
+    } else if (prop == 2) {
+      load_switch(n, px, py, 12);  /* 動作82/52: 座標つきスイッチだけ起動 */
+    } else {
+      load_switch(n, sx, sy, 10);
+    }
   }
   return done;
 }
@@ -8075,7 +8798,7 @@ int    save_id(int n, int in, int f)
   return (-1);    /* そんなアイテムなし */
     }
     if (is_gp(*ip)) {   /* お金を拾う */
-      cd[n].gp += (*ip)->gp;
+      cd[n].gp += jb_gp_gain(n, (*ip)->gp);  /* 商人ボーナス (PHIDM NEO extension) */
       if (cd[n].gp > 9999) {
   tax += cd[n].gp - 9999;
   cd[n].gp = 9999;
@@ -8461,11 +9184,15 @@ void   str_gc()
   case 20:    /* 確率フラグ */
     j += 1;
   case 10:    /* フラグ */
+  case 81:    /* フラグ (スイッチを起動しない) (PHIDM NEO extension, from JET) */
+  case 82:    /* フラグ (座標つきスイッチだけ起動) (PHIDM NEO extension, from JET) */
     j += 1;
     j += swtd[i][j].di; /* 不定長 */
     j += 1;
     break;
   case 50:    /* 演算 */
+  case 51:    /* 演算 (スイッチを起動しない) (PHIDM NEO extension, from JET) */
+  case 52:    /* 演算 (座標つきスイッチだけ起動) (PHIDM NEO extension, from JET) */
     break;
   default:
     break;
@@ -9567,6 +10294,20 @@ int var_value(int n,int i)
     else if (i < GVAR_MAX + PVAR_MAX + SVAR_MAX)
         return (cd[n].svar[i-GVAR_MAX-PVAR_MAX]);
     return (0);
+}
+
+/* add for Lua dm.set_var (PHIDM NEO extension): var_value と同じ
+   アドレッシングでスイッチ変数へ値を書き込む */
+void var_set_value(int n,int i,int v)
+{
+    if (i < 0)
+        return;
+    if (i < GVAR_MAX)
+        generic_variable[i] = v;
+    else if (i < GVAR_MAX + PVAR_MAX)
+        cd[n].pvar[i-GVAR_MAX] = v;
+    else if (i < GVAR_MAX + PVAR_MAX + SVAR_MAX)
+        cd[n].svar[i-GVAR_MAX-PVAR_MAX] = v;
 }
 
 void   loadstr(char *buf, char **p, int f, int le)

@@ -583,6 +583,54 @@
 #define DMM_ANTIDOTE_SELF       "%dm > %name is removed poison. \n"
 #define DMM_MAGIC_EFFECT_NO     "%dm > No effect to %vsname. \n"
 #define DMM_MAGIC_EFFECT_NO_IL  "%dm > %vsname avoided the magic attack by the illusion. \n" /* Illusion魔法効果 added by NEO 20120206 */
+#define DMM_NPCA_HEAL_HP         "%dm > %vsname recovered /*color=+hp*/%i/*.*/ hp. \n" /* NPC効果 (PHIDM NEO extension) */
+#define DMM_NPCA_HEAL_MP         "%dm > %vsname recovered /*color=+mp*/%i/*.*/ mp. \n" /* NPC効果 (PHIDM NEO extension) */
+#define DMM_NPCA_HPDMG           "%dm > %vsname is damaged /*color=-hp*/%i/*.*/ hp. \n" /* NPC効果 (PHIDM NEO extension) */
+#define DMM_NPCA_MPDMG           "%dm > %vsname is damaged /*color=-mp*/%i/*.*/ mp. \n" /* NPC効果 (PHIDM NEO extension) */
+#define DMM_NPCA_DRAIN           "%dm > %vsname lost %i level. \n" /* NPC効果 (PHIDM NEO extension) */
+#define DMM_NPCA_DIVIDEHP        "%dm > %vsname's Hp has divided to %i%%. \n" /* NPC効果 (PHIDM NEO extension) */
+#define DMM_NPCA_DIVIDEMP        "%dm > %vsname's Mp has divided to %i%%. \n" /* NPC効果 (PHIDM NEO extension) */
+#define DMM_NPCA_FUMBLE          "%dm > %vsname /*color=red*/dropped/*.*/ %s! \n" /* NPC効果 (PHIDM NEO extension) */
+#define DMM_NPCA_DEGRADE         "%dm > %vsname's %s has /*color=red*/deteriorated! \n" /* NPC効果 (PHIDM NEO extension) */
+#define DMM_NPCA_DEGRADE_BROKEN  "%dm > %vsname's %s has /*color=red*/broken down! \n" /* NPC効果 (PHIDM NEO extension) */
+#define DMM_NPCA_VANISH          "%dm > Vanish appeared in %i sec. \n" /* NPC効果 (PHIDM NEO extension) */
+#define DMM_NPCA_MIRROR          "%dm > Mirror appeared in %i sec. \n" /* NPC効果 (PHIDM NEO extension) */
+#define DMM_NPCA_COAT_UP         "%dm > %vsname's attack point is %i up. \n" /* NPC効果 (PHIDM NEO extension) */
+#define DMM_NPCA_COAT_DOWN       "%dm > %vsname's attack point went down by %i. \n" /* NPC効果 (PHIDM NEO extension) */
+#define DMM_NPCA_SPELL_UP        "%dm > %vsname's magic power is %i up. \n" /* NPC効果 (PHIDM NEO extension) */
+#define DMM_NPCA_SPELL_DOWN      "%dm > %vsname's magic power went down by %i. \n" /* NPC効果 (PHIDM NEO extension) */
+#define DMM_NPCA_PROTECT_UP      "%dm > %vsname's defense point is %i up. \n" /* NPC効果 (PHIDM NEO extension) */
+#define DMM_NPCA_PROTECT_DOWN    "%dm > %vsname's defense point went down by %i. \n" /* NPC効果 (PHIDM NEO extension) */
+#define DMM_NPCA_SHELL_UP        "%dm > %vsname's magic defense point is %i up. \n" /* NPC効果 (PHIDM NEO extension) */
+#define DMM_NPCA_SHELL_DOWN      "%dm > %vsname's magic defense point went down by %i. \n" /* NPC効果 (PHIDM NEO extension) */
+#define DMM_NPCA_HASTE_UP        "%dm > %vsname's speed is %i up. \n" /* NPC効果 (PHIDM NEO extension) */
+#define DMM_NPCA_HASTE_DOWN      "%dm > %vsname's speed went down by %i. \n" /* NPC効果 (PHIDM NEO extension) */
+#define DMM_NPCA_ANTIDOTE        "%dm > %vsname's poison is cured. \n" /* NPC効果 (PHIDM NEO extension) */
+#define DMM_NPCA_ANTIDOTE_SOFT   "%dm > Poison of %vsname is reduced. \n" /* NPC効果 (PHIDM NEO extension) */
+#define DMM_NPCA_REMOVE          "%dm > %vsname's palsy is cured. \n" /* NPC効果 (PHIDM NEO extension) */
+#define DMM_NPCA_REMOVE_SOFT     "%dm > Palsy of %vsname is reduced. \n" /* NPC効果 (PHIDM NEO extension) */
+#define DMM_NPCA_AWAKEN          "%dm > %vsname is cured. \n" /* NPC効果 (PHIDM NEO extension) */
+#define DMM_NPCA_AWAKEN_SOFT     "%dm > %vsname calmed down a little. \n" /* NPC効果 (PHIDM NEO extension) */
+/* Pet (PHIDM NEO extension). %s is the pet name (type name on grant), %i an amount */
+#define DMM_PET_JOIN             "%dm > %s joined you! \n"
+#define DMM_PET_BITE             "%dm > %s bit %vsname! [/*color=-hp*/%i/*color=gray*/ hp] \n"
+#define DMM_PET_MAGIC            "%dm > %s's magic hit %vsname! [/*color=-hp*/%i/*color=gray*/ hp] \n"
+#define DMM_PET_BARK             "%dm > %s barked happily. \n"
+#define DMM_PET_HEAL             "%dm > %s healed %name. [/*color=+hp*/%i/*color=gray*/ hp] \n"
+#define DMM_PET_HEAL_EMG         "%dm > %s rushed to %name! [/*color=+hp*/%i/*color=gray*/ hp] \n"
+#define DMM_PET_TIRED_MP         "%dm > %s is out of magic and resting. \n"
+#define DMM_PET_TIRED_ST         "%dm > %s is tired and resting. \n"
+#define DMM_PET_RECOVER          "%dm > %s is fully rested. \n"
+#define DMM_PET_NAME_PROMPT      "%dm > Say a name for your pet. (Say nothing and it will be %s) \n"
+#define DMM_PET_RENAME_PROMPT    "%dm > Say a new name for your pet. (Say nothing to keep %s) \n"
+#define DMM_PET_NAMED            "%dm > Your pet is now named %s. \n"
+#define DMM_PET_NAME_DEFAULT     "%dm > Your pet is named %s. \n"
+#define DMM_PET_REL_PROMPT       "%dm > Really part with %s? Say yes to part. \n"
+#define DMM_PET_RELEASED         "%dm > You parted with %s. \n"
+#define DMM_PET_REL_CANCEL       "%dm > You decided to stay together. \n"
+#define DMM_PET_ALREADY          "%dm > %s is already with you. \n"
+#define DMM_PET_NONE             "%dm > You have no pet. \n"
+#define DMM_PET_RESTORED         "%dm > %s is fully recovered. \n"
 #define DMM_DEGRADE             "%dm > %vsname's ATP is %i down by %s. \n"
 #define DMM_DEGRADE_WITH_TIME   "%dm > %vsname's ATP is %i down in %i sec by %s. \n"
 #define DMM_SPELLDOWN           "%dm > %vsname's Magic is %i down by %s. \n"

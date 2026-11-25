@@ -42,6 +42,8 @@
 #include  "ext_skills.h"
 #include  "ext_party.h"
 
+static int parse_nonnegative_int(char *text, int *value);
+
 /* Single definitions of the globals declared extern in phi_dm.h.
    (C++ stage 0: the C build relied on -fcommon merging the
    tentative definitions from the header.) */
@@ -260,7 +262,7 @@ static void fast_command_phase(void)
 	for (lines = 0; lines < 8; lines++) {
 	  if (!read_line(n, fbuf, 240))
 		break;
-	  if (!*fbuf && cd[n].st != ST_ADDRESS_ && cd[n].st != ST_MENU)
+	  if (!*fbuf && cd[n].st != ST_ADDRESS_ && cd[n].st != ST_MENU && cd[n].st != ST_SELECT)
 		break;
 	  if (*fbuf == '#') /* プロトコル行はバッファ内の位置によらずプロトコルとして処理する */
 		func_analyze(n, fbuf);
@@ -331,6 +333,9 @@ int    main(int argc, char **argv)
   }
   load_dd();
   class_load();  /* PHIDM NEO extension: phi.class (Lua) */
+  qstr_load();   /* PHIDM NEO extension: phi.qst string store */
+  jb_load();     /* PHIDM NEO extension: phi.jb job/gender system */
+  pet_load();    /* PHIDM NEO extension: phi.pet pet system */
   oldh = hour = (int) (timestr[11] - '0') * 10 + (int) (timestr[12] - '0') + tslide;
   log_print("start    : Dungeon Master ");
   snprintf(buf, sizeof(buf),"version  : %s ", PHI_VERSION);
@@ -429,6 +434,7 @@ int    main(int argc, char **argv)
 	  sttime = (struct tm *) localtime(&abstime);
 	  CPYSTR(timestr, (char *) asctime(sttime));
 	  min_proc();
+	  load_switch(0, 0, 0, 91);	  /* 実時間スイッチの評価 (PHIDM NEO extension, from MRDM) */
 /*		k = hour;*/
 	  hour = (int) (timestr[11] - '0') * 10 +
 	(int) (timestr[12] - '0') + tslide;
@@ -644,7 +650,7 @@ int    main(int argc, char **argv)
 	  /* bug fix 20020605 */
 	  if (cd[n].st == ST_MSGW && cd[n].anmt == 0 && cd[n].anmf == 0) /* bug fix 20010221 20020417 */
 		cd[n].st = ST_COMMAND;
-	  if(cd[n].type && cd[n].st != ST_MENU && (cd[n].anmf || cd[n].st == ST_MSGW) && cd[n].anmt==0)
+	  if(cd[n].type && cd[n].st != ST_MENU && cd[n].st != ST_SELECT && (cd[n].anmf || cd[n].st == ST_MSGW) && cd[n].anmt==0)
 		load_mesg(n);
 	  if (TCN_BERSERK(n) && cd[n].wt <= 0) /* PHI:0058 Bug Fix By EL */
 	if(!( /* メッセージ中は hit しない */
@@ -668,6 +674,14 @@ int    main(int argc, char **argv)
 	print_map(n,cd[n].modef & MD_CHAT);
 	  if (cd[n].s_wait && (++cd[n].s_wait_c) >= cd[n].s_wait)
 	print_status(n);
+	}
+	if (dsec % 10 == 0) {
+	  /* PHIDM NEO extension: phi.cls on_second tick */
+	  for (n = 1; n < MAX_NTTYS; n++)
+		if (cd[n].type == CT_NORMAL) {
+		  class_tick(n);
+		  pet_tick(n);  /* PHIDM NEO extension: pet system */
+		}
 	}
 	if(dsec % 100 == 0) cooldown_check();
 
@@ -694,7 +708,7 @@ int    main(int argc, char **argv)
 	  }
 	  if(!read_line(n, buf, 240))
 	  	continue;
-	  if (!*buf && cd[n].st != ST_ADDRESS_ && cd[n].st != ST_MENU) /* change for address no publish answer 20000901 */
+	  if (!*buf && cd[n].st != ST_ADDRESS_ && cd[n].st != ST_MENU && cd[n].st != ST_SELECT) /* change for address no publish answer 20000901 */
 		continue;
 	  if (*buf == '#') /* プロトコル行はバッファ内の位置によらずプロトコルとして処理する */
 		func_analyze(n, buf);
@@ -820,6 +834,7 @@ int    main(int argc, char **argv)
 		  ex_notice(n,1); /* add for SD51 */
 		  ex_notice(n,3);
 		  set_chr(n); /* bug fix by Qajin 19991217 */
+		  tcp_mark_authenticated(n);
 		  continue;
 		} else {
 		  check_write(n, DMM_CHANGE_CLIENT_FAIL);
@@ -833,6 +848,7 @@ int    main(int argc, char **argv)
 		snprintf(buf, sizeof(buf),"#name %s\n", cd[n].name);
 		check_write(n, buf);
 		cd[n].type = CT_NORMAL;
+		tcp_mark_authenticated(n);
 		cd[n].cv = 0;
 		ex_notice(n,1); /* add for SD51 */
 		set_chr(n);
@@ -987,6 +1003,7 @@ int    main(int argc, char **argv)
 	  /* クライアントより他サーバからの転送を要求された */
 	  /* cd[n] は接続成功後、要求されたキャラクタに変化する */
 	  /**** 97/Jun/9 b-Yak-38 ADD ****/
+	  tcp_mark_authenticated(n);
 	  for (i = 1; i < MAX_NTTYS; i++) {
 		if (cd[i].st == ST_RESERVE
 	  && (int) std::strlen(cd[i].uid) > 0
@@ -1380,13 +1397,28 @@ void   signal_trap(int sig)
   /* ファイルアクセス中のエラー対処 added by Qajin 20000205 */
   if (lcnt >= 0) {
 	log_print("data files are back up...");
-#ifndef __CYGWIN32__
-	CPYSTR(buf, "cp phi.bd phi.bd.bak phi.cd phi.cd.bak phi.dd phi.id phi.od phi.sd phi.sd.bak phi.td phi.td.bak backup/");
-	system(buf);
-#else
-	CPYSTR(buf, "phi.bd phi.bd.bak phi.cd phi.cd.bak phi.dd phi.id phi.od phi.sd phi.sd.bak phi.td phi.td.bak backup/");
+#if defined(__CYGWIN32__)
+	CPYSTR(buf, "phi.bd phi.bd.bak phi.cd phi.cd.bak phi.dd phi.id phi.od phi.pet phi.qst phi.sd phi.sd.bak phi.td phi.td.bak backup/");
 	CPYSTR(buf2, "backup/");
 	spawnlp(_P_WAIT, "cp", "cp", buf, buf2, 0);
+#elif defined(_WIN32)
+	/* Windows には cp コマンドが無いので、copy で1ファイルずつ移す。 */
+	{
+	  static const char *backup_files[] = {
+	    "phi.bd", "phi.bd.bak", "phi.cd", "phi.cd.bak", "phi.dd",
+	    "phi.id", "phi.od", "phi.pet", "phi.qst", "phi.sd",
+	    "phi.sd.bak", "phi.td", "phi.td.bak"
+	  };
+	  for (unsigned fi = 0; fi < sizeof(backup_files) / sizeof(backup_files[0]); fi++) {
+	    char cmd[256];
+	    snprintf(cmd, sizeof(cmd), "copy /Y %s backup\\%s >nul 2>&1",
+	             backup_files[fi], backup_files[fi]);
+	    system(cmd);
+	  }
+	}
+#else
+	CPYSTR(buf, "cp phi.bd phi.bd.bak phi.cd phi.cd.bak phi.dd phi.id phi.od phi.pet phi.qst phi.sd phi.sd.bak phi.td phi.td.bak backup/");
+	system(buf);
 #endif
   }
 
@@ -1530,6 +1562,8 @@ void   close_connect(int n)
 	  cd[n].auth = nullptr;
 	  while (!save_cd(n, 1));
 	  while (!save_sav(n)); /* for saved flags 20010622 */
+	  qstr_save(n); /* PHIDM NEO extension: phi.qst string store */
+	  pet_save(n);  /* PHIDM NEO extension: phi.pet pet store */
 	  skill_clear(n); /* for skills 20020307 */
 	}
 	erase_chrex(cd[n].extension); /* add for Chr Extension data 20000929 */
@@ -2619,6 +2653,22 @@ void   clear_chr_pos(int n, int x, int y)
   return;
 }
 
+static int parse_nonnegative_int(char *text, int *value)
+{
+	char *end;
+	long parsed;
+
+	errno = 0;
+	parsed = std::strtol(text, &end, 10);
+	if (end == text || errno == ERANGE || parsed < 0 || parsed > INT_MAX)
+		return 0;
+	SKIP_SPACE(end);
+	if (*end != '\0')
+		return 0;
+	*value = (int)parsed;
+	return 1;
+}
+
 void   func_analyze(int n, char *rbuf)
 {
   std::array<char, 255> wbuf;
@@ -2691,15 +2741,16 @@ void   func_analyze(int n, char *rbuf)
 	}
 	/** end **/
 
-  } else if (!std::strncmp(rbuf, "#map-iv", 7))
-	cd[n].m_wait = std::atoi(rbuf + 8);
-  else if (!std::strncmp(rbuf, "#status-iv", 10))
-	cd[n].s_wait = std::atoi(rbuf + 11);
+  } else if (!std::strncmp(rbuf, "#map-iv", 7)) {
+	if (parse_nonnegative_int(rbuf + 8, &i)) cd[n].m_wait = i;
+  } else if (!std::strncmp(rbuf, "#status-iv", 10)) {
+	if (parse_nonnegative_int(rbuf + 11, &i)) cd[n].s_wait = i;
+  }
   else if (!std::strncmp(rbuf, "#priv ", 6)) {
 	strlcpy(wbuf.data(), rbuf + 6, 5);
 /*	  wbuf[4] = '\0';*/  /* PHI:0055 Bug Fix by EL */
 	i = std::atoi(wbuf.data());
-	if (i < MAX_NTTYS) { /* bug fix for over range 20030915 */
+	if (i >= 0 && i < MAX_NTTYS) { /* bug fix for over range 20030915 */
 		snprintf(wbuf.data(), wbuf.size(), "#priv %04d %s\n", n, rbuf + 11);
 		check_write(i, wbuf.data());
 	}
@@ -2753,6 +2804,8 @@ void   input_analyze(int n, char *rbuf)
 	cd[n].st = ST_COMMAND;
 	for (i = 0; i < MAX_CHRS_INONE; i++) {
 		j = map[cd[n].y+py[cd[n].d]][cd[n].x+px[cd[n].d]].chr[i] - 1;
+		if (j < 0 || j >= MAX_NTTYS)
+			continue;
 		if (cd[j].st == ST_JOIN_ANSWER) {
 			cd[j].st = ST_COMMAND;
 			cd[j].vf = 0;
@@ -3767,6 +3820,21 @@ void   input_analyze(int n, char *rbuf)
 	break;
   case ST_MENU:
 	select_menu(n, rbuf);
+	break;
+  case ST_SELECT:  /* :A 拡張 y/s の回答 (PHIDM NEO extension, from MRDM) */
+	size = analyze_numbers(numbers, MAX_ANALYZE_INPUT_NUMBERS, rbuf);
+	if (size == 1 && numbers[0] > 0 && numbers[0] < 9)
+	  select_mesg(n, numbers[0]);
+	else
+	  load_mesg(n);   /* 数字でない回答では選択肢を再表示する */
+	break;
+  case ST_PETNAME:  /* ペット命名の入力 (PHIDM NEO extension) */
+	pet_name_input(n, rbuf);
+	CN_GASIFY(n) = 0;
+	break;
+  case ST_PETREL:  /* ペット解放の確認入力 (PHIDM NEO extension) */
+	pet_release_input(n, rbuf);
+	CN_GASIFY(n) = 0;
 	break;
 /* 一般公開するわけには行きません(^^;)
   case ST_RENAME:
@@ -5032,6 +5100,7 @@ int new_user(int n)
 	}
 	cd[n].st = ST_COMMAND;
 	cd[n].type = CT_NORMAL;
+	tcp_mark_authenticated(n);
 	cd[n].md[0].spell = findstr("Cure");
 	cd[n].md[0].effect = EF_HEAL;
 	snprintf(wbuf, sizeof(wbuf), "new user : %s\n", cd[n].name);

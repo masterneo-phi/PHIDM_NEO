@@ -15,7 +15,9 @@
  %php    - "+hp" or "-hp" (hp<1/4max時)
  %pmp    - "+mp" or "-mp" (mp<1/4max時) 
  %exp    - 経験値                 
- %gp     - 所持金                 
+ %gp     - 所持金
+ %sex    - 性別名 (phi.jb のある世界のみ)
+ %job    - 職業名 (phi.jb のある世界のみ)                 
  %area   - 居るエリア             
  %flv    - Fighter  lv            
  %wlv    - Wizard   lv            

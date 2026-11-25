@@ -24,6 +24,7 @@
 #include  "phi_dm.h"
 #include  "phi_data.h"
 #include  "phi_str.h"
+#include  "phi_class.h" /* PHIDM NEO extension: phi.jb job/gender */
 #include  "tcp.h"
 
 #ifdef DEBUG
@@ -59,6 +60,8 @@ char debug_buf[256];
 /* %ip     - ip address              */
 /* %domain - domain address          */
 /* %talk   - 発言(スイッチ専用)      */
+/* %sex    - 性別名 (phi.jb 職業・性別システム, PHIDM NEO) */
+/* %job    - 職業名 (phi.jb 職業・性別システム, PHIDM NEO) */
 /* %y?     - キャラ別変数?の値       */
 /* %z?     - キャラ別保存変数?の値   */
 
@@ -315,6 +318,18 @@ std::string spec_domain(FormatContext &ctx) {
   return std::string();
 }
 
+std::string spec_sex(FormatContext &ctx) {
+  if (ctx.n > 0 && cd[ctx.n].type)
+    return jb_sex_name(jb_sex(ctx.n));
+  return std::string();
+}
+
+std::string spec_job(FormatContext &ctx) {
+  if (ctx.n > 0 && cd[ctx.n].type)
+    return jb_job_name(jb_job(ctx.n));
+  return std::string();
+}
+
 /* %書式の対応表。先頭から順に照合し、最初に一致したものを展開する。
  * 順序は従来の if-else の鎖と同じで、接頭辞の重なり
  * ("ip" と "i"、"maxhp" と "hp" など) を正しく扱うために必要。 */
@@ -331,6 +346,8 @@ const FormatSpec kFormatSpecs[] = {
   SPEC("dm", spec_dm),
   SPEC("ip", spec_ip),
   SPEC("i", spec_int),
+  SPEC("sex", spec_sex),
+  SPEC("job", spec_job),
   SPEC("s", spec_string),
   SPEC("x", spec_gvar),
   SPEC("y", spec_pvar),

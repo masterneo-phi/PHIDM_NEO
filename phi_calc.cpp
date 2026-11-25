@@ -25,6 +25,7 @@
 #include  "phi_enemy.h"
 #include  "phi_magic.h"
 #include  "phi_use.h"
+#include  "phi_class.h" /* PHIDM NEO extension: phi.jb job/gender */
 #include  "phi_str.h"
 #include  "ext_skills.h"
 
@@ -76,6 +77,8 @@ int sum_wp(int n)
 int df_rate(int n)
 {
   int dfp = (cd[n].aeq == nullptr ? 0 : cd[n].aeq->DFP);
+  if (jb_job(n) == 8)  /* 獣人の物理防御ボーナス (PHIDM NEO extension) */
+    dfp += jb_rate(8, 0);
   /* add for defense 20010703 */
   if (cd[n].st == ST_DEFEND)
     dfp = (100 - (100 - dfp) * 8 / 10);
@@ -89,6 +92,8 @@ int df_rate(int n)
 int mr_rate(int n)
 {
   int mrp = (cd[n].aeq == nullptr ? 0 : cd[n].aeq->MRP);
+  if (jb_job(n) == 9)  /* 魔族の魔法防御ボーナス (PHIDM NEO extension) */
+    mrp += jb_rate(9, 0);
   if (TCN_SHELL(n) < 0)
     mrp = mrp * (100 + TCN_SHELL(n)) / 100;
   else if (TCN_SHELL(n) > 0)
@@ -101,7 +106,7 @@ int mr_rate(int n)
  * 最大 MP の成長判定 (魔法バースト) を行う。f == 2 の成長式は
  * mhp / hp を使う (元のままの癖。mp_dmg() の f == 1 と対照)。
  * PER_DICE の評価回数と短絡順序は元のままにしている。 */
-int hp_dmg(int n, int p, int f)
+static int hp_dmg_body(int n, int p, int f)
 {
   int    c;
 
@@ -167,6 +172,17 @@ int hp_dmg(int n, int p, int f)
     cd[n].hp = cd[n].mhp;
   print_status(n); /* added by Qajin 19991224 */
   return (0);
+}
+
+/* hp_dmg() 本体 (hp_dmg_body) の公開ラッパ (PHIDM NEO extension:
+ * ペットシステム)。全ての HP 増減はここを通るため、ペットの
+ * 被弾フック (戦闘タイマと猫の緊急回復) を戻り値 1/2 の経路も
+ * 含めて一か所で拾える。本体側の戻り値と副作用は変えない。 */
+int hp_dmg(int n, int p, int f)
+{
+  int r = hp_dmg_body(n, p, f);
+  pet_on_damaged(n, p, f);
+  return r;
 }
 
 /* hp_dmg() の MP 版。f == 2 で MP が 0 になっても死亡せず MP を 1 に

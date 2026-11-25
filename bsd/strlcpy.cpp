@@ -34,6 +34,11 @@ static char *rcsid = "$OpenBSD: strlcpy.c,v 1.4 1999/05/01 18:56:41 millert Exp 
 #include <sys/types.h>
 #include <string.h>
 
+#ifdef __MINGW32__
+/* 定義に C リンケージを与えるための宣言 (phi_str.h と対)。 */
+extern "C" size_t strlcpy(char *dst, const char *src, size_t siz);
+#endif
+
 /*
  * Copy src to string dst of size siz.  At most siz-1 characters
  * will be copied.  Always NUL terminates (unless siz == 0).
@@ -41,9 +46,9 @@ static char *rcsid = "$OpenBSD: strlcpy.c,v 1.4 1999/05/01 18:56:41 millert Exp 
  */
 size_t strlcpy(char *dst, const char *src, size_t siz)
 {
-	register char *d = dst;
-	register const char *s = src;
-	register size_t n = siz;
+	char *d = dst;
+	const char *s = src;
+	size_t n = siz;
 
 	/* Copy as many bytes as will fit */
 	if (n != 0 && --n != 0) {

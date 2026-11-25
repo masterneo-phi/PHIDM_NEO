@@ -34,6 +34,11 @@ static char *rcsid = "$OpenBSD: strlcat.c,v 1.2 1999/06/17 16:28:58 millert Exp 
 #include <sys/types.h>
 #include <string.h>
 
+#ifdef __MINGW32__
+/* 定義に C リンケージを与えるための宣言 (phi_str.h と対)。 */
+extern "C" size_t strlcat(char *dst, const char *src, size_t siz);
+#endif
+
 /*
  * Appends src to string dst of size siz (unlike strncat, siz is the
  * full size of dst, not space left).  At most siz-1 characters
@@ -42,9 +47,9 @@ static char *rcsid = "$OpenBSD: strlcat.c,v 1.2 1999/06/17 16:28:58 millert Exp 
  */
 size_t strlcat(char *dst, const char *src, size_t siz)
 {
-	register char *d = dst;
-	register const char *s = src;
-	register size_t n = siz;
+	char *d = dst;
+	const char *s = src;
+	size_t n = siz;
 	size_t dlen;
 
 	/* Find the end of dst and adjust bytes left but don't go past end */
