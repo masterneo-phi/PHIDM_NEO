@@ -179,7 +179,7 @@ void qstr_load(void)
       /* record header ":<uid>" (trailing spaces are not part of it) */
       uid = buf + 1;
       while (!uid.empty() && uid.back() == ' ')
-        uid.pop_back();
+        uid.erase(uid.size() - 1);
       if (!uid.empty())
         chars++;
     } else if (buf[0] == '.') {
@@ -1124,7 +1124,7 @@ static void jb_chrex_set(int n, const char *key, int v)
         std::free(dead);
       } else {
         char buf[40];
-        std::snprintf(buf, sizeof(buf), "%s:%i", key, v);
+        snprintf(buf, sizeof(buf), "%s:%i", key, v);
         char *dup = strdup(buf);
         if (dup != nullptr) {
           std::free((*pp)->ext_data);
@@ -1142,7 +1142,7 @@ static void jb_chrex_set(int n, const char *key, int v)
   if (e == nullptr)
     return;
   char buf[40];
-  std::snprintf(buf, sizeof(buf), "%s:%i", key, v);
+  snprintf(buf, sizeof(buf), "%s:%i", key, v);
   e->ext_data = strdup(buf);
   if (e->ext_data == nullptr) {
     std::free(e);
@@ -1237,12 +1237,12 @@ void jb_load(void)
 {
   jb_on = 0;
   for (int j = 0; j <= JB_MAX_JOB; j++) {
-    std::snprintf(jb_name[j], sizeof(jb_name[j]), "%s", jb_base_name[j]);
+    snprintf(jb_name[j], sizeof(jb_name[j]), "%s", jb_base_name[j]);
     jb_rate_tab[j][0] = jb_base_rate[j][0];
     jb_rate_tab[j][1] = jb_base_rate[j][1];
   }
   for (int s = 0; s < 3; s++)
-    std::snprintf(jb_sexname[s], sizeof(jb_sexname[s]), "%s",
+    snprintf(jb_sexname[s], sizeof(jb_sexname[s]), "%s",
                   jb_base_sexname[s]);
   FILE *fp = efopen((char *)"phi.jb", (char *)"rb");
   if (!fp) {
@@ -1302,10 +1302,10 @@ void jb_load(void)
       if (*p == '\0')
         continue;
       if (kind == 'N' && no >= 1 && no <= JB_MAX_JOB) {
-        std::snprintf(jb_name[no], sizeof(jb_name[no]), "%s", p);
+        snprintf(jb_name[no], sizeof(jb_name[no]), "%s", p);
         names++;
       } else if (kind == 'S' && no >= 1 && no <= 2) {
-        std::snprintf(jb_sexname[no], sizeof(jb_sexname[no]), "%s", p);
+        snprintf(jb_sexname[no], sizeof(jb_sexname[no]), "%s", p);
         names++;
       }
     }
@@ -1313,7 +1313,7 @@ void jb_load(void)
   efclose(fp);
   {
     char lbuf[160];
-    std::snprintf(lbuf, sizeof(lbuf),
+    snprintf(lbuf, sizeof(lbuf),
                   "job      : phi.jb loaded"
                   " (%i names, %i rates, %i clamped to cap)",
                   names, rates, clamped);
@@ -1387,11 +1387,14 @@ static const char *pet_type_id[5] = {"", "fairy", "cat", "dog", "bird"};
 static const char *pet_type_disp[5] = {"", "妖精", "猫", "犬", "鳥"};
 static const char *pet_def_name[5] = {"", "ようせい", "ねこ", "いぬ", "とり"};
 
+/* Member defaults live in the constructors: g++46 (the live
+ * FreeBSD build) has no in-class member initializers. */
 struct PetRec {
-  int type = 0;
+  int type;
   std::string name;
-  int mp = 0;
-  int st = 0;
+  int mp;
+  int st;
+  PetRec() : type(0), mp(0), st(0) {}
 };
 
 static const char *pet_file = "phi.pet";
@@ -1403,21 +1406,25 @@ static int pet_loaded = 0;
  * pet_sync_rt(); the rest is session-only by design (combat timer,
  * last target, cooldowns, per-command budget, message edges). */
 struct PetRT {
-  int loaded = 0;
+  int loaded;
   std::string uid;
-  int type = 0;
+  int type;
   std::string name;
-  int mp = 0;
-  int st = 0;
-  long last_combat = 0;  /* last attack / battle damage, epoch sec */
-  long last_support = 0; /* last bird support cast */
-  long emg_ready = 0;    /* emergency heal ready at this time */
-  int last_target = -1;  /* owner's most recent attack target */
-  int spent_phys = 0;    /* pool already charged for this command */
-  int spent_mag = 0;
-  int tired_mp = 0;      /* "ran dry" already announced */
-  int tired_st = 0;
-  int pending = 0;       /* naming in progress: 1 grant, 2 rename */
+  int mp;
+  int st;
+  long last_combat;  /* last attack / battle damage, epoch sec */
+  long last_support; /* last bird support cast */
+  long emg_ready;    /* emergency heal ready at this time */
+  int last_target;   /* owner's most recent attack target */
+  int spent_phys;    /* pool already charged for this command */
+  int spent_mag;
+  int tired_mp;      /* "ran dry" already announced */
+  int tired_st;
+  int pending;       /* naming in progress: 1 grant, 2 rename */
+  PetRT()
+      : loaded(0), type(0), mp(0), st(0), last_combat(0), last_support(0),
+        emg_ready(0), last_target(-1), spent_phys(0), spent_mag(0),
+        tired_mp(0), tired_st(0), pending(0) {}
 };
 
 static PetRT pet_rt[MAX_NTTYS];
@@ -1567,11 +1574,11 @@ static void pet_chr_frame(int n, char *buf, std::size_t sz)
 {
   PetRT *rt = pet_rt_get(n);
   if (rt && rt->type > 0)
-    std::snprintf(buf, sz, "#ex-pet chr \"%s\" %s %s %i\n",
+    snprintf(buf, sz, "#ex-pet chr \"%s\" %s %s %i\n",
                   cd[n].name, pet_type_id[rt->type],
                   rt->name.c_str(), pet_active(n));
   else
-    std::snprintf(buf, sz, "#ex-pet chr \"%s\" none - 0\n",
+    snprintf(buf, sz, "#ex-pet chr \"%s\" none - 0\n",
                   cd[n].name);
 }
 
@@ -1595,12 +1602,12 @@ void pet_send_self(int n)
   PetRT *rt = pet_rt_get(n);
   char buf[256];
   if (rt && rt->type > 0)
-    std::snprintf(buf, sizeof(buf), "#ex-pet self %s %s %i %i %i %i %i\n",
+    snprintf(buf, sizeof(buf), "#ex-pet self %s %s %i %i %i %i %i\n",
                   pet_type_id[rt->type], rt->name.c_str(),
                   rt->mp, rt->st, pet_active(n),
                   pet_mp_max, pet_st_max);
   else
-    std::snprintf(buf, sizeof(buf), "#ex-pet self none - 0 0 0 %i %i\n",
+    snprintf(buf, sizeof(buf), "#ex-pet self none - 0 0 0 %i %i\n",
                   pet_mp_max, pet_st_max);
   check_write(n, buf);
 }
@@ -1646,7 +1653,7 @@ void pet_send_chr_all(int n)
 
 static void jb_chr_frame(int n, char *buf, std::size_t sz)
 {
-  std::snprintf(buf, sz, "#ex-job chr \"%s\" \"%s\" \"%s\"\n",
+  snprintf(buf, sz, "#ex-job chr \"%s\" \"%s\" \"%s\"\n",
                 cd[n].name, jb_job_name(jb_job(n)),
                 jb_sex_name(jb_sex(n)));
 }
@@ -1656,7 +1663,7 @@ void jb_send_self(int n)
   if (n < 1 || n >= MAX_NTTYS || !(cd[n].modef & MD_JOB))
     return;
   char buf[256];
-  std::snprintf(buf, sizeof(buf), "#ex-job self \"%s\" \"%s\"\n",
+  snprintf(buf, sizeof(buf), "#ex-job self \"%s\" \"%s\"\n",
                 jb_job_name(jb_job(n)), jb_sex_name(jb_sex(n)));
   check_write(n, buf);
 }
@@ -1861,7 +1868,7 @@ static void pet_pt_load(int *clamped)
   efclose(fp);
   {
     char lbuf[128];
-    std::snprintf(lbuf, sizeof(lbuf),
+    snprintf(lbuf, sizeof(lbuf),
                   "pet      : phi.pt loaded (%i values)", values);
     log_print(lbuf);
   }
@@ -1880,7 +1887,7 @@ void pet_load(void)
   pet_cfg_caps(&clamped);
   if (clamped > 0) {
     char lbuf[128];
-    std::snprintf(lbuf, sizeof(lbuf),
+    snprintf(lbuf, sizeof(lbuf),
                   "pet      : %i tuning values clamped to the caps",
                   clamped);
     log_print(lbuf);
@@ -1916,7 +1923,7 @@ void pet_load(void)
     } else if (buf[0] == ':') {
       uid = buf + 1;
       while (!uid.empty() && uid.back() == ' ')
-        uid.pop_back();
+        uid.erase(uid.size() - 1);
       rec = nullptr;
       if (!uid.empty()) {
         rec = &pet_store[uid];
@@ -1940,7 +1947,7 @@ void pet_load(void)
   }
   {
     char lbuf[128];
-    std::snprintf(lbuf, sizeof(lbuf),
+    snprintf(lbuf, sizeof(lbuf),
                   "pet      : phi.pet loaded (%i characters)", chars);
     log_print(lbuf);
   }
@@ -2098,7 +2105,7 @@ void pet_name_input(int n, char *s)
   rt->pending = 0;
   /* the whole input line is the candidate name */
   char cand[64];
-  std::snprintf(cand, sizeof(cand), "%s", s ? s : "");
+  snprintf(cand, sizeof(cand), "%s", s ? s : "");
   std::size_t len = std::strlen(cand);
   while (len > 0 && (cand[len - 1] == ' ' || cand[len - 1] == '\t'))
     cand[--len] = '\0';
@@ -2127,7 +2134,7 @@ void pet_release_input(int n, char *s)
   if (!rt || rt->type == 0)
     return;
   char cand[64];
-  std::snprintf(cand, sizeof(cand), "%s", s ? s : "");
+  snprintf(cand, sizeof(cand), "%s", s ? s : "");
   std::size_t len = std::strlen(cand);
   while (len > 0 && (cand[len - 1] == ' ' || cand[len - 1] == '\t'))
     cand[--len] = '\0';
