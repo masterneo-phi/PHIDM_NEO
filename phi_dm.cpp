@@ -1209,6 +1209,13 @@ int    main(int argc, char **argv)
 		#endif
 		  check_write(n, buf); /* ここまで */
 
+	  /* 到着バッチの残り (サイズ・スタイル等の指定行) を先に適用して
+	   * から最初の地図を描く。ログイン時は #open が地図を出さず、
+	   * 続く #ex-map の処理が適用後の大きさで描くので、到着時も
+	   * 順序をそろえる (2026-11-26)。指定行を持たない旧クライアント
+	   * では何も読み出されず、従来どおり既定サイズで描く。 */
+	  while (peek_protocol(n, buf, 240)) /* protocol priority top 20010208 */
+		func_analyze(n, buf);
 	  print_map(n, 0);
 	  dmcheck_write(n, DMM_TRANS_COMP);
 	  if (autoeqf) {
