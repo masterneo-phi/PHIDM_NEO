@@ -17,7 +17,7 @@
 
 /*	   v509ewl21+fix2 -> v509ewl21+fix2+psp6+QSCP -> v5x-010  */
 /*	   v5x-010 release 13 test8 -> v5y rel.0 test1	*/
-#define PHI_VERSION "v5z release v2.2 /*color=teal*/PHIDM NEO/*.*/ /*color=red*/'Nymphicus hollandicus'/*.*/" SKILL_VER	/* クライアント表示：任意長 */
+#define PHI_VERSION "v5z release v2.3 /*color=teal*/PHIDM NEO/*.*/ /*color=red*/'Nymphicus hollandicus'/*.*/" SKILL_VER	/* クライアント表示：任意長 */
 
 #define PHI_DM_VERS "v5x:011:0005:38"		 /* DM種別通知：任意長 */
 #define PHI_PROT_VERS "05115000" /* プロトコルバージョン：８桁 */
