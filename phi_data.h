@@ -134,6 +134,13 @@ void   put_gate(int);
 void   send_down();
 int   load_switch(int, int, int, int);
 
+/* 条件25 (HP/MP 境界交差) の変動文脈 (PHIDM NEO extension)。
+ * phi_calc.cpp の check_switch25() が load_switch(...,25) の直前に設定し、
+ * 評価後に -1 へ戻す。phi_data.cpp の条件25評価が参照する。 */
+extern int sw25_change_kind;  /* 0=HP, 1=MP, -1=文脈なし */
+extern int sw25_change_old;   /* 変動前の実効値 */
+extern int sw25_change_new;   /* 変動後の実効値 (全クランプ適用後) */
+
 /* DM演出 (FX) 拡張 (PHIDM NEO extension, phi_data.cpp) */
 int   fx_send_payload(int, const char *);
 int   fx_send_img(int, const char *, const char *, long);

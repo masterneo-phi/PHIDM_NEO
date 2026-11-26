@@ -111,17 +111,25 @@ int mr_rate(int n)
  * 評価中フラグで再入を抑止する。
  * 用途はプレイヤーがダメージを受けた時の発動が本筋のため、評価対象は
  * プレイヤーキャラクタ (CT_NORMAL) のみとする。NPC の HP/MP 変動では
- * 評価自体を行わない。 */
+ * 評価自体を行わない。
+ * 発動は境界を跨いだ変動だけが対象で、変動の文脈 (種別・変動前後の
+ * 実効値) を sw25_change_* 経由で評価側 (phi_data.cpp) へ渡す。 */
 static char sw25_in_eval[MAX_NTTYS];
 
-static void check_switch25(int n)
+static void check_switch25(int n, int kind, int oldv, int newv)
 {
   if (n < 0 || n >= MAX_NTTYS || cd[n].type != CT_NORMAL)
     return;  /* プレイヤーキャラクタのみ */
   if (sw25_in_eval[n])
     return;
+  if (oldv == newv)
+    return;  /* 実効値が変わらなければ境界は跨がない */
   sw25_in_eval[n] = 1;
+  sw25_change_kind = kind;
+  sw25_change_old = oldv;
+  sw25_change_new = newv;
   load_switch(n, cd[n].x, cd[n].y, 25);
+  sw25_change_kind = -1;
   sw25_in_eval[n] = 0;
 }
 
@@ -134,6 +142,8 @@ static int hp_dmg_body(int n, int p, int f)
 {
   int    c;
 
+  int oldhp = cd[n].hp;
+
   if (p < 0 && n < MAX_NTTYS && TCN_AEGIS(n)) /* add for Aegis of Athena */
     p = 0;
 
@@ -141,7 +151,14 @@ static int hp_dmg_body(int n, int p, int f)
   if (cd[n].hp < 0)
     cd[n].hp = 0;
 
-  check_switch25(n);  /* 条件25 (HP変動時)。原典の呼び出し位置のまま有効化 */
+  {
+    /* 条件25 (HP変動時)。呼び出し位置は原典のまま (死亡処理より前)。
+       変動後の値は本体末尾の上限クランプまで適用した実効値で渡す。 */
+    int newhp = cd[n].hp;
+    if (newhp > cd[n].mhp)
+      newhp = cd[n].mhp;
+    check_switch25(n, 0, oldhp, newhp);
+  }
 
   /* change for sheil cheat 20000522 bug fix 20000623 */
   if (cd[n].mhp > 0 || (cd[n].exp < 99999999 && n < MAX_NTTYS)) {
@@ -217,11 +234,22 @@ int mp_dmg(int n, int p, int f)
 {
   int    c;
 
+  int oldmp = cd[n].mp;
+
   cd[n].mp += p;
   if (cd[n].mp < 0)
     cd[n].mp = 0;
 
-  check_switch25(n);  /* 条件25 (MP変動時)。原典の呼び出し位置のまま有効化 */
+  {
+    /* 条件25 (MP変動時)。呼び出し位置は原典のまま。変動後の値は
+       f==2 の 0→1 救済と本体末尾の上限クランプまで適用した実効値。 */
+    int newmp = cd[n].mp;
+    if (newmp == 0 && f == 2)
+      newmp = 1;
+    else if (newmp > cd[n].mmp)
+      newmp = cd[n].mmp;
+    check_switch25(n, 1, oldmp, newmp);
+  }
 
   /* change for sheil cheat 20000522 bug fix 20000623 */
   if (cd[n].mmp > 0 || (cd[n].exp < 99999999 && n < MAX_NTTYS)) {

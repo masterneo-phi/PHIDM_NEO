@@ -3955,6 +3955,10 @@ void   load_td_swt()
 		SKIP_SPACE(p);
         abf[lpt++].dc = *p++; /* 条件式 */
         abf[lpt++].di = decimal_load(4, &p);     /* チェック値 */
+        /* PHIDM NEO extension: ステータス条件 2/3 は直後に変動量下限
+           (4桁) が続く。0/1 の従来レコードは従来どおり読み込める。 */
+        if (abf[lpt - 3].di >= 2)
+          abf[lpt++].di = decimal_load(4, &p);   /* 変動量下限 */
       }
       /* ↑ADD */
   break;
@@ -7125,6 +7129,12 @@ void npc_action_effect(int n, int sx, int sy, int f, int l)
   }
 }
 
+/* 条件25 (HP/MP 境界交差) の変動文脈 (PHIDM NEO extension)。
+ * phi_calc.cpp の check_switch25() が評価直前に設定し、評価後に戻す。 */
+int sw25_change_kind = -1;
+int sw25_change_old = 0;
+int sw25_change_new = 0;
+
 int   load_switch(int n, int sx, int sy, int f)
 {
   ItemData id;
@@ -7323,32 +7333,41 @@ int   load_switch(int n, int sx, int sy, int f)
       }
 
       /* ↓スイッチデータ追加 2005/11/26 Savarl.F */
-      if (i == 25) {  /* 現在の HP/MP チェック */
+      if (i == 25) {  /* HP/MP 境界交差チェック (PHIDM NEO extension) */
         if (m == 1)
-          continue;
+          continue;   /* レベルゲート不成立 */
 
-        j   = swtd[cn][lpt++].di;
-		exp = swtd[cn][lpt++].dc;
-        k   = swtd[cn][lpt++].di;
-        if (exp == '>') {
-		  m = 0; /* yori ue チェック */;
-		  k++;   /* izyou deha nai */
-		} else if (exp == '<') {
-		  m = 1; /* yori sita チェック */;
-		} else {
-		  m = 0; /* yori ue チェック */;
-		}
+        j   = swtd[cn][lpt++].di;   /* 0=HP 1=MP 2=HP+変動量 3=MP+変動量 */
+		exp = swtd[cn][lpt++].dc;  /* 条件式 (> または <) */
+        k   = swtd[cn][lpt++].di;   /* 境界値 */
+        {
+          int mag25 = (j >= 2) ? swtd[cn][lpt++].di : 0;  /* 変動量下限 */
+          int d25;
 
-        switch (j) {
-        case 0: /* 現在HP */
-          if (cd[n].hp < k)
-            m = 1 - m;
-          break;
-        case 1: /* 現在MP */
-          if (cd[n].mp < k)
-            m = 1 - m;
-          break;
+          /* 変動した種別 (HP/MP) が一致しないレコードは起動しない */
+          if (sw25_change_kind != (j & 1))
+            continue;
+          /* 境界を跨いだ時だけ起動する: < は「境界値以下に減少した
+             時」、> は「境界値以上に増加した時」で、境界値ちょうどに
+             着地した場合も交差に数える。変動前から領域内にいた場合
+             (境界値ちょうどから更に内側へ動いた場合を含む) と、
+             領域から出る変動では起動しない。 */
+          if (exp == '<') {
+            if (sw25_change_old <= k || sw25_change_new > k)
+              continue;
+          } else {  /* '>' (それ以外も原典互換で '>' 扱い) */
+            if (sw25_change_old >= k || sw25_change_new < k)
+              continue;
+          }
+          /* 変動量下限: 跨いだ一回の変動の大きさが下限未満なら
+             起動しない (下限 0 は不問で、従来レコードの動作)。 */
+          d25 = sw25_change_new - sw25_change_old;
+          if (d25 < 0)
+            d25 = -d25;
+          if (d25 < mag25)
+            continue;
         }
+        m = 0;
       }
       /* ↑ADD */
 
