@@ -310,7 +310,10 @@ int use_item(int n, int in)
     i = cd[n].id[in].VALUE * 100 + cd[n].id[in].VALUE2;
     i *= cirate;
     i /= 100;
-    i = jb_gp_gain(n, i);  /* 商人ボーナス (PHIDM NEO extension)。換算後の実入りに対して */
+    /* 換金には商人ボーナス (jb_gp_gain) を付けない。額面=買値の通貨
+       アイテムを世界の両替機で循環させると、差額が tax から無償に
+       出てしまうため、換金は意図的に対象外 (v2.3.2 で除外)。
+       ボーナスが付くのは地面の GP 拾得と強奪だけ。 */
     dmprintf(n, 0, buf.data(), buf.size(),DMM_USE_JEWEL, i);
     check_write(n, buf.data());
     if (i > 9999 - cd[n].gp)

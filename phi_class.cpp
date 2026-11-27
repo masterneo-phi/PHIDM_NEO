@@ -1221,8 +1221,12 @@ int jb_matk_rate(int n)
 }
 
 /* A GP income amount with the merchant bonus applied. Applied at
- * the moments GP flows in as earnings: ground money pickup, jewel
- * exchange and robbery. Switch-spawned GP is deliberately not
+ * the moments GP flows in as earnings: ground money pickup and
+ * robbery. Jewel exchange is deliberately NOT routed through
+ * here: a par-valued currency item (face = purchase price)
+ * cycled through a world exchanger would mint the bonus out of
+ * tax for free, so exchange always pays exactly face x cirate
+ * (excluded since v2.3.2). Switch-spawned GP is deliberately not
  * routed through here at its spawn point (it is paid from tax by
  * the world), but ground money is indistinguishable at pickup
  * time, so spawned money picked up off the ground is bonused too. */
