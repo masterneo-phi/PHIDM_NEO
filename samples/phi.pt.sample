@@ -1,0 +1,74 @@
+# phi.pt -- ペットシステムの調整ファイル（PHIDM NEO V2.0～）
+# 世界のフォルダに置くと、ペットの能力値を標準から上書きできます。
+# 置かなくてもペットは標準値で動きます（phi.jb と違い、置かないことが無効化にはなりません）。
+# ペット自体はスイッチ動作92か Lua の dm.pet_* で初めて生まれます。
+# 書式は1行1命令で、「:」で始まらない行は読み飛ばされます（このコメント行も安全）。
+#
+#   :P <種類> <項目> <値>
+#   種類は fairy（妖精）／cat（猫）／dog（犬）／bird（鳥）、番号 1～4 でも可。
+#   共通項目（mp_max など）だけは種類に all が使えます。
+#
+# ペットは死にません。代わりに行動ごとに MP（魔法・回復系）と体力（物理系）を消費し、
+# 切れると回復するまで休みます。確率は最大50%、効果の期待値は主人の25%までに制限され、
+# 範囲外の値は自動で上限・下限に丸められます。
+#
+# 共通項目（all）:
+#   mp_max    MP の最大値（標準 100）
+#   st_max    体力の最大値（標準 100）
+#   regen_out 戦闘外の回復量／秒（標準 3）
+#   regen_in  戦闘中の回復量／秒（標準 1）
+#
+# 種類別の項目（使わない行動の項目は 0 のままです）:
+#   heal_pct  回復量＝主人の最大HPの %（上限 25）
+#   heal_thr  主人のHPがこの % 以下で回復する
+#   heal_cost 回復1回の MP 消費
+#   emg_thr   緊急回復の発動HP %（猫のみ）
+#   emg_cost  緊急回復の MP 消費
+#   emg_cd    緊急回復の再使用間隔・秒
+#   phys_rate 物理追撃の確率 %（上限 50）
+#   phys_pct  物理追撃の威力＝主人の攻撃の %（rate×pct は 2500 まで＝期待値25%）
+#   phys_cost 追撃1回の体力消費
+#   mag_rate  魔法追撃の確率 %（上限 50）
+#   mag_pct   魔法追撃の威力 %
+#   mag_cost  追撃1回の MP 消費
+#   sup_rate  支援詠唱の確率 %／間隔（鳥のみ、上限 50）
+#   sup_pct   支援の量 %
+#   sup_cost  支援1回の MP 消費
+#   sup_int   支援の間隔・秒
+#
+# 役割分担（標準）: 妖精＝万能型、猫＝回復メイン、犬＝物理攻撃メイン、鳥＝魔法攻撃メイン。
+#
+# ---- 以下は記入例（標準値をそのまま書いたもの。そのまま置いても標準動作） ----
+:P all mp_max 100
+:P all st_max 100
+:P all regen_out 3
+:P all regen_in 1
+:P fairy heal_pct 5
+:P fairy heal_thr 60
+:P fairy heal_cost 15
+:P fairy phys_rate 20
+:P fairy phys_pct 35
+:P fairy phys_cost 10
+:P fairy mag_rate 20
+:P fairy mag_pct 70
+:P fairy mag_cost 12
+:P cat heal_pct 10
+:P cat heal_thr 50
+:P cat heal_cost 20
+:P cat emg_thr 25
+:P cat emg_cost 30
+:P cat emg_cd 10
+:P cat mag_rate 15
+:P cat mag_pct 50
+:P cat mag_cost 12
+:P dog phys_rate 35
+:P dog phys_pct 50
+:P dog phys_cost 10
+:P bird mag_rate 35
+:P bird mag_pct 100
+:P bird mag_cost 12
+:P bird sup_rate 50
+:P bird sup_pct 50
+:P bird sup_cost 15
+:P bird sup_int 5
+.
