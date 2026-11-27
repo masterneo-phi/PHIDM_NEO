@@ -24,8 +24,9 @@
  *
  * This file also hosts the job / gender system (phi.jb), a light
  * title-like attribute for player characters:
- * jb_load()     : load phi.jb at startup. Without the file the whole
- *                 system is disabled and behavior is unchanged.
+ * jb_load()     : load phi.jb at startup and by the master spell
+ *                 "Load jb". Without the file the whole system is
+ *                 disabled and behavior is unchanged.
  * jb_job(n)     : character n's job (0 = unset, 1-9), read from the
  *                 "job:" ChrEx property stored in phi.cd.
  * jb_sex(n)     : character n's gender (0 = unset, 1, 2), likewise
@@ -46,7 +47,10 @@
  * This file also hosts the pet system (phi.pet / phi.pt), a
  * permanent, entity-less companion for player characters:
  * pet_load()    : load phi.pet (records) and phi.pt (tuning) at
- *                 startup. Without phi.pt the built-in defaults of
+ *                 startup. pet_pt_reload() re-reads the phi.pt
+ *                 tuning only (the master spell "Load pt"); the
+ *                 records are runtime state, never reloaded.
+ *                 Without phi.pt the built-in defaults of
  *                 the design table apply; the system itself is not
  *                 gated on the file (pets never leave the world:
  *                 phi.pet is per-world, unlike the ChrEx job data).
@@ -96,6 +100,7 @@ void jb_send_self(int n);
 void jb_send_chr(int n);
 void jb_send_chr_all(int n);
 void pet_load(void);
+void pet_pt_reload(void);
 int pet_save(int n);
 void pet_tick(int n);
 void pet_attack_begin(int n);

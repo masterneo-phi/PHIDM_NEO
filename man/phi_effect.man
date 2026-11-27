@@ -276,6 +276,10 @@
         Load sd                 phi.sd を再読み込み
         Load class              phi.cls を再読み込み (PHIDM NEO v1.7、
                                 権限 L)
+        Load jb                 phi.jb を再読み込み (PHIDM NEO、
+                                権限 L)
+        Load pt                 phi.pt を再読み込み (PHIDM NEO、
+                                権限 L)
         Load cmd                phi.cmd を再読み込み (権限 L)。
                                 phi.cmd については phi_command.man
                                 を参照

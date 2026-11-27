@@ -1667,6 +1667,20 @@ void spell_analyze(int n, char *spell)
       dmprintf(n, 0, buf, sizeof(buf),DMM_LOADCLASS_COMP);
       check_write(n, buf);
       return;
+    } else if (!std::strcmp(spell, "Load jb") && (i=have_authority(n,MS_LOAD,0,0))) {
+      dmprintf(n, 0, buf, sizeof(buf),DMM_LOADJB);
+      check_write(n, buf);
+      jb_load();
+      dmprintf(n, 0, buf, sizeof(buf),DMM_LOADJB_COMP);
+      check_write(n, buf);
+      return;
+    } else if (!std::strcmp(spell, "Load pt") && (i=have_authority(n,MS_LOAD,0,0))) {
+      dmprintf(n, 0, buf, sizeof(buf),DMM_LOADPT);
+      check_write(n, buf);
+      pet_pt_reload();
+      dmprintf(n, 0, buf, sizeof(buf),DMM_LOADPT_COMP);
+      check_write(n, buf);
+      return;
     } else if (!std::strcmp(spell, kCthulhu) && (i=have_authority(n,MS_SHUTDOWN,0,0))) {
       signal_trap(0xff);
       return;

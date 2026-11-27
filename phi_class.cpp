@@ -1881,10 +1881,12 @@ static void pet_pt_load(int *clamped)
 
 /* ---------------- phi.pet records ---------------- */
 
-void pet_load(void)
+/* Reload the phi.pt tuning only: the master spell "Load pt".
+ * The phi.pet records are per-character runtime state and are
+ * deliberately not reloaded here, mirroring "Load class", which
+ * reloads phi.cls but leaves the phi.qst string store alone. */
+void pet_pt_reload(void)
 {
-  pet_store.clear();
-  pet_loaded = 1;
   pet_cfg_defaults();
   int clamped = 0;
   pet_pt_load(&clamped);
@@ -1896,6 +1898,13 @@ void pet_load(void)
                   clamped);
     log_print(lbuf);
   }
+}
+
+void pet_load(void)
+{
+  pet_store.clear();
+  pet_loaded = 1;
+  pet_pt_reload();
   FILE *fp = efopen((char *)pet_file, (char *)"rb");
   if (!fp) {
     log_print((char *)"pet      : phi.pet not found"
