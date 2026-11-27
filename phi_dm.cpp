@@ -714,6 +714,7 @@ int    main(int argc, char **argv)
 		func_analyze(n, buf);
 	  else if (cd[n].st==ST_ATTACK || cd[n].st==ST_CAST || (cd[n].st!=ST_MSGW && cd[n].wt<=0))
 		input_analyze(n, buf);
+	  chr_position_switch_check(n);
 	  continue;
 	} else {
 	  if (!(i = read_line(n, buf, 240)))
